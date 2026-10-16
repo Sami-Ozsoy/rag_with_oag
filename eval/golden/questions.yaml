@@ -1,0 +1,100 @@
+# Each question: the documents whose text holds the answer (for retrieval
+# recall) and the answer keywords. "answer" is a list of groups; every group
+# must match, and a group matches if any of its alternatives occurs in the
+# answer (compared after folding case and Turkish characters).
+
+single_hop:
+  - q: HS-2024-01 sözleşmesinin aylık bedeli nedir?
+    docs: [hs_2024_01.md]
+    answer: [["150.000", "150000", "150 bin"]]
+  - q: Bulut Yazılım Ltd.'nin merkezi hangi şehirdedir?
+    docs: [sicil_bulut.md]
+    answer: [[Ankara]]
+  - q: KS-2023-07 kira sözleşmesinin süresi ne kadardır?
+    docs: [ks_2023_07.md]
+    answer: [["iki yıl", "2 yıl"]]
+  - q: Ege Enerji A.Ş.'nin vergi numarası nedir?
+    docs: [sicil_ege.md]
+    answer: [["4444444444"]]
+  - q: DS-2024-05 sözleşmesi hangi tarihte imzalandı?
+    docs: [ds_2024_05.md]
+    answer: [["20 Mayıs 2024", "2024-05-20", "20.05.2024"]]
+  - q: Toros Kimya A.Ş.'nin merkezi nerededir?
+    docs: [sicil_toros.md]
+    answer: [[Mersin]]
+  - q: HS-2024-01 sözleşmesinde fesih için kaç gün önceden bildirim gerekir?
+    docs: [hs_2024_01.md]
+    answer: [["otuz", "30"]]
+  - q: Delta Holding A.Ş.'nin genel merkezi hangi şehirdedir?
+    docs: [delta_faaliyet.md]
+    answer: [[İstanbul]]
+  - q: YS-2022-11 lisans sözleşmesinin tarafları kimlerdir?
+    docs: [ys_2022_11.md]
+    answer: [[Bulut], [Toros]]
+  - q: Zirve Gıda A.Ş.'nin ortağı kimdir?
+    docs: [sicil_zirve.md]
+    answer: [[Kuzey]]
+
+multi_hop:
+  - q: Atlas Lojistik'in hizmet aldığı şirketin ana ortağı kimdir?
+    docs: [hs_2024_01.md, sicil_bulut.md]
+    answer: [[Delta]]
+  - q: Zirve Gıda'ya enerji tedarik eden şirketin ortağı kimdir?
+    docs: [es_2024_03.md, sicil_ege.md]
+    answer: [[Delta]]
+  - q: Atlas Lojistik'in deposunu kiralayan şirketin ortağı kimdir?
+    docs: [ks_2023_07.md, sicil_zirve.md]
+    answer: [[Kuzey]]
+  - q: Kuzey Yatırım'ın ortağı olduğu şirketlerden hangisi danışmanlık hizmeti alıyor?
+    docs: [sicil_toros.md, ds_2024_05.md]
+    answer: [[Toros]]
+  - q: Bulut Yazılım'ın müşterilerinin merkezleri hangi şehirlerdedir?
+    docs: [hs_2024_01.md, ys_2022_11.md, sicil_atlas.md, sicil_toros.md]
+    answer: [[İzmir], [Mersin]]
+  - q: Toros Kimya'ya danışmanlık veren şirketin merkezi nerededir?
+    docs: [ds_2024_05.md, sicil_mavi.md]
+    answer: [[Antalya]]
+  - q: Delta Holding'in ortağı olduğu şirketlerin merkezleri hangi şehirlerdedir?
+    docs: [sicil_bulut.md, sicil_ege.md]
+    answer: [[Ankara], [Manisa]]
+  - q: Ege Enerji'nin enerji tedarik ettiği şirketin taraf olduğu kira sözleşmesinin numarası nedir?
+    docs: [es_2024_03.md, ks_2023_07.md]
+    answer: [["KS-2023-07"]]
+  - q: HS-2024-01 sözleşmesindeki hizmet sağlayıcının vergi numarası nedir?
+    docs: [hs_2024_01.md, sicil_bulut.md]
+    answer: [["2222222222"]]
+  - q: Delta Holding'in ortağı olduğu yazılım şirketi hangi sözleşmelerin tarafıdır?
+    docs: [sicil_bulut.md, hs_2024_01.md, ys_2022_11.md]
+    answer: [["HS-2024-01"], ["YS-2022-11"]]
+
+free_text:
+  - q: HS-2024-01 sözleşmesinde gecikme faizi oranı nedir?
+    docs: [hs_2024_01.md]
+    answer: [["yüzde 2", "%2", "% 2"]]
+  - q: Depo kira sözleşmesinde depozito ne kadardır?
+    docs: [ks_2023_07.md]
+    answer: [["üç aylık", "3 aylık"]]
+  - q: Enerji tedarik sözleşmesinde hangi olaylar mücbir sebep sayılır?
+    docs: [es_2024_03.md]
+    answer: [[deprem], [sel]]
+  - q: Danışmanlık sözleşmesinde gizlilik yükümlülüğü kaç yıl sürer?
+    docs: [ds_2024_05.md]
+    answer: [["beş yıl", "5 yıl"]]
+  - q: Üretim planlama yazılımı kaç kullanıcı için lisanslanmıştır?
+    docs: [ys_2022_11.md]
+    answer: [["250"]]
+  - q: Delta Holding'in 2023 yılı cirosu ne kadardır?
+    docs: [delta_faaliyet.md]
+    answer: [["4,2 milyar", "4.2 milyar"]]
+  - q: Sözleşme yönetim sisteminin bakımı ne zaman yapılacak?
+    docs: [duyuru_bakim.md]
+    answer: [[cumartesi]]
+  - q: Hizmet sözleşmesi kapsamında hangi yazılımlar işletilir?
+    docs: [hs_2024_01.md]
+    answer: [[filo], [depo]]
+  - q: Depo kira bedeli her yıl nasıl artırılır?
+    docs: [ks_2023_07.md]
+    answer: [[TÜFE]]
+  - q: Enerji tedarik sözleşmesinde birim fiyat neye göre belirlenir?
+    docs: [es_2024_03.md]
+    answer: [["PTF", "Piyasa Takas"]]
