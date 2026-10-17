@@ -48,10 +48,17 @@ class LLMClient:
     async def complete(self, messages: Sequence[Message], **kwargs: Any) -> str:
         response = await self._create(messages, **kwargs)
         choice = response.choices[0] if response.choices else None
-        # Cut-off JSON would look like a server without that feature; plain text is fine.
+        # Cut-off JSON would look like a server without that feature; cut-off text is
+        # still an answer, but no text at all would pass silently as one.
         if "response_format" in kwargs:
             self._check_finished(choice)
         content = choice.message.content if choice is not None else None
+        if not content and choice is not None and choice.finish_reason == "length":
+            raise OutputTruncatedError(
+                f"{self.model} hit its token limit before writing any answer (a reasoning "
+                "model may have spent it thinking). Raise LLMConfig.max_tokens; with Ollama, "
+                "raise the context window (num_ctx or OLLAMA_CONTEXT_LENGTH, 4096 by default)"
+            )
         return content or ""
 
     async def complete_tool(

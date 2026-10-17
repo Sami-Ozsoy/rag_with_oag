@@ -371,6 +371,20 @@ async def test_truncated_json_is_not_a_missing_feature(ontology: Ontology) -> No
     await client.aclose()
 
 
+async def test_answer_cut_off_before_any_text_is_an_error() -> None:
+    """A reasoning model that spends the whole budget thinking returns empty content."""
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        message = {"role": "assistant", "content": "", "reasoning": "Let me think..."}
+        return _reply(message, finish_reason="length")
+
+    sdk, _ = _sdk(handler)
+    client = LLMClient(LLMConfig(model="m", base_url="http://llm.test/v1"), client=sdk)
+    with pytest.raises(OutputTruncatedError, match="before writing any answer"):
+        await client.complete([{"role": "user", "content": "hi"}])
+    await client.aclose()
+
+
 async def test_real_client_json_schema_then_tools(ontology: Ontology) -> None:
     payload = fake_extraction("[K1] Atlas Lojistik A.Ş. burada.")
 

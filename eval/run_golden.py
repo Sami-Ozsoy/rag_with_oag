@@ -29,7 +29,7 @@ from typing import Any
 
 import yaml
 
-from rag_with_oag import AsyncKnowledgeBase, EmbedConfig, LLMConfig, Ontology
+from rag_with_oag import AsyncKnowledgeBase, EmbedConfig, LLMConfig, Ontology, RagOagError
 from rag_with_oag.types import MODES
 
 HERE = Path(__file__).parent
@@ -180,10 +180,17 @@ async def evaluate(
         retrieve_ms=(time.perf_counter() - t) * 1000,
     )
     if args.answers:
-        result = await kb.query(item["q"], mode=mode, k=k, hops=args.hops)
-        row.answer = result.answer
-        row.answer_ok = matches(result.answer, item["answer"])
+        try:
+            result = await kb.query(item["q"], mode=mode, k=k, hops=args.hops)
+        except RagOagError as exc:  # e.g. the answer model ran out of context
+            row.answer, row.answer_ok = f"{ANSWER_ERROR}{type(exc).__name__}: {exc}", False
+        else:
+            row.answer = result.answer
+            row.answer_ok = matches(result.answer, item["answer"])
     return row
+
+
+ANSWER_ERROR = "<error> "
 
 
 async def equal_budget_k(kb: AsyncKnowledgeBase, question: str, k: int, tokens: int) -> int:
@@ -245,6 +252,10 @@ def render(s: Summary, modes: list[str]) -> str:
             f"`{RAG_EQ}`: rag with k raised per question until its context is as "
             "large as hybrid's, so the comparison is at an equal token budget.",
         ]
+    errors = [r for r in s.rows if (r.answer or "").startswith(ANSWER_ERROR)]
+    if errors:
+        lines += ["", f"**{len(errors)} answers failed with an error** (counted as wrong):"]
+        lines += [f"- [{r.mode}] {r.question}: {r.answer}" for r in errors[:10]]
     misses = [r for r in s.rows if r.mode == "hybrid" and not r.context_hit]
     if misses:
         lines += ["", "Hybrid context misses:"]
