@@ -44,7 +44,10 @@ def from_yaml(source: str | Path) -> Ontology:
         text = Path(source).read_text(encoding="utf-8")
     else:
         text = source
-    data = yaml.safe_load(text)
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError as exc:
+        raise OntologyError(f"ontology is not valid YAML: {exc}") from exc
     if not isinstance(data, Mapping):
         raise OntologyError("ontology YAML must be a mapping with 'entities' (and 'relations')")
     return from_dict(data)

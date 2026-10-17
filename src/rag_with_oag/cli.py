@@ -13,6 +13,7 @@ import json
 import logging
 import sys
 from dataclasses import asdict
+from pathlib import Path
 from typing import Any
 
 from pydantic import ValidationError
@@ -65,6 +66,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(f"error: missing or invalid model settings: {missing}", file=sys.stderr)
         return 2
+    except (RagOagError, ValueError, OSError) as exc:  # bad ontology file, kb name, ...
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     try:
         with kb:
             if args.command == "ingest":
@@ -83,7 +87,8 @@ def _open(args: argparse.Namespace) -> KnowledgeBase:
         args.kb,
         path=args.path,
         url=args.url,
-        ontology=args.ontology,
+        # A Path, so a file name is never mistaken for inline YAML.
+        ontology=Path(args.ontology) if args.ontology else None,
         embedder=EmbedConfig(),  # type: ignore[call-arg]  # filled from env
         llm=LLMConfig() if needs_llm else None,  # type: ignore[call-arg]
     )

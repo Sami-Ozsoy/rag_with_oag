@@ -111,7 +111,10 @@ rag-with-oag query "..." --kb contracts --mode rag --retrieve-only --json
 Ingest, per document:
 
 1. **Load.** Files become `Document`s whose id is the content hash, so
-   re-ingesting unchanged content is a no-op.
+   re-ingesting unchanged content is a no-op. **An edited file is a new
+   document:** until v0.3 its old version stays in the graph and is still
+   retrieved. After editing documents, rebuild under a new knowledge base name
+   (or `await kb.store.drop()` with `AsyncKnowledgeBase`) and ingest again.
 2. **Chunk.** [adaptive-oci-chunking](https://pypi.org/project/adaptive-oci-chunking/)
    picks the best strategy per document. Each chunk keeps its section path and page.
 3. **Embed.** The embedding model and dimension are recorded in the graph. Opening

@@ -11,6 +11,10 @@ class ConfigError(RagOagError, ValueError):
     """Invalid or contradictory configuration."""
 
 
+class KnowledgeBaseClosedError(RagOagError, RuntimeError):
+    """The knowledge base was closed; its model clients are gone. Create a new one."""
+
+
 class ModeNotAvailableError(RagOagError):
     """The requested query mode cannot run on this knowledge base."""
 

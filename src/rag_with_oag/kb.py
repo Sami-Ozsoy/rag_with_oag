@@ -18,7 +18,7 @@ from typing import Any, Self, TypeVar
 from rag_with_oag.config import EmbedConfig, ExtractionConfig, LLMConfig, RetrievalConfig
 from rag_with_oag.embed.base import Embedder
 from rag_with_oag.embed.openai_compat import OpenAIEmbedder
-from rag_with_oag.errors import ConfigError, ModeNotAvailableError
+from rag_with_oag.errors import ConfigError, KnowledgeBaseClosedError, ModeNotAvailableError
 from rag_with_oag.generation.answer import answer
 from rag_with_oag.ingest.chunker import AdaptiveChunker, Chunker
 from rag_with_oag.ingest.graph_builder import GraphBuilder
@@ -113,11 +113,14 @@ class AsyncKnowledgeBase:
             self._hybrid = HybridRetriever(*args)
         self._open_lock = asyncio.Lock()
         self._opened = False
+        self._closed = False
 
     # --- lifecycle --------------------------------------------------------------
 
     async def open(self) -> Self:
         async with self._open_lock:
+            if self._closed:
+                raise KnowledgeBaseClosedError(f"knowledge base '{self.name}' is closed")
             if not self._opened:
                 await self._connection.open()
                 await self.store.init(embed_model=self.embedder.model, ontology=self.ontology)
@@ -125,12 +128,18 @@ class AsyncKnowledgeBase:
         return self
 
     async def close(self) -> None:
+        """Release the model clients and connection built here. Closing twice is harmless."""
         async with self._open_lock:
-            for client in self._owned_clients:
-                await client.aclose()
-            if self._owns_connection:
-                await self._connection.close()
+            if self._closed:
+                return
+            self._closed = True
             self._opened = False
+            try:
+                for client in self._owned_clients:
+                    await client.aclose()
+            finally:
+                if self._owns_connection:
+                    await self._connection.close()
 
     async def __aenter__(self) -> Self:
         return await self.open()
@@ -230,6 +239,9 @@ class KnowledgeBase:
             raise
 
     def _run(self, coro: Coroutine[Any, Any, T]) -> T:
+        if self._loop.is_closed():
+            coro.close()
+            raise KnowledgeBaseClosedError("knowledge base is closed")
         future: Future[T] = asyncio.run_coroutine_threadsafe(coro, self._loop)
         return future.result()
 

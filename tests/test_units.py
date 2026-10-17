@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from pydantic import SecretStr
+from pydantic import SecretStr, ValidationError
 
 from rag_with_oag import ConfigError, EmbedConfig, LLMConfig, RetrievalConfig
 from rag_with_oag._tokens import count_tokens, split_spans
@@ -45,8 +45,10 @@ def test_openai_key_is_only_sent_to_openai(monkeypatch: pytest.MonkeyPatch) -> N
 def test_retrieval_config_rejects_unknown_strategy() -> None:
     with pytest.raises(ValueError, match="unknown chunk strategies"):
         RetrievalConfig(chunk_strategies=("nope",))
-    with pytest.raises(ValueError, match="chunk_max_tokens"):
+    with pytest.raises(ValidationError, match="chunk_max_tokens must be >= chunk_min_tokens"):
         RetrievalConfig(chunk_min_tokens=400, chunk_max_tokens=100)
+    with pytest.raises(ValidationError, match="chunk_hard_max_tokens must be >= chunk_max_tokens"):
+        RetrievalConfig(chunk_max_tokens=800, chunk_hard_max_tokens=500)
 
 
 def test_connection_needs_exactly_one_target() -> None:
@@ -132,7 +134,9 @@ def test_adaptive_chunker_offsets_and_sections() -> None:
 
 def test_hard_max_is_enforced_in_model_tokens() -> None:
     text = "# Başlık\n\n" + ("Çalışanların ücretleri ödenmiştir. " * 400)
-    chunker = AdaptiveChunker(RetrievalConfig(chunk_hard_max_tokens=100))
+    # The adaptive target counts ASCII words, so 80 Turkish "tokens" are far more than 100.
+    config = RetrievalConfig(chunk_min_tokens=40, chunk_max_tokens=80, chunk_hard_max_tokens=100)
+    chunker = AdaptiveChunker(config)
     assert all(count_tokens(s.text) <= 100 for s in chunker.split(text))
 
 

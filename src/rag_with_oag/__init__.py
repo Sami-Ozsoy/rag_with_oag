@@ -6,6 +6,7 @@ from rag_with_oag.config import EmbedConfig, ExtractionConfig, LLMConfig, Retrie
 from rag_with_oag.errors import (
     ConfigError,
     EmbeddingMismatchError,
+    KnowledgeBaseClosedError,
     ModeNotAvailableError,
     OntologyError,
     OntologyMismatchError,
@@ -47,6 +48,7 @@ __all__ = [
     "Fact",
     "IngestReport",
     "KnowledgeBase",
+    "KnowledgeBaseClosedError",
     "LLMConfig",
     "Mode",
     "ModeNotAvailableError",

@@ -8,10 +8,10 @@ one ``.env``-style setup.
 from __future__ import annotations
 
 import os
-from typing import Literal
+from typing import Literal, Self
 from urllib.parse import urlsplit
 
-from pydantic import BaseModel, Field, SecretStr, field_validator
+from pydantic import BaseModel, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_BASE_URL = "https://api.openai.com/v1"
@@ -111,9 +111,13 @@ class RetrievalConfig(BaseModel):
             )
         return value
 
-    def model_post_init(self, __context: object) -> None:
+    @model_validator(mode="after")
+    def _chunk_sizes_in_order(self) -> Self:
         if self.chunk_max_tokens < self.chunk_min_tokens:
             raise ValueError("chunk_max_tokens must be >= chunk_min_tokens")
+        if self.chunk_hard_max_tokens < self.chunk_max_tokens:
+            raise ValueError("chunk_hard_max_tokens must be >= chunk_max_tokens")
+        return self
 
 
 class ExtractionConfig(BaseModel):

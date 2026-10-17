@@ -13,6 +13,7 @@ from rag_with_oag import (
     Document,
     EmbeddingMismatchError,
     KnowledgeBase,
+    KnowledgeBaseClosedError,
     ModeNotAvailableError,
 )
 from rag_with_oag.ingest.chunker import AdaptiveChunker
@@ -228,6 +229,24 @@ def test_sync_kb_persists_across_reopen(tmp_path: Path, corpus: Path) -> None:
             KnowledgeBase("contracts", path=db, embedder=FakeEmbedder(model="other")).ingest(corpus)
 
 
+async def test_closed_kb_refuses_work(connection: GraphConnection, kb_name: str) -> None:
+    kb = AsyncKnowledgeBase(kb_name, connection=connection, embedder=FakeEmbedder())
+    await kb.open()
+    await kb.store.drop()
+    await kb.close()
+    await kb.close()  # twice is fine
+    with pytest.raises(KnowledgeBaseClosedError, match="is closed"):
+        await kb.retrieve("x")
+
+
+def test_closed_sync_kb_refuses_work(tmp_path: Path) -> None:
+    kb = KnowledgeBase("contracts", path=tmp_path / "c.db", embedder=FakeEmbedder())
+    kb.close()
+    kb.close()
+    with pytest.raises(KnowledgeBaseClosedError):
+        kb.stats()
+
+
 # --- CLI ---------------------------------------------------------------------
 
 
@@ -257,3 +276,29 @@ def test_cli_ingest_and_retrieve(
         == 1
     )
     assert "needs an ontology" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("extra", "message"),
+    [
+        (["--ontology", "missing.yaml"], "No such file"),
+        (["--ontology", "BROKEN"], "not valid YAML"),
+        (["--kb", "bad-name"], "must match"),
+    ],
+)
+def test_cli_reports_setup_errors_without_traceback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    extra: list[str],
+    message: str,
+) -> None:
+    from rag_with_oag import cli
+
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "BROKEN").write_text("entities: [unclosed", encoding="utf-8")
+    monkeypatch.setattr(cli, "EmbedConfig", lambda: FakeEmbedder())
+    args = ["query", "x", "--retrieve-only", "--path", str(tmp_path / "cli.db"), *extra]
+    assert cli.main(args) == 2
+    err = capsys.readouterr().err
+    assert err.startswith("error: ") and message in err
