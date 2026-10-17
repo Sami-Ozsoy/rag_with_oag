@@ -157,13 +157,17 @@ passed as a parameter.
 
 ## Evaluation
 
-`eval/golden` holds a small contract corpus (13 documents), its ontology, and 30
+`eval/golden` holds a small contract corpus (14 documents), its ontology, and 33
 questions: single-hop, multi-hop and free-text. The runner compares the modes:
 
 ```bash
 python eval/run_golden.py --base-url http://localhost:11434/v1 \
-    --llm qwen2.5:7b-instruct --embed nomic-embed-text --answers
+    --llm qwen2.5:7b-instruct --embed nomic-embed-text --answers --equal-budget
 ```
+
+Hybrid hands the model more context than rag at the same `k`. `--equal-budget`
+adds `rag_eq`, rag with `k` raised per question until its context is as large as
+hybrid's, so the gate compares the modes at an equal token budget too.
 
 ## Development
 

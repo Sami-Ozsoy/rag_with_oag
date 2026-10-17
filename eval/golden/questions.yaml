@@ -34,6 +34,9 @@ single_hop:
   - q: Zirve Gıda A.Ş.'nin ortağı kimdir?
     docs: [sicil_zirve.md]
     answer: [[Kuzey]]
+  - q: Kuzey Yatırım A.Ş.'nin vergi numarası nedir?
+    docs: [kuzey_faaliyet.md]
+    answer: [["6666666666"]]
 
 multi_hop:
   - q: Atlas Lojistik'in hizmet aldığı şirketin ana ortağı kimdir?
@@ -66,6 +69,9 @@ multi_hop:
   - q: Delta Holding'in ortağı olduğu yazılım şirketi hangi sözleşmelerin tarafıdır?
     docs: [sicil_bulut.md, hs_2024_01.md, ys_2022_11.md]
     answer: [["HS-2024-01"], ["YS-2022-11"]]
+  - q: Zirve Gıda'nın ortağının merkezi hangi şehirdedir?
+    docs: [sicil_zirve.md, kuzey_faaliyet.md]
+    answer: [[Bursa]]
 
 free_text:
   - q: HS-2024-01 sözleşmesinde gecikme faizi oranı nedir?
@@ -98,3 +104,6 @@ free_text:
   - q: Enerji tedarik sözleşmesinde birim fiyat neye göre belirlenir?
     docs: [es_2024_03.md]
     answer: [["PTF", "Piyasa Takas"]]
+  - q: Kuzey Yatırım'ın 2023 yılı net kârı ne kadardır?
+    docs: [kuzey_faaliyet.md]
+    answer: [["780 milyon"]]
