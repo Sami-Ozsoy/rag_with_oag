@@ -59,6 +59,12 @@ Embedding models trained with instructions want them on every text, e.g.
 document_prefix="search_document: ")`. The document prefix is recorded with the
 model, so a knowledge base built with one refuses to open without it.
 
+For embeddings on the CPU without a server, install the `local` extra and pass
+`embedder=FastEmbedEmbedder(...)` (from `rag_with_oag.embed.local`). The default
+`BAAI/bge-small-en-v1.5` is small (67 MB) but English. For other languages a
+multilingual model such as `Qwen/Qwen3-Embedding-0.6B-Q` (1.1 GB, Apache-2.0) is
+the safer choice; its prefixes are filled in automatically.
+
 ## Ontology
 
 Write it in YAML, or build it from Pydantic classes with `Ontology.from_classes`.
