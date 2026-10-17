@@ -42,3 +42,10 @@ class OntologyMismatchError(RagOagError):
 
 class StructuredOutputError(RagOagError):
     """The model did not return valid structured output with any supported method."""
+
+
+class OutputTruncatedError(RagOagError):
+    """The model hit its token limit before finishing structured output.
+
+    Raise ``LLMConfig.max_tokens`` or lower ``ExtractionConfig.batch_size``.
+    """

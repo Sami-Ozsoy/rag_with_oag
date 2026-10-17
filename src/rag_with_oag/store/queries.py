@@ -198,10 +198,12 @@ MATCH (e:Entity {id: i})
 RETURN e.id, e.name, labels(e), properties(e)
 """
 
+# Shortest paths first, so a hub next to a seed cannot use up max_paths with its
+# own neighbours before the seed's other direct relations are reached.
 _EXPAND = """
 MATCH (s:Entity) WHERE s.id IN $seeds
 MATCH p = (s)-[:{rels}*1..{hops}]-(:Entity)
-WITH p LIMIT $max_paths
+WITH p ORDER BY length(p) LIMIT $max_paths
 UNWIND relationships(p) AS r
 WITH DISTINCT r
 RETURN startNode(r).id, type(r), properties(r), endNode(r).id

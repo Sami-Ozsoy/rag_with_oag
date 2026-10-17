@@ -8,11 +8,19 @@ from collections.abc import Sequence
 from typing import Any, Literal
 
 import httpx2
+import openai
 import pytest
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
 
-from rag_with_oag import LLMConfig, Ontology, OntologyError, Property, StructuredOutputError
+from rag_with_oag import (
+    LLMConfig,
+    Ontology,
+    OntologyError,
+    OutputTruncatedError,
+    Property,
+    StructuredOutputError,
+)
 from rag_with_oag._text import fold, fulltext_query
 from rag_with_oag.ingest.extractor import validate
 from rag_with_oag.llm import capabilities, structured
@@ -306,7 +314,7 @@ def _sdk(handler: Any) -> tuple[AsyncOpenAI, list[httpx2.Request]]:
     ), seen
 
 
-def _reply(message: dict[str, Any]) -> httpx2.Response:
+def _reply(message: dict[str, Any], finish_reason: str = "stop") -> httpx2.Response:
     return httpx2.Response(
         200,
         json={
@@ -314,9 +322,53 @@ def _reply(message: dict[str, Any]) -> httpx2.Response:
             "object": "chat.completion",
             "created": 0,
             "model": "m",
-            "choices": [{"index": 0, "finish_reason": "stop", "message": message}],
+            "choices": [{"index": 0, "finish_reason": finish_reason, "message": message}],
         },
     )
+
+
+async def _generate_with(client: LLMClient, ontology: Ontology) -> Any:
+    return await structured.generate(
+        client,
+        _extraction_messages(),
+        schema=extraction_schema(ontology),
+        model=RawExtraction,
+        name="extraction",
+    )
+
+
+async def test_input_too_long_is_not_a_missing_feature(ontology: Ontology) -> None:
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        error = {
+            "message": "This model's maximum context length is 8192 tokens.",
+            "code": "context_length_exceeded",
+        }
+        return httpx2.Response(400, json={"error": error})
+
+    sdk, seen = _sdk(handler)
+    client = LLMClient(LLMConfig(model="m", base_url="http://llm.test/v1"), client=sdk)
+    with pytest.raises(openai.BadRequestError, match="maximum context length"):
+        await _generate_with(client, ontology)
+    assert len(seen) == 1  # no pointless retries with the other methods
+    assert capabilities.detected(client) is None
+    await client.aclose()
+
+
+async def test_truncated_json_is_not_a_missing_feature(ontology: Ontology) -> None:
+    partial = '{"entities": [{"ref": "e1", "na'
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return _reply({"role": "assistant", "content": partial}, finish_reason="length")
+
+    sdk, seen = _sdk(handler)
+    client = LLMClient(LLMConfig(model="m", base_url="http://llm.test/v1"), client=sdk)
+    with pytest.raises(OutputTruncatedError, match="max_tokens"):
+        await _generate_with(client, ontology)
+    assert len(seen) == 1
+    assert capabilities.detected(client) is None
+    # Plain answers are not structured output: a cut-off one is still returned.
+    assert await client.complete([{"role": "user", "content": "hi"}]) == partial
+    await client.aclose()
 
 
 async def test_real_client_json_schema_then_tools(ontology: Ontology) -> None:

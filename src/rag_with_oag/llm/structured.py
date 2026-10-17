@@ -42,6 +42,19 @@ _UNSUPPORTED_ERRORS: tuple[type[Exception], ...] = (
 )
 
 
+# How OpenAI, vLLM, LM Studio and others word a 400 for an over-long input.
+_INPUT_TOO_LONG = re.compile(
+    r"context[ _](length|window)|maximum context|too many tokens|(prompt|input) is too long",
+    re.IGNORECASE,
+)
+
+
+def _input_too_long(exc: Exception) -> bool:
+    return getattr(exc, "code", None) == "context_length_exceeded" or bool(
+        _INPUT_TOO_LONG.search(str(exc))
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class StructuredResult[T: BaseModel]:
     value: T
@@ -69,6 +82,8 @@ async def generate[T: BaseModel](
                 raw = await _call(llm, method, convo, schema, name)
                 data = _parse_json(raw)
             except _UNSUPPORTED_ERRORS as exc:
+                if _input_too_long(exc):
+                    raise  # every method would fail the same way, and no feature is missing
                 failures.append(f"{method}: {type(exc).__name__}: {str(exc)[:200]}")
                 logger.info("structured method %s unavailable for %s: %s", method, llm.model, exc)
                 break  # next method

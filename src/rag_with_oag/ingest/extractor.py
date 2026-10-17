@@ -7,11 +7,12 @@ and bad enum values. Invalid output is sent back once with the error list;
 whatever is still invalid after that is dropped and reported.
 
 The result is split per chunk, so each chunk's extraction can be cached under
-(chunk text, ontology, model) and reused when the same text is seen again.
+(chunk text, ontology, model, prompt) and reused when the same text is seen again.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
@@ -90,6 +91,14 @@ class Extractor:
         self.validation_retries = validation_retries
         self.schema = extraction_schema(ontology)
         self._system = prompts.EXTRACTION_SYSTEM.format(ontology=ontology.describe())
+        # Part of the extraction cache key: a reworded prompt must not reuse old answers.
+        self.fingerprint = hashlib.sha256(
+            json.dumps(
+                [self._system, prompts.EXTRACTION_USER, self.schema],
+                sort_keys=True,
+                ensure_ascii=False,
+            ).encode()
+        ).hexdigest()[:16]
 
     async def extract(self, chunks: Sequence[Chunk]) -> BatchResult:
         labels = {f"K{i + 1}": chunk.id for i, chunk in enumerate(chunks)}

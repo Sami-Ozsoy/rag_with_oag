@@ -17,10 +17,14 @@ from rag_with_oag import (
     Ontology,
     OntologyMismatchError,
 )
+from rag_with_oag.config import ExtractionConfig
+from rag_with_oag.generation import prompts
 from rag_with_oag.ingest.extractor import ChunkGraph, EntityMention
+from rag_with_oag.ingest.graph_builder import GraphBuilder
 from rag_with_oag.ingest.resolver import EntityResolver
 from rag_with_oag.store.connection import GraphConnection
-from rag_with_oag.store.repository import GraphRepository
+from rag_with_oag.store.repository import EntityRow, GraphRepository, GraphWrite, RelationRow
+from rag_with_oag.types import Chunk
 
 from .conftest import CONTRACTS_ONTOLOGY, FakeEmbedder, FakeGraphLLM
 
@@ -286,6 +290,36 @@ async def test_two_keys_do_not_take_the_same_keyless_entity(
     await repo.write_graph(write, version="v")
     rows = await repo.query("MATCH (e:Sirket) RETURN e.vergi_no ORDER BY e.vergi_no")
     assert rows == [["1111111111"], ["2222222222"]]
+
+
+async def test_expansion_keeps_near_facts_when_paths_run_out(repo: GraphRepository) -> None:
+    """A hub one hop away must not spend the path budget before the seed's other neighbours."""
+    embedder = FakeEmbedder()
+    await repo.ensure_embedding_dim(model=embedder.model, dim=embedder.dim)
+    names = ["seed", "hub", *(f"far{i}" for i in range(30)), "near"]
+    entities = [
+        EntityRow(n, "Sirket", n, n, None, {}, (await embedder.embed([n]))[0]) for n in names
+    ]
+    edges = [("seed", "hub"), *(("hub", f"far{i}") for i in range(30)), ("seed", "near")]
+    relations = [RelationRow("ORTAGIDIR", s, t, {}, None, []) for s, t in edges]
+    await repo.write_graph(GraphWrite(entities=entities, relations=relations), version="v")
+
+    found = await repo.expand(["seed"], rel_types=["ORTAGIDIR"], hops=2, max_paths=5, max_facts=40)
+    pairs = {(e.source, e.target) for e in found}
+    assert {("seed", "hub"), ("seed", "near")} <= pairs
+
+
+def test_extraction_cache_key_follows_the_prompt(
+    repo: GraphRepository, ontology: Ontology, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def key() -> str:
+        builder = GraphBuilder(repo, FakeGraphLLM(), FakeEmbedder(), ontology, ExtractionConfig())
+        return builder.cache_key(Chunk("c1", "d1", 0, "Atlas Lojistik A.Ş.", 5, 0, 19))
+
+    before = key()
+    assert key() == before
+    monkeypatch.setattr(prompts, "EXTRACTION_SYSTEM", prompts.EXTRACTION_SYSTEM + "\n- Be brief.")
+    assert key() != before
 
 
 async def test_extraction_needs_a_model(

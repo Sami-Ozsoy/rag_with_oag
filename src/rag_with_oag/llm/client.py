@@ -14,6 +14,7 @@ from typing import Any, Protocol, runtime_checkable
 from openai import AsyncOpenAI
 
 from rag_with_oag.config import LLMConfig, resolve_api_key
+from rag_with_oag.errors import OutputTruncatedError
 
 Message = dict[str, Any]
 
@@ -46,7 +47,11 @@ class LLMClient:
 
     async def complete(self, messages: Sequence[Message], **kwargs: Any) -> str:
         response = await self._create(messages, **kwargs)
-        content = response.choices[0].message.content if response.choices else None
+        choice = response.choices[0] if response.choices else None
+        # Cut-off JSON would look like a server without that feature; plain text is fine.
+        if "response_format" in kwargs:
+            self._check_finished(choice)
+        content = choice.message.content if choice is not None else None
         return content or ""
 
     async def complete_tool(
@@ -63,9 +68,18 @@ class LLMClient:
             ],
             tool_choice={"type": "function", "function": {"name": name}},
         )
-        calls = response.choices[0].message.tool_calls if response.choices else None
+        choice = response.choices[0] if response.choices else None
+        self._check_finished(choice)
+        calls = choice.message.tool_calls if choice is not None else None
         function = getattr(calls[0], "function", None) if calls else None  # not a custom tool
         return function.arguments if function is not None else None
+
+    def _check_finished(self, choice: Any) -> None:
+        if choice is not None and choice.finish_reason == "length":
+            raise OutputTruncatedError(
+                f"{self.model} hit its token limit before finishing the JSON; raise "
+                "LLMConfig.max_tokens or lower ExtractionConfig.batch_size"
+            )
 
     async def _create(self, messages: Sequence[Message], **kwargs: Any) -> Any:
         params: dict[str, Any] = {"temperature": self.config.temperature}

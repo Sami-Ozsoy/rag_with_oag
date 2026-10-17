@@ -133,7 +133,7 @@ Ingest, per document:
 10. **Report.** `IngestReport` covers documents, chunks, entities, relations,
     rejected extraction items, unmapped concepts and token usage.
 
-Extraction results are cached per (chunk text, ontology, model). A document whose
+Extraction results are cached per (chunk text, ontology, model, prompt). A document whose
 extraction failed keeps its chunks and is retried on the next ingest.
 
 `kb.store.query(cypher, params)` runs raw Cypher. It is documented but sits

@@ -70,7 +70,10 @@ class GraphBuilder:
         self._write_lock = asyncio.Lock()
 
     def cache_key(self, chunk: Chunk) -> str:
-        raw = f"{content_hash(chunk.text)}|{self.version}|{self.llm.model}"
+        raw = (
+            f"{content_hash(chunk.text)}|{self.version}|{self.llm.model}"
+            f"|{self.extractor.fingerprint}"
+        )
         return hashlib.sha256(raw.encode()).hexdigest()
 
     async def build(self, doc: Document, chunks: Sequence[Chunk]) -> BuildResult:
