@@ -15,6 +15,8 @@ class OpenAIEmbedder:
     def __init__(self, config: EmbedConfig, *, client: AsyncOpenAI | None = None) -> None:
         self.config = config
         self.model = config.model
+        self.query_prefix = config.query_prefix
+        self.document_prefix = config.document_prefix
         self.usage: Counter[str] = Counter()
         self._client = client or AsyncOpenAI(
             base_url=config.base_url,

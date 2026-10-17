@@ -27,7 +27,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from rag_with_oag._text import fold
-from rag_with_oag.embed.base import Embedder
+from rag_with_oag.embed.base import Embedder, embed_documents
 from rag_with_oag.ingest.extractor import ChunkGraph, EntityMention
 from rag_with_oag.ontology.model import Ontology
 from rag_with_oag.store.repository import EntityRow, GraphRepository, GraphWrite, RelationRow
@@ -109,7 +109,7 @@ class EntityResolver:
         remap = self._merge_within_write(merged)
         await self._match_graph(merged, remap)
         survivors = [e for e in merged.values() if e.id not in remap]
-        vectors = await self.embedder.embed([self._text(e) for e in survivors])
+        vectors = await embed_documents(self.embedder, [self._text(e) for e in survivors])
         embedding = {e.id: list(v) for e, v in zip(survivors, vectors, strict=True)}
         remap.update(await self._similar_merges(survivors, embedding, remap))
 
@@ -133,7 +133,9 @@ class EntityResolver:
         missing = [e for e in rows.values() if e.id not in row_vec]
         if missing:  # merged into graph entities: their node exists, vector only for MERGE
             for e, v in zip(
-                missing, await self.embedder.embed([self._text(e) for e in missing]), strict=True
+                missing,
+                await embed_documents(self.embedder, [self._text(e) for e in missing]),
+                strict=True,
             ):
                 row_vec[e.id] = list(v)
 

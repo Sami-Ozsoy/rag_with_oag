@@ -15,7 +15,7 @@ import asyncio
 from collections.abc import Sequence
 
 from rag_with_oag.config import RetrievalConfig
-from rag_with_oag.embed.base import Embedder
+from rag_with_oag.embed.base import Embedder, embed_queries
 from rag_with_oag.ontology.model import Ontology
 from rag_with_oag.retrieval.context import assemble, pack_chunks, pack_facts
 from rag_with_oag.retrieval.linking import rrf
@@ -48,7 +48,7 @@ class HybridRetriever:
         cfg = self.config
         k = k or cfg.k
         if vector is None:
-            [vector] = await self.embedder.embed([question])
+            [vector] = await embed_queries(self.embedder, [question])
         seeds, rag_hits = await asyncio.gather(
             self.oag.linker.link(question, vector), self.repo.search_chunks(vector, k)
         )

@@ -61,6 +61,12 @@ class EmbedConfig(BaseSettings):
     api_key: SecretStr | None = None
     batch_size: int = Field(default=64, ge=1, le=2048)
     dimensions: int | None = Field(default=None, ge=1)
+    query_prefix: str = Field(
+        default="", description="prepended to questions, e.g. 'search_query: ' for nomic"
+    )
+    document_prefix: str = Field(
+        default="", description="prepended to chunks and entities, e.g. 'search_document: '"
+    )
     timeout: float = Field(default=60.0, gt=0)
     max_retries: int = Field(default=3, ge=0)
 

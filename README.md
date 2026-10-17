@@ -54,6 +54,11 @@ API keys: pass `api_key=` or set `RAG_OAG_LLM_API_KEY` / `RAG_OAG_EMBED_API_KEY`
 `OPENAI_API_KEY` is used only when `base_url` points at OpenAI itself; it is never
 sent to OpenRouter, Groq or any other server.
 
+Embedding models trained with instructions want them on every text, e.g.
+`EmbedConfig(model="nomic-embed-text", query_prefix="search_query: ",
+document_prefix="search_document: ")`. The document prefix is recorded with the
+model, so a knowledge base built with one refuses to open without it.
+
 ## Ontology
 
 Write it in YAML, or build it from Pydantic classes with `Ontology.from_classes`.

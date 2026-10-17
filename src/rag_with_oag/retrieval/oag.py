@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from rag_with_oag.config import RetrievalConfig
-from rag_with_oag.embed.base import Embedder
+from rag_with_oag.embed.base import Embedder, embed_queries
 from rag_with_oag.ontology.model import Ontology
 from rag_with_oag.retrieval.context import assemble, pack_facts
 from rag_with_oag.retrieval.linking import EntityLinker
@@ -86,7 +86,7 @@ class OAGRetriever:
         self, question: str, *, hops: int | None = None, vector: Sequence[float] | None = None
     ) -> RetrievedContext:
         if vector is None:
-            [vector] = await self.embedder.embed([question])
+            [vector] = await embed_queries(self.embedder, [question])
         seeds = await self.linker.link(question, vector)
         if not seeds:
             return assemble(question, "oag")

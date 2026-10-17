@@ -16,7 +16,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from rag_with_oag._tokens import count_tokens
-from rag_with_oag.embed.base import Embedder
+from rag_with_oag.embed.base import Embedder, embed_documents, embedder_identity
 from rag_with_oag.errors import EmbeddingMismatchError
 from rag_with_oag.ingest.chunker import Chunker, page_index
 from rag_with_oag.ingest.graph_builder import BuildResult, GraphBuilder
@@ -121,8 +121,10 @@ class IngestPipeline:
             chunks = await asyncio.to_thread(build_chunks, doc, self.chunker)
             if not chunks:
                 raise ValueError("document has no text to index")
-            vectors = await self.embedder.embed([embedding_text(doc, c) for c in chunks])
-            await self.repo.ensure_embedding_dim(model=self.embedder.model, dim=len(vectors[0]))
+            vectors = await embed_documents(self.embedder, [embedding_text(doc, c) for c in chunks])
+            await self.repo.ensure_embedding_dim(
+                model=embedder_identity(self.embedder), dim=len(vectors[0])
+            )
             await self.repo.write_document(doc, chunks, vectors)
             written = len(chunks)
         graph = await builder.build(doc, chunks) if builder is not None and needs_graph else None

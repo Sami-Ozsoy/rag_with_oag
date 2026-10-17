@@ -16,7 +16,7 @@ from types import TracebackType
 from typing import Any, Self, TypeVar
 
 from rag_with_oag.config import EmbedConfig, ExtractionConfig, LLMConfig, RetrievalConfig
-from rag_with_oag.embed.base import Embedder
+from rag_with_oag.embed.base import Embedder, embedder_identity
 from rag_with_oag.embed.openai_compat import OpenAIEmbedder
 from rag_with_oag.errors import ConfigError, KnowledgeBaseClosedError, ModeNotAvailableError
 from rag_with_oag.generation.answer import answer
@@ -123,7 +123,9 @@ class AsyncKnowledgeBase:
                 raise KnowledgeBaseClosedError(f"knowledge base '{self.name}' is closed")
             if not self._opened:
                 await self._connection.open()
-                await self.store.init(embed_model=self.embedder.model, ontology=self.ontology)
+                await self.store.init(
+                    embed_model=embedder_identity(self.embedder), ontology=self.ontology
+                )
                 self._opened = True
         return self
 

@@ -229,6 +229,30 @@ def test_sync_kb_persists_across_reopen(tmp_path: Path, corpus: Path) -> None:
             KnowledgeBase("contracts", path=db, embedder=FakeEmbedder(model="other")).ingest(corpus)
 
 
+async def test_prefixes_mark_queries_and_documents(
+    connection: GraphConnection, kb_name: str
+) -> None:
+    embedder = FakeEmbedder()
+    embedder.query_prefix, embedder.document_prefix = "search_query: ", "search_document: "  # type: ignore[attr-defined]
+    kb = AsyncKnowledgeBase(kb_name, connection=connection, embedder=embedder)
+    try:
+        await kb.ingest([Document.from_text("Kira bedeli yıllık artar.", source="kira.txt")])
+        await kb.retrieve("kira artışı")
+        [stored, asked] = embedder.calls
+        assert all(t.startswith("search_document: ") for t in stored)
+        assert asked == ["search_query: kira artışı"]
+        [[model]] = await kb.store.query("MATCH (m:Meta) RETURN m.embed_model")
+        assert model == "fake-embed (document prefix 'search_document: ')"
+
+        # Vectors stored with a prefix do not mix with vectors embedded without one.
+        plain = AsyncKnowledgeBase(kb_name, connection=connection, embedder=FakeEmbedder())
+        with pytest.raises(EmbeddingMismatchError, match="document prefix"):
+            await plain.open()
+    finally:
+        await kb.store.drop()
+        await kb.close()
+
+
 async def test_closed_kb_refuses_work(connection: GraphConnection, kb_name: str) -> None:
     kb = AsyncKnowledgeBase(kb_name, connection=connection, embedder=FakeEmbedder())
     await kb.open()
