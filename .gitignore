@@ -13,3 +13,4 @@ htmlcov/
 *.falkordb
 spikes/out/
 eval/out/
+.DS_Store

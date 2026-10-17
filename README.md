@@ -37,10 +37,10 @@ report = kb.ingest(["docs/"])  # txt, md, rst, html (+ pdf with the extra)
 report.unmapped_concepts[:10]  # concepts the ontology could not express
 
 res = kb.query("Which company owns the provider in contract HS-2024-01?")  # hybrid by default
-print(res.answer)     # cites facts as [F1] and passages as [C1]
-res.facts             # typed facts from the graph
-res.chunks            # source passages
-res.mode_used         # "hybrid", or "rag" if no entity in the question could be linked
+print(res.answer)  # cites facts as [F1] and passages as [C1]
+res.facts  # typed facts from the graph
+res.chunks  # source passages
+res.mode_used  # "hybrid", or "rag" if no entity in the question could be linked
 
 ctx = kb.retrieve("...", mode="oag", hops=2)  # retrieval only, no LLM call
 kb.close()
