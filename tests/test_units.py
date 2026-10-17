@@ -5,9 +5,11 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pydantic import SecretStr
 
 from rag_with_oag import ConfigError, EmbedConfig, LLMConfig, RetrievalConfig
 from rag_with_oag._tokens import count_tokens, split_spans
+from rag_with_oag.config import resolve_api_key
 from rag_with_oag.generation.answer import cited
 from rag_with_oag.ingest.chunker import AdaptiveChunker, TokenWindowChunker, page_index
 from rag_with_oag.ingest.loaders import iter_paths, load_path
@@ -27,6 +29,17 @@ def test_config_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     llm = LLMConfig()  # type: ignore[call-arg]
     assert (llm.model, llm.base_url) == ("qwen", "http://localhost:8000/v1")
     assert EmbedConfig().model == "bge"  # type: ignore[call-arg]
+
+
+def test_openai_key_is_only_sent_to_openai(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-openai")
+    assert resolve_api_key(None, "https://api.openai.com/v1") == "sk-openai"
+    assert resolve_api_key(None, "https://openrouter.ai/api/v1") == "not-needed"
+    assert resolve_api_key(None, "http://localhost:11434/v1") == "not-needed"
+    assert resolve_api_key(None, "https://api.openai.com.evil.example/v1") == "not-needed"
+    assert resolve_api_key(SecretStr("sk-or"), "https://openrouter.ai/api/v1") == "sk-or"
+    monkeypatch.delenv("OPENAI_API_KEY")
+    assert resolve_api_key(None, "https://api.openai.com/v1") == "not-needed"
 
 
 def test_retrieval_config_rejects_unknown_strategy() -> None:

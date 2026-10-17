@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import os
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -22,11 +23,18 @@ DEFAULT_CHUNK_STRATEGIES: tuple[str, ...] = (
 )
 
 
-def resolve_api_key(api_key: SecretStr | None) -> str:
-    """OpenAI-compatible servers such as vLLM or Ollama ignore the key, but the SDK requires one."""
+def resolve_api_key(api_key: SecretStr | None, base_url: str) -> str:
+    """The configured key, else ``OPENAI_API_KEY`` for OpenAI itself, else a placeholder.
+
+    ``OPENAI_API_KEY`` is never sent to any other server: it would hand an OpenAI
+    secret to whoever runs that endpoint. Servers such as vLLM or Ollama ignore the
+    key, but the SDK requires one.
+    """
     if api_key is not None:
         return api_key.get_secret_value()
-    return os.environ.get("OPENAI_API_KEY") or "not-needed"
+    if urlsplit(base_url).hostname == urlsplit(DEFAULT_BASE_URL).hostname:
+        return os.environ.get("OPENAI_API_KEY") or "not-needed"
+    return "not-needed"
 
 
 class LLMConfig(BaseSettings):

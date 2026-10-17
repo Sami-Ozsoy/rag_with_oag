@@ -35,7 +35,7 @@ class LLMClient:
         self.usage: Counter[str] = Counter()
         self._client = client or AsyncOpenAI(
             base_url=config.base_url,
-            api_key=resolve_api_key(config.api_key),
+            api_key=resolve_api_key(config.api_key, config.base_url),
             timeout=config.timeout,
             max_retries=config.max_retries,
         )

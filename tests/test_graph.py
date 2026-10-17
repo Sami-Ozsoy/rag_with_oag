@@ -17,7 +17,10 @@ from rag_with_oag import (
     Ontology,
     OntologyMismatchError,
 )
+from rag_with_oag.ingest.extractor import ChunkGraph, EntityMention
+from rag_with_oag.ingest.resolver import EntityResolver
 from rag_with_oag.store.connection import GraphConnection
+from rag_with_oag.store.repository import GraphRepository
 
 from .conftest import CONTRACTS_ONTOLOGY, FakeEmbedder, FakeGraphLLM
 
@@ -241,6 +244,48 @@ async def test_invalid_extraction_is_corrected_once(
         assert "unknown entity type 'Kisi'" in feedback
     finally:
         await kb.store.drop()
+
+
+async def test_keyed_mention_joins_keyless_graph_entity_without_looping(
+    repo: GraphRepository, ontology: Ontology
+) -> None:
+    embedder = FakeEmbedder()
+    await repo.ensure_embedding_dim(model=embedder.model, dim=embedder.dim)
+    resolver = EntityResolver(repo, embedder, ontology, similarity=0.92)
+
+    def bulut(**props: Any) -> ChunkGraph:
+        return ChunkGraph(entities=[EntityMention("e1", "Sirket", "Bulut Yazılım", None, props)])
+
+    # The company is first seen without its tax number...
+    first = await resolver.resolve({"c1": bulut()})
+    await repo.write_graph(first, version="v")
+    # ...then one document names it both without and with the tax number.
+    write = await resolver.resolve({"c2": bulut(), "c3": bulut(vergi_no="1234567890")})
+    assert [(e.id, e.props) for e in write.entities] == [
+        (first.entities[0].id, {"vergi_no": "1234567890"})
+    ]
+    await repo.write_graph(write, version="v")
+    assert await repo.query("MATCH (e:Sirket) RETURN e.vergi_no") == [["1234567890"]]
+
+
+async def test_two_keys_do_not_take_the_same_keyless_entity(
+    repo: GraphRepository, ontology: Ontology
+) -> None:
+    embedder = FakeEmbedder()
+    await repo.ensure_embedding_dim(model=embedder.model, dim=embedder.dim)
+    resolver = EntityResolver(repo, embedder, ontology, similarity=0.92)
+
+    def bulut(chunk: str, **props: Any) -> dict[str, ChunkGraph]:
+        mention = EntityMention("e1", "Sirket", "Bulut Yazılım", None, props)
+        return {chunk: ChunkGraph(entities=[mention])}
+
+    await repo.write_graph(await resolver.resolve(bulut("c1")), version="v")
+    write = await resolver.resolve(
+        {**bulut("c2", vergi_no="1111111111"), **bulut("c3", vergi_no="2222222222")}
+    )
+    await repo.write_graph(write, version="v")
+    rows = await repo.query("MATCH (e:Sirket) RETURN e.vergi_no ORDER BY e.vergi_no")
+    assert rows == [["1111111111"], ["2222222222"]]
 
 
 async def test_extraction_needs_a_model(

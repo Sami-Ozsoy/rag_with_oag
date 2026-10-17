@@ -50,6 +50,10 @@ Any OpenAI-compatible endpoint works for the LLM, the extraction model
 (`extractor_llm=`, defaults to `llm`) and the embedder: OpenAI, vLLM, Ollama,
 LM Studio, OpenRouter, Groq. Use `AsyncKnowledgeBase` for the same API with `await`.
 
+API keys: pass `api_key=` or set `RAG_OAG_LLM_API_KEY` / `RAG_OAG_EMBED_API_KEY`.
+`OPENAI_API_KEY` is used only when `base_url` points at OpenAI itself; it is never
+sent to OpenRouter, Groq or any other server.
+
 ## Ontology
 
 Write it in YAML, or build it from Pydantic classes with `Ontology.from_classes`.

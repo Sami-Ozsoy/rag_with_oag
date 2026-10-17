@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import datetime as dt
+import re
 from collections.abc import Mapping
+from decimal import Decimal, InvalidOperation
 from typing import TYPE_CHECKING, Any
 
 from rag_with_oag.ontology.model import (
@@ -104,11 +106,16 @@ def _coerce(prop: Property, value: Any) -> Any:
         case "integer":
             if isinstance(value, bool):
                 raise ValueError(f"expected an integer, got {value!r}")
-            return int(str(value).replace(" ", "").replace(".", "").replace(",", ""))
+            if isinstance(value, int):
+                return value
+            number = _parse_number(value)
+            if number != number.to_integral_value():
+                raise ValueError(f"expected an integer, got {value!r}")
+            return int(number)
         case "number":
             if isinstance(value, bool):
                 raise ValueError(f"expected a number, got {value!r}")
-            return float(value)
+            return float(_parse_number(value))
         case "boolean":
             if isinstance(value, bool):
                 return value
@@ -130,3 +137,33 @@ def _coerce(prop: Property, value: Any) -> Any:
                     return allowed
             raise ValueError(f"{value!r} is not one of {list(prop.values or ())}")
     raise ValueError(f"unknown property type {prop.type!r}")  # pragma: no cover
+
+
+def _parse_number(value: Any) -> Decimal:
+    """A number as models write it, with Turkish or English digit grouping.
+
+    With both separators the last one is the decimal point ("1.500,5", "1,500.5").
+    A repeated separator groups thousands ("1.500.000"), and so does a single one
+    followed by exactly three digits ("1.500" = 1500, but "0.125" stays a fraction).
+    Anything else is the decimal point ("12,5"). Spaces and "%" are ignored.
+    """
+    if isinstance(value, int | float):
+        number = Decimal(str(value))
+    else:
+        text = re.sub(r"[\s%]", "", str(value))
+        dot, comma = text.rfind("."), text.rfind(",")
+        if dot != -1 and comma != -1:
+            point, group = (".", ",") if dot > comma else (",", ".")
+            text = text.replace(group, "").replace(point, ".")
+        elif dot != -1 or comma != -1:
+            sep = "." if dot != -1 else ","
+            head, _, tail = text.rpartition(sep)
+            grouped = len(tail) == 3 and head.lstrip("+-") not in ("", "0")
+            text = text.replace(sep, "" if text.count(sep) > 1 or grouped else ".")
+        try:
+            number = Decimal(text)
+        except InvalidOperation:
+            raise ValueError(f"expected a number, got {value!r}") from None
+    if not number.is_finite():
+        raise ValueError(f"expected a number, got {value!r}")
+    return number

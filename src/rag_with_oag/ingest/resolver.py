@@ -107,15 +107,19 @@ class EntityResolver:
             return GraphWrite()
 
         remap = self._merge_within_write(merged)
-        remap.update(await self._match_graph(merged, remap))
+        await self._match_graph(merged, remap)
         survivors = [e for e in merged.values() if e.id not in remap]
         vectors = await self.embedder.embed([self._text(e) for e in survivors])
         embedding = {e.id: list(v) for e, v in zip(survivors, vectors, strict=True)}
         remap.update(await self._similar_merges(survivors, embedding, remap))
 
         def final(eid: str) -> str:
+            seen = {eid}
             while eid in remap:
                 eid = remap[eid]
+                if eid in seen:  # a bug, but fail the document instead of hanging the loop
+                    raise RuntimeError(f"entity resolution loops through {eid}")
+                seen.add(eid)
             return eid
 
         rows: dict[str, _Merged] = {}
@@ -204,10 +208,9 @@ class EntityResolver:
                     remap[e.id] = target
         return remap
 
-    async def _match_graph(
-        self, merged: Mapping[str, _Merged], remap: Mapping[str, str]
-    ) -> dict[str, str]:
-        found: dict[str, str] = {}
+    async def _match_graph(self, merged: Mapping[str, _Merged], remap: dict[str, str]) -> None:
+        """Point entities at the graph nodes they already are, updating ``remap`` in place."""
+        claimed: set[str] = set()  # key-less graph nodes a keyed entity of this write took
         for e in merged.values():
             if e.id in remap:
                 continue
@@ -215,14 +218,20 @@ class EntityResolver:
             if e.key:
                 target = await self.repo.find_entity_by_key(e.type, e.key, e.props[e.key])
                 if target is None:
-                    target = await self.repo.find_entity_by_name(
-                        e.type, fold(e.name), keyless=e.key
-                    )
+                    named = await self.repo.find_entity_by_name(e.type, fold(e.name), keyless=e.key)
+                    # Keys win over names: a second key value must not take the same node.
+                    if named is not None and named not in claimed:
+                        claimed.add(named)
+                        target = named
             else:
                 target = await self.repo.find_entity_by_name(e.type, fold(e.name))
-            if target is not None and target != e.id:
-                found[e.id] = target
-        return found
+            if target is None or target == e.id:
+                continue
+            # The graph node is canonical. If this write folded that node's own key-less
+            # mention into ``e``, undo it, or the two would point at each other.
+            if remap.get(target) == e.id:
+                del remap[target]
+            remap[e.id] = target
 
     async def _similar_merges(
         self,

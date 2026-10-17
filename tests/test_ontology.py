@@ -12,7 +12,7 @@ import pytest
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
 
-from rag_with_oag import LLMConfig, Ontology, OntologyError, StructuredOutputError
+from rag_with_oag import LLMConfig, Ontology, OntologyError, Property, StructuredOutputError
 from rag_with_oag._text import fold, fulltext_query
 from rag_with_oag.ingest.extractor import validate
 from rag_with_oag.llm import capabilities, structured
@@ -144,6 +144,60 @@ def test_coerce_properties(ontology: Ontology) -> None:
     assert clean == {"imza_tarihi": "2024-03-01"}
     _, errors = coerce_properties(sozlesme.properties, {"imza_tarihi": "1 Mart 2024"}, "e")
     assert errors and "YYYY-MM-DD" in errors[0]
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (3, 3),
+        (3.0, 3),
+        ("42", 42),
+        ("1.500", 1500),
+        ("1,500", 1500),
+        ("1.500.000", 1500000),
+        ("1 500 000", 1500000),
+        ("1.500.000,00", 1500000),
+        (2.5, None),
+        ("12,5", None),
+        ("on iki", None),
+        (True, None),
+    ],
+)
+def test_coerce_integer(value: Any, expected: int | None) -> None:
+    props = (Property(name="adet", type="integer"),)
+    clean, errors = coerce_properties(props, {"adet": value}, "e")
+    if expected is None:
+        assert errors and not clean
+    else:
+        assert clean == {"adet": expected} and not errors
+        assert type(clean["adet"]) is int
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (60, 60.0),
+        (2.5, 2.5),
+        ("12,5", 12.5),
+        ("12.5", 12.5),
+        ("%40", 40.0),
+        ("% 40", 40.0),
+        ("0.125", 0.125),
+        ("1.500", 1500.0),
+        ("1.500.000,50", 1500000.5),
+        ("1,500,000.50", 1500000.5),
+        ("-3,75", -3.75),
+        ("yüzde altmış", None),
+        ("NaN", None),
+    ],
+)
+def test_coerce_number(value: Any, expected: float | None) -> None:
+    props = (Property(name="oran", type="number"),)
+    clean, errors = coerce_properties(props, {"oran": value}, "e")
+    if expected is None:
+        assert errors and not clean
+    else:
+        assert clean == {"oran": expected} and not errors
 
 
 def test_validate_splits_per_chunk_and_reports_errors(ontology: Ontology) -> None:
