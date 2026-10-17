@@ -11,11 +11,15 @@ behind them in a single context.
 
 ## Install
 
+Not on PyPI yet; install from GitHub:
+
 ```bash
-pip install rag_with_oag            # embedded FalkorDB included, no server needed
-pip install "rag_with_oag[pdf]"     # PDF loading
-pip install "rag_with_oag[local]"   # local CPU embeddings (fastembed)
+pip install "rag_with_oag @ git+https://github.com/Sami-Ozsoy/rag_with_oag"
+pip install "rag_with_oag[pdf] @ git+https://github.com/Sami-Ozsoy/rag_with_oag"    # PDF loading
+pip install "rag_with_oag[local] @ git+https://github.com/Sami-Ozsoy/rag_with_oag"  # CPU embeddings
 ```
+
+The embedded FalkorDB comes with the package, so no server is needed.
 
 Python 3.12+. On macOS the embedded database needs OpenMP: `brew install libomp`.
 

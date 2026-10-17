@@ -50,7 +50,7 @@ dev = [
 rag-with-oag = "rag_with_oag.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/samiozsoy/rag_with_oag"
+Homepage = "https://github.com/Sami-Ozsoy/rag_with_oag"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/rag_with_oag"]
