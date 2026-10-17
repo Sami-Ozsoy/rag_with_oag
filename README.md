@@ -54,6 +54,11 @@ Any OpenAI-compatible endpoint works for the LLM, the extraction model
 (`extractor_llm=`, defaults to `llm`) and the embedder: OpenAI, vLLM, Ollama,
 LM Studio, OpenRouter, Groq. Use `AsyncKnowledgeBase` for the same API with `await`.
 
+With Ollama, raise the context window: it serves 4096 tokens by default, which a
+hybrid context alone can fill (`OLLAMA_CONTEXT_LENGTH=16384`, or a model with
+`PARAMETER num_ctx 16384`). A model that runs out before answering raises
+`OutputTruncatedError`.
+
 API keys: pass `api_key=` or set `RAG_OAG_LLM_API_KEY` / `RAG_OAG_EMBED_API_KEY`.
 `OPENAI_API_KEY` is used only when `base_url` points at OpenAI itself; it is never
 sent to OpenRouter, Groq or any other server.
