@@ -93,5 +93,53 @@ Sonucu iki nedenle temkinli okumak gerekiyor:
 
 ### Açık kalanlar
 
-- Commit atılmadı.
+- Commit atılmadı. (3. turda yapıldı.)
 - Sıradaki adaylar: cevap doğruluğu değerlendirmesi (`--answers`), ilk commit, M3 (`Ontology.suggest()`, streaming, değişen dokümanın yeniden ingest'i).
+
+---
+
+## 3. Tur: Hata düzeltmeleri ve cevap doğruluğu
+
+Kod incelemesinde bulunan hatalar düzeltildi ve golden set ilk kez cevap doğruluğuyla ölçüldü. Çok adımlı sorularda graf işe yarıyor: cevap doğruluğu rag'de %64, hybrid ve oag'da %82. Aynı token bütçesiyle çalışan rag de %82'ye çıkıyor, ama bu korpusta bu karşılaştırma anlamsız; nedeni aşağıda.
+
+### Düzeltilenler
+
+1. **Entity birleştirmede sonsuz döngü.** Grafta anahtarsız duran bir şirket, aynı dokümanda hem anahtarsız hem anahtarlı geçince iki kimlik birbirini gösteriyor ve ingest donuyordu. Aynı yolda farklı vergi numaralı iki şirket de tek düğüme birleşiyordu. İkisi de düzeltildi; golden set'e bu durumu uçtan uca deneyen çok chunk'lı bir doküman eklendi (`kuzey_faaliyet.md`). Kuzey Yatırım artık vergi numarası ve şehriyle tek düğüm.
+2. **Sayı dönüşümü.** `integer` alanında `2.5` değeri `25` oluyordu. Türkçe ve İngilizce basamak ayırıcıları artık okunuyor (`1.500.000`, `12,5`, `%40`).
+3. **API anahtarı.** `OPENAI_API_KEY` başka sunuculara da gidiyordu; artık yalnızca OpenAI'ye gönderiliyor.
+4. **Graf genişletme.** Merkezi bir entity bütçeyi kendi komşularıyla dolduruyordu: 2.000 entity'lik bir testte seed'in 50 doğrudan ilişkisinden yalnızca 1'i bağlama giriyordu. Yollar artık uzunluğa göre sıralanıyor ve 40'ı giriyor; gecikme 1,1 ms'den 2,4 ms'ye çıktı.
+5. **Yapılandırılmış çıktı.** Bağlam taşması ve kesik JSON artık "bu yöntem desteklenmiyor" sayılmıyor. Model hiç cevap yazamadan token sınırına takılırsa sessizce boş cevap dönmek yerine `OutputTruncatedError` veriliyor.
+6. **Diğer:** CLI kurulum hataları traceback yerine anlaşılır mesaj veriyor, `RetrievalConfig` sert üst sınırı kontrol ediyor, kapatılmış bir KB açık hata veriyor, embedding modellerinin sorgu ve doküman önekleri destekleniyor, eval'e eşit bütçe modu (`rag_eq`) eklendi.
+7. **Repo:** `.DS_Store` dosyaları takipten çıkarıldı, ruff ve mypy sürümleri sabitlendi, README'deki kurulum komutu GitHub'dan kuruluma çevrildi (paket henüz PyPI'da değil). CI artık geçiyor.
+
+### Golden set: 14 doküman, 33 soru
+
+Çıkarım ve cevap için `gemma4:e4b` (16k bağlam penceresiyle), embedding için `nomic-embed-text` kullanıldı. Tablodaki değerler cevap doğruluğu; parantez içindekiler ortalama bağlam boyutu.
+
+| Grup | rag | oag | hybrid | rag_eq |
+|---|---|---|---|---|
+| Tek adım | 91% | 73% | 100% | 100% |
+| **Çok adım** | 64% | 82% | **82%** | 82% |
+| Serbest metin | 100% | 0% | 100% | 100% |
+| **Toplam** | 85% (2.217) | 52% (1.360) | **94%** (3.578) | 94% (3.792) |
+
+- **İlk ölçüm yanıltıcıydı.** Ollama varsayılan olarak 4.096 tokenlık bağlam penceresi açıyor. `gemma4:e4b` bir thinking modeli ve uzun bağlamlarda kalan tokenleri düşünmeye harcayıp boş cevap döndü: 132 cevabın 14'ü boştu, hepsi 4.000 tokenin üstündeki bağlamlarda. Bu, ilk turda hybrid'i %55'e düşürmüştü. 16k pencereyle bu sorun kayboldu.
+- **Graf çok adımlı sorularda fark yaratıyor:** rag %64, oag ve hybrid %82.
+- **oag aynı başarıya üçte bir bağlamla ulaşıyor** (1.289'a karşı 3.688 token). Serbest metin sorularını ise hiç cevaplayamıyor, çünkü depozito veya faiz gibi bilgiler ontolojide yok.
+- **Eşit bütçe karşılaştırması bu korpusta anlamsız.** Korpusun tamamı 3.720 token; `rag_eq` ortalama 3.792 tokenlık bağlamla zaten bütün korpusu modele veriyor. Hybrid'in eşit bütçede rag'den iyi olup olmadığını ölçmek için bağlama sığmayan, gerçek boyutlu bir korpus gerekiyor.
+
+### Graf kalitesi: açık bulgular
+
+Beklenen graf 13 entity ve 14 ilişki; çıkan graf 15 entity ve 15 ilişki.
+
+1. **İsim varyantları ayrı düğüm oluyor.** Faaliyet raporu "Zirve Gıda" ve "Toros Kimya" diye ("A.Ş." olmadan) yazdığı için, ilişkisi olmayan iki fazla düğüm oluştu. Katlanmış isim eşleşmesi ve embedding benzerliği (0,92) bu varyantları birleştirmiyor. Hukuki ekleri (A.Ş., Ltd.) isim eşleştirmesinde yok saymak bir çözüm adayı.
+2. **İlişki yönü yanlış çıkarılabiliyor.** `Bulut —ORTAGIDIR→ Delta` ters yazılmış, `Zirve —ORTAGIDIR→ Kuzey` ise doğru yönün yanına fazladan eklenmiş. "Delta'nın ortağı olduğu şirketler" sorusu bu yüzden yarım cevaplandı (yalnızca Manisa). İki ucu aynı tipte olan ilişkilerde doğrulama yönü yakalayamıyor; prompt'ta yön örneği vermek veya daha güçlü bir çıkarım modeli kullanmak gerekiyor.
+3. **Oranlar karışık birimde.** Ontoloji `oran` alanını "yüzde olarak" tanımlıyor, model ise 0,6 yazdı.
+
+### Açık kalanlar
+
+- Gerçek boyutlu bir korpusla eşit bütçe karşılaştırması.
+- Yukarıdaki üç graf kalitesi bulgusu.
+- PyPI yayını: hesaplar ve trusted publisher tanımı bekleniyor; sürüm `0.2.0` olmalı.
+- Ollama ile çalışırken bağlam penceresini artırmak (`OLLAMA_CONTEXT_LENGTH` veya `num_ctx`); README'de belirtilmeli.
+- M3: `Ontology.suggest()`, streaming, değişen dokümanın yeniden ingest'i, çok değerli ilişkiler.
