@@ -53,7 +53,19 @@ Rules:
 - name: the entity's full name as written in the text.
 - chunks: the ids of the passages (K1, K2, …) that mention the entity or state the relation.
 - properties: only what the text states; null otherwise. Dates as YYYY-MM-DD.
+- Write numbers in the unit requested by the property description. For percentages, write
+  the percent value (40% -> 40, not 0.4).
 - Relations must connect entities of the source and target types given for them.
+- Read each relation as "<source> <RELATION> <target>" using its description. Write it only
+  if that sentence is true according to the text.
+- Even if the text phrases it the other way round (passive voice, a genitive construction,
+  or "Y's shareholders include X"), the source is the entity the description puts on the
+  source side. Never add the reverse relation unless the text states it too.
+- Example: for OWNS_SHARES: Company -> Company ("source holds shares of target"),
+  "Beta's shareholders are Acme (30%) and Gamma (70%)" gives
+  OWNS_SHARES(source=Acme, target=Beta, share=30) and
+  OWNS_SHARES(source=Gamma, target=Beta, share=70). Do not write a relation from Beta
+  to Acme or Gamma.
 - Output JSON only."""
 
 EXTRACTION_USER = """\

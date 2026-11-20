@@ -21,12 +21,12 @@ from rag_with_oag.config import ExtractionConfig
 from rag_with_oag.generation import prompts
 from rag_with_oag.ingest.extractor import ChunkGraph, EntityMention
 from rag_with_oag.ingest.graph_builder import GraphBuilder
-from rag_with_oag.ingest.resolver import EntityResolver
+from rag_with_oag.ingest.resolver import EntityResolver, entity_id
 from rag_with_oag.store.connection import GraphConnection
 from rag_with_oag.store.repository import EntityRow, GraphRepository, GraphWrite, RelationRow
 from rag_with_oag.types import Chunk
 
-from .conftest import CONTRACTS_ONTOLOGY, FakeEmbedder, FakeGraphLLM
+from .conftest import CONTRACTS_ONTOLOGY, ENTITY_RULES, FakeEmbedder, FakeGraphLLM
 
 pytestmark = pytest.mark.integration
 
@@ -62,14 +62,14 @@ async def test_ingest_builds_the_graph(
     assert stats["entities"] == 6 and stats["relations"] == 4
 
     [[name, vergi, sehir, labels]] = await graph_kb.store.query(
-        "MATCH (e:Entity) WHERE e.name_norm = 'bulut yazilim ltd' "
+        "MATCH (e:Entity) WHERE e.name_norm = 'bulut yazilim' "
         "RETURN e.name, e.vergi_no, e.sehir, labels(e)"
     )
     assert (name, vergi, sehir) == ("Bulut Yazılım Ltd.", "1234567890", "Ankara")
     assert labels == ["Entity", "Sirket"]
 
     [[evidence, rol, mentions]] = await graph_kb.store.query(
-        "MATCH (s:Sirket)-[r:TARAFIDIR]->(:Sozlesme) WHERE s.name_norm = 'atlas lojistik a s' "
+        "MATCH (s:Sirket)-[r:TARAFIDIR]->(:Sozlesme) WHERE s.name_norm = 'atlas lojistik' "
         "OPTIONAL MATCH (c:Chunk)-[:MENTIONS]->(s) RETURN r.evidence, r.rol, count(c)"
     )
     assert len(evidence) == 1 and rol == "musteri" and mentions == 1
@@ -270,6 +270,67 @@ async def test_keyed_mention_joins_keyless_graph_entity_without_looping(
     ]
     await repo.write_graph(write, version="v")
     assert await repo.query("MATCH (e:Sirket) RETURN e.vergi_no") == [["1234567890"]]
+
+
+async def test_keyless_name_variant_joins_company_in_later_ingest(
+    graph_kb: AsyncKnowledgeBase, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tax_no = "1234567890"
+    monkeypatch.setitem(
+        ENTITY_RULES, "Zirve Gıda A.Ş.", ("Sirket", {"vergi": ("vergi_no", tax_no)})
+    )
+    contract = Document.from_text(f"Zirve Gıda A.Ş. vergi numarası {tax_no}.", source="contract")
+    assert (await graph_kb.ingest([contract])).ok
+
+    monkeypatch.setitem(ENTITY_RULES, "Zirve Gıda", ("Sirket", {}))
+    activity = Document.from_text("Zirve Gıda bu yıl üretimini artırdı.", source="activity")
+    assert (await graph_kb.ingest([activity])).ok
+
+    assert (await graph_kb.stats())["entities"] == 1
+    rows = await graph_kb.store.query(
+        "MATCH (c:Chunk)-[:MENTIONS]->(e:Sirket) RETURN e.name, e.name_norm, e.vergi_no, count(c)"
+    )
+    assert rows == [["Zirve Gıda A.Ş.", "zirve gida", tax_no, 2]]
+
+
+async def test_keyless_name_variant_joins_company_in_one_write(
+    repo: GraphRepository, ontology: Ontology, fake_embedder: FakeEmbedder
+) -> None:
+    await repo.ensure_embedding_dim(model=fake_embedder.model, dim=fake_embedder.dim)
+    resolver = EntityResolver(repo, fake_embedder, ontology, similarity=1.0)
+    keyed = EntityMention("e1", "Sirket", "Zirve Gıda A.Ş.", None, {"vergi_no": "1234567890"})
+    plain = EntityMention("e1", "Sirket", "Zirve Gıda", None, {})
+    keyless_variant = EntityMention("e2", "Sirket", "Zirve Gıda A.Ş.", None, {})
+    name_identity = (entity_id("Sirket", "name:zirve gida"), None)
+    assert resolver.identity(plain) == resolver.identity(keyless_variant) == name_identity
+
+    write = await resolver.resolve(
+        {
+            "c1": ChunkGraph(entities=[keyed]),
+            "c2": ChunkGraph(entities=[plain]),
+            "c3": ChunkGraph(entities=[plain]),
+        }
+    )
+    keyed_id, _ = resolver.identity(keyed)
+    assert write.mentions == [("c1", keyed_id), ("c2", keyed_id), ("c3", keyed_id)]
+    assert len(fake_embedder.calls) == len(fake_embedder.calls[0]) == 1
+    await repo.write_graph(write, version="v")
+    assert await repo.query("MATCH (e:Sirket) RETURN e.name, e.name_norm, e.vergi_no") == [
+        ["Zirve Gıda", "zirve gida", "1234567890"]
+    ]
+
+
+async def test_normalized_name_does_not_merge_distinct_keys(
+    repo: GraphRepository, ontology: Ontology, fake_embedder: FakeEmbedder
+) -> None:
+    await repo.ensure_embedding_dim(model=fake_embedder.model, dim=fake_embedder.dim)
+    resolver = EntityResolver(repo, fake_embedder, ontology, similarity=0.92)
+    for name, tax_no in [("Zirve Gıda A.Ş.", "1111111111"), ("Zirve Gıda", "2222222222")]:
+        mention = EntityMention("e1", "Sirket", name, None, {"vergi_no": tax_no})
+        write = await resolver.resolve({"c1": ChunkGraph(entities=[mention])})
+        await repo.write_graph(write, version="v")
+    rows = await repo.query("MATCH (e:Sirket) RETURN e.name_norm, e.vergi_no ORDER BY e.vergi_no")
+    assert rows == [["zirve gida", "1111111111"], ["zirve gida", "2222222222"]]
 
 
 async def test_two_keys_do_not_take_the_same_keyless_entity(

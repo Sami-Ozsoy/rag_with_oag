@@ -10,6 +10,7 @@ from typing import Any, Literal
 import httpx2
 import openai
 import pytest
+import yaml
 from openai import AsyncOpenAI
 from pydantic import BaseModel, Field
 
@@ -21,11 +22,13 @@ from rag_with_oag import (
     Property,
     StructuredOutputError,
 )
-from rag_with_oag._text import fold, fulltext_query
+from rag_with_oag._text import DEFAULT_NAME_SUFFIXES, fold, fulltext_query, match_name
+from rag_with_oag.generation.prompts import EXTRACTION_SYSTEM
 from rag_with_oag.ingest.extractor import validate
 from rag_with_oag.llm import capabilities, structured
 from rag_with_oag.llm.capabilities import StructuredMethod
 from rag_with_oag.llm.client import LLMClient
+from rag_with_oag.ontology import model as ontology_model
 from rag_with_oag.ontology.schema_gen import RawExtraction, extraction_schema
 from rag_with_oag.ontology.validator import coerce_properties
 from rag_with_oag.retrieval.linking import rrf
@@ -43,7 +46,9 @@ def _fresh_capabilities() -> None:
 
 
 def test_yaml_round_trip_keeps_meaning_and_fingerprint(ontology: Ontology) -> None:
-    again = Ontology.from_yaml(ontology.to_yaml())
+    dumped = ontology.to_yaml()
+    assert yaml.safe_load(dumped) == yaml.safe_load(CONTRACTS_ONTOLOGY)
+    again = Ontology.from_yaml(dumped)
     assert again == ontology and again.fingerprint == ontology.fingerprint
     sirket = ontology.entity("Sirket")
     assert sirket is not None and sirket.key == "vergi_no"
@@ -55,6 +60,25 @@ def test_yaml_round_trip_keeps_meaning_and_fingerprint(ontology: Ontology) -> No
 def test_fingerprint_changes_with_content(ontology: Ontology) -> None:
     changed = Ontology.from_yaml(CONTRACTS_ONTOLOGY.replace("sehir: string", "il: string"))
     assert changed.fingerprint != ontology.fingerprint
+
+
+def test_yaml_name_suffixes_extend_defaults_and_round_trip(ontology: Ontology) -> None:
+    changed = Ontology.from_yaml(CONTRACTS_ONTOLOGY + 'name_suffixes: ["S.A.S.", "A.Ş."]\n')
+    assert changed.name_suffixes == ("S.A.S.", "A.Ş.")
+    assert changed.effective_name_suffixes == (*DEFAULT_NAME_SUFFIXES, "s a s")
+    assert changed.match_name("Luna S.A.S.") == "luna"
+    assert changed.match_name("Zirve Gıda A.Ş.") == "zirve gida"
+    assert changed.fingerprint != ontology.fingerprint
+    again = Ontology.from_yaml(changed.to_yaml())
+    assert again == changed and again.fingerprint == changed.fingerprint
+
+
+def test_fingerprint_changes_with_default_name_suffixes(
+    ontology: Ontology, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    before = ontology.fingerprint
+    monkeypatch.setattr(ontology_model, "DEFAULT_NAME_SUFFIXES", (*DEFAULT_NAME_SUFFIXES, "oy"))
+    assert ontology.fingerprint != before
 
 
 def test_from_pydantic_classes() -> None:
@@ -74,7 +98,10 @@ def test_from_pydantic_classes() -> None:
 
         rol: Literal["musteri", "saglayici"]
 
-    o = Ontology.from_classes([Sirket, Sozlesme], {"TARAFIDIR": (Sirket, Sozlesme, Taraflik)})
+    o = Ontology.from_classes(
+        [Sirket, Sozlesme], {"TARAFIDIR": (Sirket, Sozlesme, Taraflik)}, name_suffixes=["Oyj"]
+    )
+    assert o.name_suffixes == ("Oyj",) and o.match_name("Luna Oyj") == "luna"
     s = o.entity("Sirket")
     assert s is not None and s.description == "Tüzel kişi." and s.key == "vergi_no"
     props = {p.name: p for p in s.properties}
@@ -134,6 +161,24 @@ def test_extraction_schema_is_strict_and_typed(ontology: Ontology) -> None:
     rel = schema["properties"]["relations"]["items"]["anyOf"][0]
     rol = rel["properties"]["properties"]["properties"]["rol"]
     assert rol["enum"] == ["musteri", "saglayici", "kiraci", None]
+
+
+def test_extraction_schema_describes_relation_direction(ontology: Ontology) -> None:
+    relation = ontology.relation("ORTAGIDIR")
+    assert relation is not None and relation.description
+    variants = extraction_schema(ontology)["properties"]["relations"]["items"]["anyOf"]
+    variant = next(v for v in variants if v["properties"]["type"]["enum"] == [relation.name])
+    for side in ("source", "target"):
+        description = variant["properties"][side]["description"]
+        assert f"on the {side} side" in description and relation.description in description
+
+
+def test_extraction_prompt_explains_direction_and_percentage_units(ontology: Ontology) -> None:
+    prompt = EXTRACTION_SYSTEM.format(ontology=ontology.describe())
+    assert '"<source> <RELATION> <target>"' in prompt
+    assert "Never add the reverse relation unless the text states it too" in prompt
+    assert "OWNS_SHARES(source=Acme, target=Beta, share=30)" in prompt
+    assert "40% -> 40, not 0.4" in prompt
 
 
 # --- property coercion and extraction validation -------------------------------
@@ -429,6 +474,26 @@ async def test_real_client_json_schema_then_tools(ontology: Ontology) -> None:
 def test_fold_handles_turkish_case_and_diacritics() -> None:
     assert fold("ŞİMŞEK İnşaat A.Ş.") == fold("şimşek insaat a s") == "simsek insaat a s"
     assert fold("IŞIK") == fold("ışık")
+
+
+@pytest.mark.parametrize(
+    ("name", "expected"),
+    [
+        ("Zirve Gıda A.Ş.", "zirve gida"),
+        ("Bulut Yazılım Ltd. Şti.", "bulut yazilim"),
+        ("Kuzey Yatırım AŞ", "kuzey yatirim"),
+        ("Ltd.", "ltd"),
+        ("Toros Kimya", "toros kimya"),
+        ("Casa", "casa"),
+        ("Toros Kimya Koll. Şti.", "toros kimya"),
+        ("Zirve Gıda Ltd. Co. A.Ş.", "zirve gida"),
+        ("Delta Holding A.Ş.", "delta holding"),
+        ("Acme Group", "acme group"),
+        ("Beta Company", "beta company"),
+    ],
+)
+def test_match_name_strips_trailing_legal_forms(name: str, expected: str) -> None:
+    assert match_name(name, DEFAULT_NAME_SUFFIXES) == expected
 
 
 def test_fulltext_query_is_prefix_terms_without_syntax() -> None:

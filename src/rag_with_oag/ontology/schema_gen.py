@@ -56,6 +56,15 @@ def _chunks() -> dict[str, Any]:
     }
 
 
+def _relation_ref(entity_type: str, side: str, description: str) -> dict[str, Any]:
+    text = (
+        f"ref of the {entity_type} on the {side} side of: {description}"
+        if description
+        else f"ref of a {entity_type}"
+    )
+    return {"type": "string", "description": text}
+
+
 def extraction_schema(ontology: Ontology) -> dict[str, Any]:
     entity_variants = [
         {
@@ -78,8 +87,8 @@ def extraction_schema(ontology: Ontology) -> dict[str, Any]:
             "type": "object",
             "properties": {
                 "type": {"type": "string", "enum": [r.name]},
-                "source": {"type": "string", "description": f"ref of a {r.source}"},
-                "target": {"type": "string", "description": f"ref of a {r.target}"},
+                "source": _relation_ref(r.source, "source", r.description),
+                "target": _relation_ref(r.target, "target", r.description),
                 "properties": _properties_object(r.properties),
                 "confidence": {"type": ["number", "null"]},
                 "chunks": _chunks(),

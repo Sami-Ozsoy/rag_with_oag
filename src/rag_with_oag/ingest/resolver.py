@@ -1,8 +1,8 @@
 """Entity resolution: decide which mentions are the same real-world entity.
 
 Ids are deterministic: (type, folded key value) when the type declares a key
-property and the mention has a value for it, else (type, folded name). On top
-of that, in order:
+property and the mention has a value for it, else (type, folded name with legal
+forms stripped). On top of that, in order:
 
 1. Within one write, a key-less mention joins a keyed one of the same type and
    name ("Bulut Yazılım Ltd." without a tax number in one passage, with it in
@@ -22,7 +22,7 @@ from __future__ import annotations
 import math
 import uuid
 from collections import Counter, defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -73,9 +73,8 @@ class _Merged:
     def name(self) -> str:
         return self.names.most_common(1)[0][0]
 
-    @property
-    def folded_names(self) -> set[str]:
-        return {fold(n) for n in self.names}
+    def folded_names(self, match_name: Callable[[str], str]) -> set[str]:
+        return {match_name(n) for n in self.names}
 
 
 class EntityResolver:
@@ -93,7 +92,7 @@ class EntityResolver:
         key = etype.key if etype else None
         if key and mention.properties.get(key) not in (None, ""):
             return entity_id(mention.type, "key:" + fold(str(mention.properties[key]))), key
-        return entity_id(mention.type, "name:" + fold(mention.name)), None
+        return entity_id(mention.type, "name:" + self.ontology.match_name(mention.name)), None
 
     async def resolve(self, graphs: Mapping[str, ChunkGraph]) -> GraphWrite:
         merged: dict[str, _Merged] = {}
@@ -145,7 +144,7 @@ class EntityResolver:
                     id=e.id,
                     type=e.type,
                     name=e.name,
-                    name_norm=fold(e.name),
+                    name_norm=self.ontology.match_name(e.name),
                     description=e.description,
                     props=e.props,
                     embedding=row_vec[e.id],
@@ -188,12 +187,12 @@ class EntityResolver:
         )
         return entity_text(entry.name, entry.type, entry.description, key_props)
 
-    @staticmethod
-    def _merge_within_write(merged: Mapping[str, _Merged]) -> dict[str, str]:
+    def _merge_within_write(self, merged: Mapping[str, _Merged]) -> dict[str, str]:
+        match_name = self.ontology.match_name
         keyed_by_name: dict[tuple[str, str], str] = {}
         for e in merged.values():
             if e.key:
-                for n in e.folded_names:
+                for n in e.folded_names(match_name):
                     keyed_by_name.setdefault((e.type, n), e.id)
         remap = {}
         for e in merged.values():
@@ -201,7 +200,7 @@ class EntityResolver:
                 target = next(
                     (
                         keyed_by_name[(e.type, n)]
-                        for n in e.folded_names
+                        for n in e.folded_names(match_name)
                         if (e.type, n) in keyed_by_name
                     ),
                     None,
@@ -216,17 +215,18 @@ class EntityResolver:
         for e in merged.values():
             if e.id in remap:
                 continue
+            name_norm = self.ontology.match_name(e.name)
             target = None
             if e.key:
                 target = await self.repo.find_entity_by_key(e.type, e.key, e.props[e.key])
                 if target is None:
-                    named = await self.repo.find_entity_by_name(e.type, fold(e.name), keyless=e.key)
+                    named = await self.repo.find_entity_by_name(e.type, name_norm, keyless=e.key)
                     # Keys win over names: a second key value must not take the same node.
                     if named is not None and named not in claimed:
                         claimed.add(named)
                         target = named
             else:
-                target = await self.repo.find_entity_by_name(e.type, fold(e.name))
+                target = await self.repo.find_entity_by_name(e.type, name_norm)
             if target is None or target == e.id:
                 continue
             # The graph node is canonical. If this write folded that node's own key-less

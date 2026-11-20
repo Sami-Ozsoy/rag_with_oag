@@ -15,6 +15,7 @@ from typing import Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
+from rag_with_oag._text import DEFAULT_NAME_SUFFIXES, fold, match_name
 from rag_with_oag.errors import OntologyError
 
 PropertyType = Literal["string", "integer", "number", "boolean", "date", "enum"]
@@ -81,6 +82,7 @@ class Ontology(BaseModel):
     version: str = "1"
     entities: tuple[EntityType, ...]
     relations: tuple[RelationType, ...] = ()
+    name_suffixes: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:
@@ -108,9 +110,19 @@ class Ontology(BaseModel):
         return [r.name for r in self.relations]
 
     @property
+    def effective_name_suffixes(self) -> tuple[str, ...]:
+        suffixes = (*DEFAULT_NAME_SUFFIXES, *(fold(s) for s in self.name_suffixes))
+        return tuple(dict.fromkeys(suffixes))
+
+    def match_name(self, name: str) -> str:
+        return match_name(name, self.effective_name_suffixes)
+
+    @property
     def fingerprint(self) -> str:
         """Content hash; stored in the graph so a changed ontology is noticed."""
-        canonical = json.dumps(self.model_dump(mode="json"), sort_keys=True, ensure_ascii=False)
+        data = self.model_dump(mode="json")
+        data["effective_name_suffixes"] = self.effective_name_suffixes
+        canonical = json.dumps(data, sort_keys=True, ensure_ascii=False)
         return hashlib.sha256(canonical.encode()).hexdigest()[:16]
 
     def describe(self) -> str:
@@ -152,11 +164,14 @@ class Ontology(BaseModel):
         *,
         name: str = "ontology",
         version: str = "1",
+        name_suffixes: Sequence[str] = (),
     ) -> Ontology:
         """Build from Pydantic models; see ``loader.from_classes``."""
         from rag_with_oag.ontology.loader import from_classes
 
-        return from_classes(entities, relations or {}, name=name, version=version)
+        return from_classes(
+            entities, relations or {}, name=name, version=version, name_suffixes=name_suffixes
+        )
 
     def to_yaml(self, path: str | Path | None = None) -> str:
         from rag_with_oag.ontology.loader import to_yaml

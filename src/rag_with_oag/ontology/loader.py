@@ -4,6 +4,7 @@ YAML format::
 
     name: contracts
     version: "1"
+    name_suffixes: ["S.A.S."]                    # extra legal forms for name matching
     entities:
       Sirket:
         description: A company that is party to contracts
@@ -54,7 +55,7 @@ def from_yaml(source: str | Path) -> Ontology:
 
 
 def from_dict(data: Mapping[str, Any]) -> Ontology:
-    unknown = set(data) - {"name", "version", "entities", "relations"}
+    unknown = set(data) - {"name", "version", "entities", "relations", "name_suffixes"}
     if unknown:
         raise OntologyError(f"unknown top-level ontology keys: {sorted(unknown)}")
     entities = [
@@ -81,6 +82,7 @@ def from_dict(data: Mapping[str, Any]) -> Ontology:
         version=str(data.get("version", "1")),
         entities=tuple(entities),
         relations=tuple(relations),
+        name_suffixes=data.get("name_suffixes", ()),
     )
 
 
@@ -99,6 +101,8 @@ def to_yaml(ontology: Ontology) -> str:
         return out
 
     data: dict[str, Any] = {"name": ontology.name, "version": ontology.version, "entities": {}}
+    if ontology.name_suffixes:
+        data["name_suffixes"] = list(ontology.name_suffixes)
     for e in ontology.entities:
         spec: dict[str, Any] = {}
         if e.description:
@@ -126,6 +130,7 @@ def from_classes(
     *,
     name: str,
     version: str,
+    name_suffixes: Sequence[str] = (),
 ) -> Ontology:
     """Pydantic models as entity types.
 
@@ -157,7 +162,11 @@ def from_classes(
             )
         )
     return Ontology(
-        name=name, version=version, entities=tuple(entity_types), relations=tuple(relation_types)
+        name=name,
+        version=version,
+        entities=tuple(entity_types),
+        relations=tuple(relation_types),
+        name_suffixes=tuple(name_suffixes),
     )
 
 

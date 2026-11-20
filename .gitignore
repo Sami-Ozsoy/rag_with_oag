@@ -14,3 +14,4 @@ htmlcov/
 spikes/out/
 eval/out/
 .DS_Store
+*.local.md

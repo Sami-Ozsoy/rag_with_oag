@@ -8,8 +8,39 @@ from __future__ import annotations
 
 import re
 import unicodedata
+from collections.abc import Sequence
 
 _NON_ALNUM = re.compile(r"[^a-z0-9]+")
+
+DEFAULT_NAME_SUFFIXES = (
+    "a s",
+    "as",
+    "anonim sirketi",
+    "ltd sti",
+    "ltd",
+    "sti",
+    "limited sirketi",
+    "limited",
+    "koll sti",
+    "kom sti",
+    "inc",
+    "incorporated",
+    "llc",
+    "plc",
+    "corp",
+    "corporation",
+    "co",
+    "ltd co",
+    "gmbh",
+    "ag",
+    "kg",
+    "sa",
+    "s a",
+    "bv",
+    "nv",
+    "srl",
+    "spa",
+)
 
 # Too common in questions to say anything about which entity is meant.
 STOPWORDS = frozenset(
@@ -30,6 +61,19 @@ def fold(text: str) -> str:
     decomposed = unicodedata.normalize("NFKD", text.replace("ı", "i").replace("İ", "I"))
     ascii_only = "".join(ch for ch in decomposed if not unicodedata.combining(ch))
     return _NON_ALNUM.sub(" ", ascii_only.casefold()).strip()
+
+
+def match_name(text: str, suffixes: Sequence[str]) -> str:
+    """Fold a name and strip folded suffixes while a base name remains."""
+    name = fold(text)
+    endings = sorted((f" {suffix}" for suffix in suffixes if suffix), key=len, reverse=True)
+    while True:
+        for ending in endings:
+            if name.endswith(ending):
+                name = name.removesuffix(ending)
+                break
+        else:
+            return name
 
 
 def fulltext_query(question: str, *, prefix_len: int = 6) -> str:
