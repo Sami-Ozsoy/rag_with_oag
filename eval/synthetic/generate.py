@@ -18,20 +18,21 @@ import tiktoken
 import yaml
 
 if TYPE_CHECKING or __package__:
-    from .templates import (
-        CONTRACT_BOILERPLATE,
-        CONTRACT_NOTES,
-        NOISE,
-        REPORT_NOTES,
-        REPORT_SECTIONS,
-    )
+    from . import templates, templates_b
+    from .templates import TemplateSet
     from .text import matches, norm
 else:
-    from templates import CONTRACT_BOILERPLATE, CONTRACT_NOTES, NOISE, REPORT_NOTES, REPORT_SECTIONS
+    import templates
+    import templates_b
+    from templates import TemplateSet
     from text import matches, norm
 
 GOLDEN = Path(__file__).resolve().parents[1] / "golden"
-SET_DEFAULT = Path("eval/synthetic/sets/default")
+SET_PATHS = {
+    ("a", 7, 150, 300, 160): Path("eval/synthetic/sets/default"),
+    ("b", 101, 150, 300, 160): Path("eval/synthetic/sets/heldout"),
+}
+TEMPLATE_SETS = {"a": templates.A, "b": templates_b.B}
 STEMS = (
     "Zirve Toros Kuzey Ege Atlas Ada Akasya Alize Anadolu Ardıç Asya Ayaz Aydın Bahar Belen "
     "Bereket Bilge Bora Bozdağ Bulut Çağlayan Çamlı Çınar Dalyan Defne Delta Deniz Deren "
@@ -104,11 +105,8 @@ class Share:
 @dataclass(frozen=True)
 class Clause:
     field: str
-    heading: str
     value: int
     unit: str
-    statements: tuple[str, str]
-    question: str
 
     def formats(self) -> list[str]:
         if self.unit == "%":
@@ -300,88 +298,18 @@ def make_shares(rng: random.Random, companies: list[Company]) -> list[Share]:
 
 def make_contracts(rng: random.Random, count: int, companies: list[Company]) -> list[Contract]:
     specs = (
-        (
-            "bedel",
-            "Sözleşme bedeli",
-            "TL",
-            (
-                "Toplam sözleşme bedeli {v} olarak belirlenmiştir.",
-                "Taraflar bu iş için toplam {v} ödenmesi üzerinde anlaşmıştır.",
-            ),
-            "Toplam sözleşme bedeli ne kadardır?",
-            range(50_000, 15_000_001, 50),
-        ),
-        (
-            "sure",
-            "Yürürlük süresi",
-            "gün",
-            (
-                "Sözleşmenin yürürlük süresi {v} olarak kararlaştırılmıştır.",
-                "İmzanın ardından sözleşme {v} boyunca yürürlükte kalır.",
-            ),
-            "Sözleşmenin yürürlük süresi kaç gündür?",
-            range(90, 1_826),
-        ),
-        (
-            "bildirim",
-            "Fesih bildirimi",
-            "gün",
-            (
-                "Olağan fesih için {v} önceden yazılı bildirim yapılır.",
-                "Fesih ihbarnamesi, olağan fesih tarihinden en az {v} önce ulaşmalıdır.",
-            ),
-            "Olağan fesih için kaç gün önceden bildirim gerekir?",
-            range(15, 366),
-        ),
-        (
-            "faiz",
-            "Gecikme faizi",
-            "%",
-            (
-                "Geciken ödemelere yıllık {v} gecikme faizi uygulanır.",
-                "Ödeme vadesi aşılırsa yıllık gecikme faizi {v} üzerinden hesaplanır.",
-            ),
-            "Yıllık gecikme faizi oranı nedir?",
-            range(550, 5_401),
-        ),
-        (
-            "depozito",
-            "Güvence bedeli",
-            "TL",
-            (
-                "Kiracı, {v} tutarında depozito yatırır.",
-                "Kira konusu yer teslim edilmeden {v} depozito ödenecektir.",
-            ),
-            "Depozito ne kadardır?",
-            range(20_000, 400_001, 50),
-        ),
-        (
-            "gizlilik",
-            "Gizlilik süresi",
-            "gün",
-            (
-                "Gizlilik yükümlülüğü sözleşme bittikten sonra {v} daha sürer.",
-                "Sözleşmenin sona ermesinden itibaren {v} boyunca gizlilik korunur.",
-            ),
-            "Sözleşme bittikten sonra gizlilik yükümlülüğü kaç gün sürer?",
-            range(400, 3_651),
-        ),
-        (
-            "kullanici",
-            "Kullanıcı sınırı",
-            "kullanıcı",
-            (
-                "Lisans, eş zamanlı en fazla {v} için geçerlidir.",
-                "Yazılımın eş zamanlı kullanımı {v} ile sınırlandırılmıştır.",
-            ),
-            "Lisans aynı anda en fazla kaç kullanıcıya izin verir?",
-            range(40, 5_001),
-        ),
+        ("bedel", "TL", range(50_000, 15_000_001, 50)),
+        ("sure", "gün", range(90, 1_826)),
+        ("bildirim", "gün", range(15, 366)),
+        ("faiz", "%", range(550, 5_401)),
+        ("depozito", "TL", range(20_000, 400_001, 50)),
+        ("gizlilik", "gün", range(400, 3_651)),
+        ("kullanici", "kullanıcı", range(40, 5_001)),
     )
     # Sample each clause from its own value pool without replacement where
     # possible. The referenced contract and clause always select a single value.
     values = {}
-    for name, _, _, _, _, pool in specs:
+    for name, _, pool in specs:
         values[name] = (
             iter(rng.sample(pool, count))
             if count <= len(pool)
@@ -397,8 +325,8 @@ def make_contracts(rng: random.Random, count: int, companies: list[Company]) -> 
         number = f"{prefix}-{signed.year}-{sequences[prefix, signed.year]:03d}"
         first, second = rng.sample(companies, 2)
         clauses = tuple(
-            Clause(name, heading, next(values[name]), unit, statements, question)
-            for name, heading, unit, statements, question, _ in specs
+            Clause(name, next(values[name]), unit)
+            for name, unit, _ in specs
             if name not in {"depozito", "kullanici"}
             or (name == "depozito" and kind == "kira")
             or (name == "kullanici" and kind == "lisans")
@@ -447,6 +375,7 @@ def mention(
 
 def ownership_passage(
     rng: random.Random,
+    phrases: TemplateSet,
     share: Share,
     names: dict[str, tuple[str, ...]],
     *,
@@ -456,53 +385,51 @@ def ownership_passage(
     owner = owner_name or mention(rng, names, share.owner)
     owned = owned_name or mention(rng, names, share.owned)
     percent = rng.choice(percent_formats(share.percent))
-    text = rng.choice(
-        (
-            "{owner}, {owned} unvanlı şirketin sermayesinde {pct} oranında paya sahiptir.",
-            "{owned} şirketinin ortakları arasında {pct} payla {owner} yer almaktadır.",
-            "{owned} şirketindeki payların {pct} oranındaki bölümü {owner} "
-            "tarafından tutulmaktadır.",
-            "{owned} için ortaklık dökümünde {owner} ({pct}) pay sahibi olarak gösterilmiştir.",
-        )
-    ).format(owner=owner, owned=owned, pct=percent)
+    text = rng.choice(phrases.ownership_passages).format(owner=owner, owned=owned, pct=percent)
     return text, Evidence(Fact(share.owned.key, "owner", share.owner.key), (owner, owned, percent))
 
 
 def render_registry(
     rng: random.Random,
+    phrases: TemplateSet,
     company: Company,
     shares: list[Share],
     names: dict[str, tuple[str, ...]],
 ) -> Document:
     doc = Document("trade registry", company.registry)
-    doc.add("# Ticaret Sicil Kaydı")
+    doc.add(phrases.registry_title)
     first = mention(rng, names, company)
-    identity = rng.choice(
+    identity = rng.choice(phrases.registry_records).format(
+        name=first, city=company.city, key=company.key
+    )
+    records: list[tuple[str, tuple[Evidence, ...]]] = [
         (
-            "{name} için açılan sicil dosyasında şirket merkezi {city}, vergi "
-            "numarası {key} olarak geçer.",
-            "{name} adına tescil edilen vergi kimlik numarası {key}; merkez ili "
-            "ise {city} olarak kayıtlıdır.",
-            "{name} sicil özetinde merkez ili {city} olarak belirtilmiştir. Vergi no: {key}.",
+            phrases.registry_name.format(name=company.name, sector=company.sector),
+            (Evidence(Fact(company.key, "name", company.name), (company.name,)),),
         )
-    ).format(name=first, city=company.city, key=company.key)
-    doc.add(
-        identity,
-        Evidence(Fact(company.key, "vergi_no", company.key), (first, company.key)),
-        Evidence(Fact(company.key, "sehir", company.city), (first, company.city)),
+    ]
+    records.insert(
+        phrases.registry_record_position,
+        (
+            identity,
+            (
+                Evidence(Fact(company.key, "vergi_no", company.key), (first, company.key)),
+                Evidence(Fact(company.key, "sehir", company.city), (first, company.city)),
+            ),
+        ),
     )
-    doc.add(
-        f"Kayıtlı ticaret unvanı “{company.name}” olarak geçer. Faaliyet alanı {company.sector}.",
-        Evidence(Fact(company.key, "name", company.name), (company.name,)),
-    )
+    for statement, claims in records:
+        doc.add(statement, *claims)
     if len(shares) > 1 and rng.random() < 0.5:
         entries = [
             (mention(rng, names, share.owner), rng.choice(percent_formats(share.percent)))
             for share in shares
         ]
-        listed = ", ".join(f"{name} ({percent})" for name, percent in entries)
+        listed = phrases.ownership_separator.join(
+            phrases.ownership_entry.format(name=name, pct=percent) for name, percent in entries
+        )
         doc.add(
-            f"{first} için sicile işlenen ortak ve pay dökümü: {listed}.",
+            phrases.ownership_list.format(name=first, entries=listed),
             *(
                 Evidence(Fact(company.key, "owner", share.owner.key), (first, name, percent))
                 for share, (name, percent) in zip(shares, entries, strict=True)
@@ -510,13 +437,14 @@ def render_registry(
         )
     else:
         for share in shares:
-            text, evidence = ownership_passage(rng, share, names, owned_name=first)
+            text, evidence = ownership_passage(rng, phrases, share, names, owned_name=first)
             doc.add(text, evidence)
     return doc
 
 
 def render_report(
     rng: random.Random,
+    phrases: TemplateSet,
     owner: Company,
     shares: list[Share],
     names: dict[str, tuple[str, ...]],
@@ -524,60 +452,42 @@ def render_report(
 ) -> Document:
     doc = Document("annual report", owner.report)
     first = mention(rng, names, owner)
-    doc.add(f"# {first} 2025 Faaliyet Raporu")
+    doc.add(phrases.report_title.format(name=first))
     sales = rng.randint(25, 2_700)
     profit = rng.randint(1, max(1, sales // 6))
     employees = rng.randint(35, 9_400)
-    doc.add("## Finansal göstergeler")
-    doc.add(
-        rng.choice(
-            (
-                "Yılın kapanışında ciro {sales} milyon TL, net kâr {profit} milyon "
-                "TL olarak hesaplandı. "
-                "Dönem sonundaki çalışan sayısı {employees} kişiydi.",
-                "Yıllık gelir tablosunda {sales} milyon TL ciro ve {profit} milyon TL dönem kârı "
-                "raporlandı. İnsan kaynakları kayıtlarına göre yıl {employees} "
-                "çalışanla tamamlandı.",
-                "Yıl boyunca satışların toplamı {sales} milyon TL'ye ulaştı. "
-                "{profit} milyon TL net kâr "
-                "kaydedildi. Dönem raporuna esas personel mevcudu {employees} kişiydi.",
-            )
-        ).format(sales=sales, profit=profit, employees=employees)
+    finance = rng.choice(phrases.finance_notes).format(
+        sales=sales, profit=profit, employees=employees
     )
-    sections = iter(rng.sample(REPORT_SECTIONS, len(REPORT_SECTIONS)))
+    sections = iter(rng.sample(phrases.report_sections, len(phrases.report_sections)))
+    opening = []
     for _ in range(rng.randint(2, 5)):
         heading, body = next(sections)
-        doc.add(f"## {heading}\n\n{body} {rng.choice(REPORT_NOTES)}")
+        opening.append((heading, f"{body} {rng.choice(phrases.report_notes)}"))
+    opening.insert(phrases.finance_position, (phrases.finance_heading, finance))
+    for heading, body in opening:
+        doc.add(f"## {heading}\n\n{body}")
     if shares:
-        doc.add("## Pay portföyü")
+        doc.add(f"## {phrases.portfolio_heading}")
         for share in shares:
-            text, evidence = ownership_passage(rng, share, names, owner_name=first)
+            text, evidence = ownership_passage(rng, phrases, share, names, owner_name=first)
             doc.add(text, evidence)
-        doc.add("## Birim görüşmeleri")
+        doc.add(f"## {phrases.meetings_heading}")
         for share in shares:
             short = mention(rng, names, share.owned, later=True)
-            doc.add(
-                rng.choice(
-                    (
-                        "{name} için sonraki dönem hazırlıkları bakım programı "
-                        "üzerinden görüşüldü.",
-                        "{name} ekibinden gelen çalışma notları dönem kapanışında incelendi.",
-                        "İzleme toplantılarında {name} için uygulama kayıtlarının "
-                        "güncellenmesi ele alındı.",
-                    )
-                ).format(name=short)
-            )
+            doc.add(rng.choice(phrases.meeting_notes).format(name=short))
     target = rng.randint(1_550, 1_900)
     for heading, body in sections:
         if count_tokens(doc.text) >= target:
             break
-        doc.add(f"## {heading}\n\n{body} {rng.choice(REPORT_NOTES)}")
+        doc.add(f"## {heading}\n\n{body} {rng.choice(phrases.report_notes)}")
     require(1_500 <= count_tokens(doc.text) <= 3_000, f"annual report length: {doc.filename}")
     return doc
 
 
 def render_contract(
     rng: random.Random,
+    phrases: TemplateSet,
     contract: Contract,
     names: dict[str, tuple[str, ...]],
     count_tokens: TokenCount,
@@ -585,7 +495,7 @@ def render_contract(
     doc = Document("contract", contract.document)
     name = contract.name
     doc.add(
-        f"# {name}",
+        phrases.contract_title.format(name=name),
         Evidence(Fact(contract.number, "name", name), (name,)),
         Evidence(Fact(contract.number, "numara", contract.number), (contract.number,)),
         Evidence(Fact(contract.number, "tur", contract.kind), (contract.title,)),
@@ -593,45 +503,42 @@ def render_contract(
     first, second = (mention(rng, names, company) for company in contract.parties)
     left, right = (ROLE_NAMES[role] for role in contract.roles)
     signed = rng.choice(date_formats(contract.signed))
-    text = rng.choice(
-        (
-            "{num} numaralı metin {date} tarihinde {a} ({left}) ile {b} ({right}) "
-            "arasında imzalandı.",
-            "{num} numaralı sözleşmenin imza tarihi {date}. İmza sayfasında {right} olarak {b}, "
-            "{left} olarak {a} yer alır.",
-            "{date} tarihli imzalar, {num} numaralı sözleşmede {left} sıfatıyla {a} ve {right} "
-            "sıfatıyla {b} adına atıldı.",
-        )
-    ).format(num=contract.number, date=signed, a=first, b=second, left=left, right=right)
+    text = rng.choice(phrases.party_paragraphs).format(
+        num=contract.number, date=signed, a=first, b=second, left=left, right=right
+    )
     parties = tuple(
         Evidence(Fact(contract.number, role, company.key), (contract.number, mention_text, label))
         for role, company, mention_text, label in zip(
             contract.roles, contract.parties, (first, second), (left, right), strict=True
         )
     )
-    doc.add(
-        f"## İmza ve taraflar\n\n{text}",
-        *parties,
-        Evidence(Fact(contract.number, "imza_tarihi", contract.signed.isoformat()), (signed,)),
-    )
     clauses = list(contract.clauses)
     rng.shuffle(clauses)
-    boilerplate = iter(rng.sample(CONTRACT_BOILERPLATE, len(CONTRACT_BOILERPLATE)))
-    notes = iter(rng.choices(CONTRACT_NOTES, k=len(CONTRACT_BOILERPLATE)))
+    boilerplate = iter(rng.sample(phrases.boilerplate, len(phrases.boilerplate)))
+    notes = iter(rng.choices(phrases.contract_notes, k=len(phrases.boilerplate)))
 
     def add_clause(clause: Clause) -> None:
         shown = rng.choice(clause.formats())
-        text = rng.choice(clause.statements).format(v=shown)
+        phrasing = phrases.clauses[clause.field]
+        statement = rng.choice(phrasing.statements).format(v=shown)
         doc.add(
-            f"## {clause.heading}\n\n{text}",
+            f"## {phrasing.heading}\n\n{statement}",
             Evidence(Fact(contract.number, clause.field, str(clause.value)), (shown,)),
         )
 
     for index, (heading, body) in enumerate(boilerplate):
+        if index == phrases.signature_after:
+            doc.add(
+                f"## {phrases.signature_heading}\n\n{text}",
+                *parties,
+                Evidence(
+                    Fact(contract.number, "imza_tarihi", contract.signed.isoformat()), (signed,)
+                ),
+            )
         doc.add(f"## {heading}\n\n{body}" + (f" {next(notes)}" if rng.random() < 0.3 else ""))
-        if index in (1, 3, 5) and len(clauses) > 1:
+        if index in phrases.clause_slots and len(clauses) > 1:
             add_clause(clauses.pop())
-        if count_tokens(doc.text) >= 1_015:
+        if index >= phrases.signature_after and count_tokens(doc.text) >= 1_015:
             break
     require(count_tokens(doc.text) >= 1_000, f"late clause placement: {doc.filename}")
     for clause in clauses:
@@ -642,6 +549,7 @@ def render_contract(
 
 def render_documents(
     rng: random.Random,
+    phrases: TemplateSet,
     companies: list[Company],
     shares: list[Share],
     contracts: list[Contract],
@@ -655,19 +563,20 @@ def render_documents(
         outgoing[share.owner.key].append(share)
         if share not in report_only:
             incoming[share.owned.key].append(share)
-    docs = [render_registry(rng, c, incoming[c.key], names) for c in companies]
+    docs = [render_registry(rng, phrases, c, incoming[c.key], names) for c in companies]
     docs.extend(
-        render_report(rng, c, outgoing[c.key], names, count_tokens)
+        render_report(rng, phrases, c, outgoing[c.key], names, count_tokens)
         for c in companies
         if c.holding or outgoing[c.key]
     )
-    docs.extend(render_contract(rng, c, names, count_tokens) for c in contracts)
+    docs.extend(render_contract(rng, phrases, c, names, count_tokens) for c in contracts)
     for index in range(round(len(docs) / 9)):
         company = rng.choice(companies)
-        heading, body = rng.choice(NOISE)
+        heading, body = rng.choice(phrases.noise)
         doc = Document("noise", f"gundem_{index + 1:03d}.md")
         first = mention(rng, names, company)
-        doc.add(f"# {heading} · {index + 1:03d}\n\n{body.format(name=first)}")
+        title = phrases.noise_title.format(heading=heading, index=index + 1)
+        doc.add(f"{title}\n\n{body.format(name=first)}")
         docs.append(doc)
     return docs
 
@@ -851,8 +760,13 @@ def chain_step(
     return {**step, "evidence": evidence}
 
 
-def candidates(world: World, rng: random.Random) -> dict[str, list[Question]]:
+def candidates(world: World, rng: random.Random, phrases: TemplateSet) -> dict[str, list[Question]]:
     groups: dict[str, list[Question]] = {group: [] for group in GROUPS}
+
+    def wording(family: str) -> str:
+        pool = phrases.questions[family]
+        return pool[0] if len(pool) == 1 else rng.choice(pool)
+
     for company in world.companies:
         key = company.key
         name = company.name
@@ -861,13 +775,13 @@ def candidates(world: World, rng: random.Random) -> dict[str, list[Question]]:
         def company_question(
             group: str,
             family: str,
-            question: str,
             path: tuple[str, ...],
             *,
             key: str = key,
             name: str = name,
             short: str | None = short,
         ) -> None:
+            question = wording(family)
             groups[group].append(
                 Question(
                     key,
@@ -878,82 +792,23 @@ def candidates(world: World, rng: random.Random) -> dict[str, list[Question]]:
                 )
             )
 
-        company_question(
-            "single_hop",
-            "company tax",
-            rng.choice(
-                (
-                    "“{name}” için sicilde hangi vergi numarası kayıtlı?",
-                    "Vergi kimlik numarası aranan şirket “{name}”. Sicilde hangi numara yazıyor?",
-                )
-            ),
-            ("vergi_no",),
-        )
-        company_question(
-            "single_hop",
-            "company city",
-            rng.choice(
-                (
-                    "“{name}” şirketinin merkezi hangi şehirde?",
-                    "Sicile göre “{name}” şirketinin merkez ili neresi?",
-                )
-            ),
-            ("sehir",),
-        )
-        company_question(
-            "multi_hop",
-            "owner city",
-            "“{name}” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?",
-            ("main_owner", "sehir"),
-        )
-        company_question(
-            "multi_hop",
-            "owner tax",
-            "“{name}” şirketinin en büyük hissedarının vergi numarası nedir?",
-            ("main_owner", "vergi_no"),
-        )
-        company_question(
-            "deep_hop",
-            "ancestor city",
-            "“{name}” şirketinin en büyük hissedarına bakın. O hissedarın en büyük "
-            "ortağının merkezi hangi şehirde?",
-            ("main_owner", "main_owner", "sehir"),
-        )
-        company_question(
-            "deep_hop",
-            "ancestor tax",
-            "“{name}” şirketindeki en yüksek paylı ortağın en yüksek paylı ortağı "
-            "sicilde hangi vergi numarasıyla kayıtlı?",
-            ("main_owner", "main_owner", "vergi_no"),
-        )
-        company_question(
-            "deep_hop",
-            "third ancestor",
-            "“{name}” şirketinden başlayıp her adımda en büyük hissedara geçin. "
-            "Üçüncü adımda ulaşılan şirket hangisi?",
-            ("main_owner", "main_owner", "main_owner"),
-        )
+        company_question("single_hop", "company tax", ("vergi_no",))
+        company_question("single_hop", "company city", ("sehir",))
+        company_question("multi_hop", "owner city", ("main_owner", "sehir"))
+        company_question("multi_hop", "owner tax", ("main_owner", "vergi_no"))
+        company_question("deep_hop", "ancestor city", ("main_owner", "main_owner", "sehir"))
+        company_question("deep_hop", "ancestor tax", ("main_owner", "main_owner", "vergi_no"))
+        company_question("deep_hop", "third ancestor", ("main_owner", "main_owner", "main_owner"))
         if company.holding:
-            company_question(
-                "deep_hop",
-                "indirect cities",
-                "“{name}” şirketinin tek bir aracı şirket üzerinden dolaylı pay "
-                "sahibi olduğu şirketlerin merkezleri hangi şehirlerdedir? "
-                "Her şehri bir kez yazın.",
-                ("child", "child", "sehir"),
-            )
+            company_question("deep_hop", "indirect cities", ("child", "child", "sehir"))
+
     for contract in world.contracts:
         number = contract.number
         groups["single_hop"].append(
             Question(
                 number,
                 "signature date",
-                rng.choice(
-                    (
-                        f"{number} numaralı sözleşme hangi tarihte imzalandı?",
-                        f"İmza tarihi aranan sözleşme {number}. Sözleşme ne zaman imzalanmış?",
-                    )
-                ),
+                wording("signature date").format(number=number),
                 (("imza_tarihi",),),
             )
         )
@@ -962,55 +817,38 @@ def candidates(world: World, rng: random.Random) -> dict[str, list[Question]]:
             Question(
                 number,
                 "both parties",
-                f"{number} numaralı sözleşmenin iki tarafı kimlerdir?",
+                wording("both parties").format(number=number),
                 ((left,), (right,)),
             )
         )
         for role in contract.roles:
             label = ROLE_NAMES[role]
-            for field_name, family, text in (
-                (
-                    "sehir",
-                    "party city",
-                    f"{number} sözleşmesinde {label} sıfatıyla imza atan şirketin "
-                    "merkez ili neresi?",
-                ),
-                (
-                    "vergi_no",
-                    "party tax",
-                    f"{number} numaralı sözleşmedeki {label} şirketin vergi kimlik numarası nedir?",
-                ),
-                (
-                    "main_owner",
-                    "party owner",
-                    f"{number} sözleşmesinin {label} tarafında yer alan şirketin en "
-                    "büyük hissedarı kimdir?",
-                ),
+            for field_name, family in (
+                ("sehir", "party city"),
+                ("vergi_no", "party tax"),
+                ("main_owner", "party owner"),
             ):
+                text = wording(family).format(number=number, label=label)
                 groups["multi_hop"].append(Question(number, family, text, ((role, field_name),)))
             groups["deep_hop"].append(
                 Question(
                     number,
                     "party ancestor",
-                    rng.choice(
-                        (
-                            f"{number} sözleşmesindeki {label} şirketin en büyük hissedarının "
-                            "en büyük hissedarı hangi şirkettir?",
-                            f"{number} sözleşmesinin {label} tarafını bulun. Bu "
-                            "tarafın en yüksek paylı "
-                            "ortağında en büyük pay kime aittir?",
-                        )
-                    ),
+                    wording("party ancestor").format(number=number, label=label),
                     ((role, "main_owner", "main_owner"),),
                 )
             )
         for clause in contract.clauses:
+            question = phrases.clauses[clause.field].question
             groups["free_text"].append(
                 Question(
                     number,
                     clause.field,
-                    f"{number} numaralı metne göre "
-                    f"{clause.question[0].lower()}{clause.question[1:]}",
+                    phrases.free_text_question.format(
+                        number=number,
+                        question=question,
+                        lower_question=question[0].lower() + question[1:],
+                    ),
                     ((clause.field,),),
                 )
             )
@@ -1040,6 +878,7 @@ def balanced_sample(rng: random.Random, questions: list[Question], count: int) -
 
 def make_questions(
     rng: random.Random,
+    phrases: TemplateSet,
     world: World,
     count: int,
     documents: list[Document],
@@ -1051,7 +890,7 @@ def make_questions(
     groups: dict[str, list[QuestionRow]] = {}
     per_group, remainder = divmod(count, len(GROUPS))
     seen: set[str] = set()
-    for index, (group, questions) in enumerate(candidates(world, rng).items()):
+    for index, (group, questions) in enumerate(candidates(world, rng, phrases).items()):
         quota = per_group + (index < remainder)
         viable = [q for q in questions if world.follow(q)]
         require(
@@ -1109,6 +948,7 @@ def make_questions(
 
 def readme(
     seed: int,
+    variant: str,
     world: World,
     documents: list[Document],
     questions: dict[str, list[QuestionRow]],
@@ -1120,14 +960,13 @@ def readme(
     contract_count = len(world.contracts)
     question_count = sum(map(len, questions.values()))
     # A stable example destination keeps the README identical for copies elsewhere.
-    out = (
-        SET_DEFAULT
-        if (seed, company_count, contract_count, question_count) == (7, 150, 300, 160)
-        else Path("synthetic-set")
+    out = SET_PATHS.get(
+        (variant, seed, company_count, contract_count, question_count), Path("synthetic-set")
     )
+    variant_arg = f" --variant {variant}" if variant != "a" else ""
     command = (
         "python eval/synthetic/generate.py --out "
-        f"{shlex.quote(out.as_posix())} --seed {seed} --companies {company_count} "
+        f"{shlex.quote(out.as_posix())} --seed {seed}{variant_arg} --companies {company_count} "
         f"--contracts {contract_count} --questions {question_count}"
     )
     return "\n".join(
@@ -1157,12 +996,19 @@ def readme(
 
 
 def generate(
-    out: Path, seed: int, company_count: int, contract_count: int, question_count: int
+    out: Path,
+    seed: int,
+    company_count: int,
+    contract_count: int,
+    question_count: int,
+    variant: str = "a",
 ) -> None:
     require(
         contract_count > 0 and question_count >= 4,
         "provide at least one contract and four questions",
     )
+    require(variant in TEMPLATE_SETS, f"unknown template variant: {variant}")
+    phrases = TEMPLATE_SETS[variant]
     rng = random.Random(seed)
     encoding = tiktoken.get_encoding("cl100k_base")
 
@@ -1174,10 +1020,10 @@ def generate(
         companies, make_shares(rng, companies), make_contracts(rng, contract_count, companies)
     )
     documents = render_documents(
-        rng, companies, world.shares, world.contracts, world.names, count_tokens
+        rng, phrases, companies, world.shares, world.contracts, world.names, count_tokens
     )
     sources = check_evidence(world, documents)
-    questions = make_questions(rng, world, question_count, documents, sources)
+    questions = make_questions(rng, phrases, world, question_count, documents, sources)
     tokens = sum(count_tokens(doc.text) for doc in documents)
     if company_count == 150 and contract_count == 300:
         require(tokens >= 150_000, f"default corpus is too small: {tokens} tokens")
@@ -1211,7 +1057,7 @@ def generate(
         newline="\n",
     )
     readme_path.write_text(
-        readme(seed, world, documents, questions, tokens), encoding="utf-8", newline="\n"
+        readme(seed, variant, world, documents, questions, tokens), encoding="utf-8", newline="\n"
     )
     for stale in prior_docs - {doc_dir / doc.filename for doc in documents}:
         stale.unlink()
@@ -1225,12 +1071,13 @@ def main(argv: Iterable[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument("--variant", choices=TEMPLATE_SETS, default="a")
     parser.add_argument("--companies", type=int, default=150)
     parser.add_argument("--contracts", type=int, default=300)
     parser.add_argument("--questions", type=int, default=160)
     args = parser.parse_args(list(argv) if argv is not None else None)
     try:
-        generate(args.out, args.seed, args.companies, args.contracts, args.questions)
+        generate(args.out, args.seed, args.companies, args.contracts, args.questions, args.variant)
     except ValueError as exc:
         parser.error(str(exc))
 

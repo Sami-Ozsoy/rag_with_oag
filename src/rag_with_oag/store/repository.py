@@ -14,6 +14,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from rag_with_oag._text import fold
 from rag_with_oag.store import queries as q
 from rag_with_oag.store import schema
 from rag_with_oag.store.connection import GraphConnection
@@ -115,6 +116,15 @@ class GraphRepository:
             await schema.create_vector_indexes(self._graph, meta.embed_dim)
         self._meta = meta
         return meta
+
+    async def backfill_chunk_text_norm(self) -> None:
+        graph = self._graph
+        while True:
+            result = await graph.ro_query(q.CHUNKS_MISSING_TEXT_NORM, {"limit": WRITE_BATCH})
+            rows = [{"id": cid, "text_norm": fold(text)} for cid, text in result.result_set]
+            if not rows:
+                return
+            await graph.query(q.SET_CHUNK_TEXT_NORM, {"rows": rows})
 
     async def ensure_embedding_dim(self, *, model: str, dim: int) -> None:
         if self.meta.embed_dim == dim:
@@ -263,6 +273,15 @@ class GraphRepository:
             return []
         result = await self._graph.ro_query(q.SEARCH_CHUNKS, {"k": k, "q": list(embedding)})
         return [_chunk_hit(row) for row in result.result_set]
+
+    async def search_chunks_text(self, query: str, k: int) -> list[ChunkHit]:
+        """Search folded chunk text using ``_text.fulltext_query`` output."""
+        if not query:
+            return []
+        result = await self._graph.ro_query(
+            q.SEARCH_CHUNKS_TEXT, {"q": f"@text_norm:({query})", "k": k}
+        )
+        return [_chunk_hit(row, is_distance=False) for row in result.result_set]
 
     async def evidence_chunks(
         self, entity_ids: Sequence[str], embedding: Sequence[float], k: int
@@ -442,6 +461,7 @@ def _chunk_row(chunk: Chunk, embedding: Sequence[float]) -> dict[str, Any]:
         "doc_id": chunk.doc_id,
         "idx": chunk.idx,
         "text": chunk.text,
+        "text_norm": fold(chunk.text),
         "token_count": chunk.token_count,
         "start_char": chunk.start_char,
         "end_char": chunk.end_char,
@@ -452,14 +472,14 @@ def _chunk_row(chunk: Chunk, embedding: Sequence[float]) -> dict[str, Any]:
     }
 
 
-def _chunk_hit(row: Sequence[Any]) -> ChunkHit:
-    cid, doc_id, source, text, distance, section, page, prev_id, prev_text, next_id, next_text = row
+def _chunk_hit(row: Sequence[Any], *, is_distance: bool = True) -> ChunkHit:
+    cid, doc_id, source, text, score, section, page, prev_id, prev_text, next_id, next_text = row
     return ChunkHit(
         chunk_id=cid,
         doc_id=doc_id,
         source=source,
         text=text,
-        score=1.0 - float(distance),
+        score=1.0 - float(score) if is_distance else float(score),
         section_path=tuple(section or ()),
         page_index=page,
         prev_id=prev_id,

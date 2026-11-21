@@ -12,6 +12,8 @@ from tempfile import NamedTemporaryFile
 from typing import TYPE_CHECKING, Any, cast
 
 from rag_with_oag import AsyncKnowledgeBase, EmbedConfig, Ontology, RagOagError, RetrievalConfig
+from rag_with_oag.rerank import Reranker
+from rag_with_oag.rerank.local import FastEmbedReranker
 from rag_with_oag.types import MODES
 
 if TYPE_CHECKING or __package__:
@@ -103,9 +105,16 @@ async def run_config(
     modes: Sequence[EvalMode],
     config: RetrievalConfig,
     hops: int,
+    *,
+    reranker: Reranker | None = None,
 ) -> Cells:
     kb = AsyncKnowledgeBase(
-        args.kb, path=args.db, ontology=ontology, embedder=embedder, retrieval=config
+        args.kb,
+        path=args.db,
+        ontology=ontology,
+        embedder=embedder,
+        retrieval=config,
+        reranker=reranker,
     )
     summary = Summary(model={}, ingest={})
     try:
@@ -163,25 +172,35 @@ async def sweep(
     questions = load_questions(args.set)
     ontology = Ontology.from_yaml(args.set / "ontology.yaml")
     embedder = make_embedder(args)
+    rerank_model = getattr(args, "rerank", None)
+    reranker = FastEmbedReranker(rerank_model) if rerank_model is not None else None
     results: list[dict[str, object]] = []
     report: dict[str, object] = {
         "set": str(args.set),
         "kb": args.kb,
         "db": str(args.db),
         "embed": embedder.model,
+        "rerank": rerank_model,
+        "rag_lexical": list(dict.fromkeys(config.rag_lexical for config, _ in configs)),
         "limit_per_group": args.limit,
         "results": results,
     }
+    print(f"Embedding `{embedder.model}`, reranker `{rerank_model or 'none'}`", flush=True)
     for config, hops in configs:
-        cells = await run_config(args, ontology, embedder, questions, modes, config, hops)
+        cells = await run_config(
+            args, ontology, embedder, questions, modes, config, hops, reranker=reranker
+        )
         results.append({"hops": hops, "retrieval": config.model_dump(mode="json"), "groups": cells})
         write_report(args.out, report)
-        print_config(hops, config.model_dump(mode="json", exclude_unset=True), cells)
+        settings = config.model_dump(mode="json", exclude_unset=True)
+        settings["rag_lexical"] = config.rag_lexical
+        print_config(hops, settings, cells)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     add_embedding_arguments(parser)
+    parser.add_argument("--rerank", metavar="MODEL", help="FastEmbed cross-encoder model")
     parser.add_argument("--set", type=Path, required=True, help="evaluation set directory")
     parser.add_argument("--kb", help="knowledge base name (default: the set directory name)")
     parser.add_argument("--db", type=Path, default=HERE / "out" / "golden.db")

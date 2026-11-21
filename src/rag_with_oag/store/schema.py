@@ -24,8 +24,7 @@ RANGE_INDEXES = (
     ("Entity", "name_norm"),
     ("ExtractionCache", "key"),
 )
-# Entity names are matched in folded form; see rag_with_oag._text.fold.
-FULLTEXT_INDEXES = (("Chunk", "text"), ("Entity", "name_norm"))
+FULLTEXT_INDEXES = (("Chunk", "text"), ("Chunk", "text_norm"), ("Entity", "name_norm"))
 VECTOR_INDEXES = (("Chunk", "embedding"), ("Entity", "embedding"))
 
 

@@ -40,6 +40,7 @@ from rag_with_oag import (
     RagOagError,
     RetrievalConfig,
 )
+from rag_with_oag.rerank.local import FastEmbedReranker
 from rag_with_oag.store.connection import GraphConnection
 from rag_with_oag.store.queries import safe_identifier
 from rag_with_oag.store.repository import GraphRepository
@@ -208,11 +209,12 @@ class Row:
 
 @dataclass
 class Summary:
-    model: dict[str, str]
+    model: dict[str, str | None]
     ingest: dict[str, Any]
     rows: list[Row] = field(default_factory=list)
     groups: list[str] = field(default_factory=list)
     graph_quality: GraphQuality | None = None
+    rag_lexical: bool = False
 
     @property
     def has_chains(self) -> bool:
@@ -247,6 +249,9 @@ async def run(args: argparse.Namespace) -> Summary:
     llm = LLMConfig(model=args.llm, base_url=base_url, timeout=600, max_tokens=None)
     extractor = LLMConfig(model=args.extractor or args.llm, base_url=base_url, timeout=600)
     embedder = make_embedder(args)
+    rerank_model = getattr(args, "rerank", None)
+    reranker = FastEmbedReranker(rerank_model) if rerank_model is not None else None
+    retrieval = RetrievalConfig(rag_lexical=getattr(args, "lexical", False))
     db = args.out / "golden.db"
     seed_entries = (
         await read_seed_cache(db, args.seed_cache_from, ontology)
@@ -262,11 +267,19 @@ async def run(args: argparse.Namespace) -> Summary:
         extractor_llm=extractor,
         embedder=embedder,
         ontology=ontology,
+        retrieval=retrieval,
+        reranker=reranker,
     )
     summary = Summary(
-        model={"llm": args.llm, "extractor": args.extractor or args.llm, "embed": embedder.model},
+        model={
+            "llm": args.llm,
+            "extractor": args.extractor or args.llm,
+            "embed": embedder.model,
+            "rerank": reranker.model if reranker is not None else None,
+        },
         ingest={},
         groups=list(questions),
+        rag_lexical=retrieval.rag_lexical,
     )
     try:
         if seed_entries is not None:
@@ -426,7 +439,9 @@ def render(s: Summary, modes: Sequence[EvalMode]) -> str:
         f"# Golden set — {datetime.now():%Y-%m-%d %H:%M}",
         "",
         f"Models: answer `{s.model['llm']}`, extraction `{s.model['extractor']}`, "
-        f"embedding `{s.model['embed']}`",
+        f"embedding `{s.model['embed']}`, reranker `{s.model.get('rerank') or 'none'}`",
+        "",
+        f"Lexical chunk search {'on' if s.rag_lexical else 'off'}",
         "",
         f"Ingest: {s.ingest['processed']} documents in {s.ingest['seconds']} s; graph "
         f"{s.ingest['stats'].get('entities')} entities, {s.ingest['stats'].get('relations')} "
@@ -555,6 +570,8 @@ def main() -> None:
     add_embedding_arguments(parser)
     parser.add_argument("--llm", required=True, help="answer model")
     parser.add_argument("--extractor", help="extraction model (default: --llm)")
+    parser.add_argument("--rerank", metavar="MODEL", help="FastEmbed cross-encoder model")
+    parser.add_argument("--lexical", action="store_true", help="fuse lexical and vector chunk hits")
     parser.add_argument("--modes", default=",".join(MODES))
     parser.add_argument("-k", type=int, default=RetrievalConfig().k)
     parser.add_argument("--hops", type=int)

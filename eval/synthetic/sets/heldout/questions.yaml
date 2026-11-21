@@ -1,0 +1,5895 @@
+single_hop:
+- q: YS-2024-003 kodlu akdin imza çizelgesinde hangi gün kayıtlı?
+  docs:
+  - ys_2024_003.md
+  answer:
+  - - 9 Ağustos 2024
+    - '2024-08-09'
+    - 09.08.2024
+  chain:
+  - - kind: property
+      entity: YS-2024-003
+      prop: imza_tarihi
+      value: '2024-08-09'
+      evidence:
+      - doc: ys_2024_003.md
+        literals:
+        - 9 Ağustos 2024
+- q: Tescil fişindeki merkez adresi «Kozalak Gıda A.Ş.» için hangi ili gösteriyor?
+  docs:
+  - sicil_7971887269.md
+  answer:
+  - - Manisa
+  chain:
+  - - kind: property
+      entity: '7971887269'
+      prop: sehir
+      value: Manisa
+      evidence:
+      - doc: sicil_7971887269.md
+        literals:
+        - Kozalak Gıda A.Ş.
+        - Manisa
+- q: Tescil fişindeki merkez adresi «Çınar Tarım A.Ş.» için hangi ili gösteriyor?
+  docs:
+  - sicil_6453110729.md
+  answer:
+  - - Edirne
+  chain:
+  - - kind: property
+      entity: '6453110729'
+      prop: sehir
+      value: Edirne
+      evidence:
+      - doc: sicil_6453110729.md
+        literals:
+        - Çınar Tarım A.Ş.
+        - Edirne
+- q: Merkez adresinin bağlı olduğu ili yazar mısınız? Aradığım şirket «Kıyı Lojistik».
+  docs:
+  - sicil_4856105606.md
+  answer:
+  - - Antalya
+  chain:
+  - - kind: property
+      entity: '4856105606'
+      prop: sehir
+      value: Antalya
+      evidence:
+      - doc: sicil_4856105606.md
+        literals:
+        - Kıyı Lojistik
+        - Antalya
+- q: Vergi mükellefi olarak «Hazar Metal» adına düzenlenen kimlik numarasını verir misiniz?
+  docs:
+  - sicil_6604531617.md
+  answer:
+  - - '6604531617'
+  chain:
+  - - kind: property
+      entity: '6604531617'
+      prop: vergi_no
+      value: '6604531617'
+      evidence:
+      - doc: sicil_6604531617.md
+        literals:
+        - Hazar Metal Ltd. Şti.
+        - '6604531617'
+- q: Vergi mükellefi olarak «Hisar Metal Pazarlama Ltd. Şti.» adına düzenlenen kimlik numarasını verir
+    misiniz?
+  docs:
+  - sicil_5155809356.md
+  answer:
+  - - '5155809356'
+  chain:
+  - - kind: property
+      entity: '5155809356'
+      prop: vergi_no
+      value: '5155809356'
+      evidence:
+      - doc: sicil_5155809356.md
+        literals:
+        - Hisar Metal Pazarlama Ltd. Şti.
+        - '5155809356'
+- q: Tescil fişinde «Milas Ambalaj Dağıtım» adına açılmış vergi kimliğinin numarası kaçtır?
+  docs:
+  - sicil_4439480124.md
+  answer:
+  - - '4439480124'
+  chain:
+  - - kind: property
+      entity: '4439480124'
+      prop: vergi_no
+      value: '4439480124'
+      evidence:
+      - doc: sicil_4439480124.md
+        literals:
+        - Milas Ambalaj Dağıtım A.Ş.
+        - '4439480124'
+- q: Tescil fişindeki merkez adresi «Yonca Holding» için hangi ili gösteriyor?
+  docs:
+  - sicil_1264491190.md
+  answer:
+  - - Kocaeli
+  chain:
+  - - kind: property
+      entity: '1264491190'
+      prop: sehir
+      value: Kocaeli
+      evidence:
+      - doc: sicil_1264491190.md
+        literals:
+        - Yonca Holding A.Ş.
+        - Kocaeli
+- q: Merkez adresinin bağlı olduğu ili yazar mısınız? Aradığım şirket «Yeşil».
+  docs:
+  - sicil_7552764200.md
+  answer:
+  - - Kayseri
+  chain:
+  - - kind: property
+      entity: '7552764200'
+      prop: sehir
+      value: Kayseri
+      evidence:
+      - doc: sicil_7552764200.md
+        literals:
+        - Yeşil Ambalaj A.Ş.
+        - Kayseri
+- q: İki imza sahibinin şirket adlarını DS-2022-004 referanslı akit dosyasından çıkarır mısınız?
+  docs:
+  - ds_2022_004.md
+  answer:
+  - - Delta Makine A.Ş.
+    - Delta Makine AŞ
+    - Delta Makine
+  - - Engin Ambalaj A.Ş.
+    - Engin Ambalaj AŞ
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '8793032418'
+      target: DS-2022-004
+      props:
+        rol: musteri
+      evidence:
+      - doc: ds_2022_004.md
+        literals:
+        - DS-2022-004
+        - Delta Makine
+        - müşteri
+  - - kind: relation
+      type: TARAFIDIR
+      source: '1392892535'
+      target: DS-2022-004
+      props:
+        rol: saglayici
+      evidence:
+      - doc: ds_2022_004.md
+        literals:
+        - DS-2022-004
+        - Engin Ambalaj A.Ş.
+        - sağlayıcı
+- q: Tescil fişindeki merkez adresi «Irmak Lojistik» için hangi ili gösteriyor?
+  docs:
+  - sicil_3016205417.md
+  answer:
+  - - İstanbul
+  chain:
+  - - kind: property
+      entity: '3016205417'
+      prop: sehir
+      value: İstanbul
+      evidence:
+      - doc: sicil_3016205417.md
+        literals:
+        - Irmak Lojistik Ltd. Şti.
+        - İstanbul
+- q: Tescil fişinde «Toprak Holding A.Ş.» adına açılmış vergi kimliğinin numarası kaçtır?
+  docs:
+  - sicil_1974034962.md
+  answer:
+  - - '1974034962'
+  chain:
+  - - kind: property
+      entity: '1974034962'
+      prop: vergi_no
+      value: '1974034962'
+      evidence:
+      - doc: sicil_1974034962.md
+        literals:
+        - Toprak Holding
+        - '1974034962'
+- q: Akit dosyasındaki HS-2021-017 referansı için imzaların atıldığı günü yazabilir misiniz?
+  docs:
+  - hs_2021_017.md
+  answer:
+  - - 8 Temmuz 2021
+    - '2021-07-08'
+    - 08.07.2021
+  chain:
+  - - kind: property
+      entity: HS-2021-017
+      prop: imza_tarihi
+      value: '2021-07-08'
+      evidence:
+      - doc: hs_2021_017.md
+        literals:
+        - 08.07.2021
+- q: Merkez adresinin bağlı olduğu ili yazar mısınız? Aradığım şirket «Hisar Metal Pazarlama».
+  docs:
+  - sicil_5155809356.md
+  answer:
+  - - Kayseri
+  chain:
+  - - kind: property
+      entity: '5155809356'
+      prop: sehir
+      value: Kayseri
+      evidence:
+      - doc: sicil_5155809356.md
+        literals:
+        - Hisar Metal Pazarlama Ltd. Şti.
+        - Kayseri
+- q: Merkez adresinin bağlı olduğu ili yazar mısınız? Aradığım şirket «Elvan Yazılım».
+  docs:
+  - sicil_4587235785.md
+  answer:
+  - - Ankara
+  chain:
+  - - kind: property
+      entity: '4587235785'
+      prop: sehir
+      value: Ankara
+      evidence:
+      - doc: sicil_4587235785.md
+        literals:
+        - Elvan Yazılım Ltd. Şti.
+        - Ankara
+- q: Vergi mükellefi olarak «Defne Sağlık Ltd. Şti.» adına düzenlenen kimlik numarasını verir misiniz?
+  docs:
+  - sicil_4881835131.md
+  answer:
+  - - '4881835131'
+  chain:
+  - - kind: property
+      entity: '4881835131'
+      prop: vergi_no
+      value: '4881835131'
+      evidence:
+      - doc: sicil_4881835131.md
+        literals:
+        - Defne Sağlık Ltd Şti
+        - '4881835131'
+- q: Tescil fişindeki merkez adresi «Ihlamur Yatırım A.Ş.» için hangi ili gösteriyor?
+  docs:
+  - sicil_5833846289.md
+  answer:
+  - - İzmir
+  chain:
+  - - kind: property
+      entity: '5833846289'
+      prop: sehir
+      value: İzmir
+      evidence:
+      - doc: sicil_5833846289.md
+        literals:
+        - Ihlamur Yatırım AŞ
+        - İzmir
+- q: Akit dosyasındaki YS-2021-003 referansı için imzaların atıldığı günü yazabilir misiniz?
+  docs:
+  - ys_2021_003.md
+  answer:
+  - - 2 Mart 2021
+    - '2021-03-02'
+    - 02.03.2021
+  chain:
+  - - kind: property
+      entity: YS-2021-003
+      prop: imza_tarihi
+      value: '2021-03-02'
+      evidence:
+      - doc: ys_2021_003.md
+        literals:
+        - 2 Mart 2021
+- q: Merkez adresinin bağlı olduğu ili yazar mısınız? Aradığım şirket «Hisar Mekanik».
+  docs:
+  - sicil_3278281181.md
+  answer:
+  - - Adana
+  chain:
+  - - kind: property
+      entity: '3278281181'
+      prop: sehir
+      value: Adana
+      evidence:
+      - doc: sicil_3278281181.md
+        literals:
+        - Hisar Mekanik Ltd Şti
+        - Adana
+- q: Tescil fişinde «Zeytin Yatırım» adına açılmış vergi kimliğinin numarası kaçtır?
+  docs:
+  - sicil_4254507021.md
+  answer:
+  - - '4254507021'
+  chain:
+  - - kind: property
+      entity: '4254507021'
+      prop: vergi_no
+      value: '4254507021'
+      evidence:
+      - doc: sicil_4254507021.md
+        literals:
+        - Zeytin Yatırım A.Ş.
+        - '4254507021'
+- q: Tescil fişindeki merkez adresi «Karaca Holding» için hangi ili gösteriyor?
+  docs:
+  - sicil_4866521123.md
+  answer:
+  - - Çanakkale
+  chain:
+  - - kind: property
+      entity: '4866521123'
+      prop: sehir
+      value: Çanakkale
+      evidence:
+      - doc: sicil_4866521123.md
+        literals:
+        - Karaca Holding A.Ş.
+        - Çanakkale
+- q: Vergi mükellefi olarak «Güney İnşaat» adına düzenlenen kimlik numarasını verir misiniz?
+  docs:
+  - sicil_9127757993.md
+  answer:
+  - - '9127757993'
+  chain:
+  - - kind: property
+      entity: '9127757993'
+      prop: vergi_no
+      value: '9127757993'
+      evidence:
+      - doc: sicil_9127757993.md
+        literals:
+        - Güney İnşaat Ltd Şti
+        - '9127757993'
+- q: İki imza sahibinin şirket adlarını DS-2024-007 referanslı akit dosyasından çıkarır mısınız?
+  docs:
+  - ds_2024_007.md
+  answer:
+  - - Anadolu Elektronik A.Ş.
+    - Anadolu Elektronik AŞ
+    - Anadolu Elektronik
+  - - Koru Makine Ltd. Şti.
+    - Koru Makine Ltd Şti
+    - Koru Makine
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '1449351453'
+      target: DS-2024-007
+      props:
+        rol: musteri
+      evidence:
+      - doc: ds_2024_007.md
+        literals:
+        - DS-2024-007
+        - Anadolu Elektronik A.Ş.
+        - müşteri
+  - - kind: relation
+      type: TARAFIDIR
+      source: '9360133116'
+      target: DS-2024-007
+      props:
+        rol: saglayici
+      evidence:
+      - doc: ds_2024_007.md
+        literals:
+        - DS-2024-007
+        - Koru Makine Ltd. Şti.
+        - sağlayıcı
+- q: İki imza sahibinin şirket adlarını YS-2023-009 referanslı akit dosyasından çıkarır mısınız?
+  docs:
+  - ys_2023_009.md
+  answer:
+  - - Kuzey Makine Ltd. Şti.
+    - Kuzey Makine Ltd Şti
+    - Kuzey Makine
+    - Kuzey
+  - - Hazar Metal Ltd. Şti.
+    - Hazar Metal Ltd Şti
+    - Hazar Metal
+    - Hazar
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '6889732185'
+      target: YS-2023-009
+      props:
+        rol: musteri
+      evidence:
+      - doc: ys_2023_009.md
+        literals:
+        - YS-2023-009
+        - Kuzey Makine
+        - müşteri
+  - - kind: relation
+      type: TARAFIDIR
+      source: '6604531617'
+      target: YS-2023-009
+      props:
+        rol: saglayici
+      evidence:
+      - doc: ys_2023_009.md
+        literals:
+        - YS-2023-009
+        - Hazar Metal Ltd. Şti.
+        - sağlayıcı
+- q: Merkez adresinin bağlı olduğu ili yazar mısınız? Aradığım şirket «Karadeniz İnşaat Ltd. Şti.».
+  docs:
+  - sicil_6523431014.md
+  answer:
+  - - Diyarbakır
+  chain:
+  - - kind: property
+      entity: '6523431014'
+      prop: sehir
+      value: Diyarbakır
+      evidence:
+      - doc: sicil_6523431014.md
+        literals:
+        - Karadeniz İnşaat Ltd. Şti.
+        - Diyarbakır
+- q: Tescil fişinde «Karaca Mekanik» adına açılmış vergi kimliğinin numarası kaçtır?
+  docs:
+  - sicil_5928223722.md
+  answer:
+  - - '5928223722'
+  chain:
+  - - kind: property
+      entity: '5928223722'
+      prop: vergi_no
+      value: '5928223722'
+      evidence:
+      - doc: sicil_5928223722.md
+        literals:
+        - Karaca Mekanik Ltd. Şti.
+        - '5928223722'
+- q: Tescil fişindeki merkez adresi «Gediz Kâğıt Yatırım Grubu A.Ş.» için hangi ili gösteriyor?
+  docs:
+  - sicil_7748638586.md
+  answer:
+  - - Konya
+  chain:
+  - - kind: property
+      entity: '7748638586'
+      prop: sehir
+      value: Konya
+      evidence:
+      - doc: sicil_7748638586.md
+        literals:
+        - Gediz Kâğıt Yatırım Grubu
+        - Konya
+- q: Tescil fişinde «Çağlayan Holding A.Ş.» adına açılmış vergi kimliğinin numarası kaçtır?
+  docs:
+  - sicil_3741347399.md
+  answer:
+  - - '3741347399'
+  chain:
+  - - kind: property
+      entity: '3741347399'
+      prop: vergi_no
+      value: '3741347399'
+      evidence:
+      - doc: sicil_3741347399.md
+        literals:
+        - Çağlayan Holding A.Ş.
+        - '3741347399'
+- q: Tescil fişindeki merkez adresi «Bozdağ Mobilya Yatırım Grubu Ltd. Şti.» için hangi ili gösteriyor?
+  docs:
+  - sicil_2287843420.md
+  answer:
+  - - Antalya
+  chain:
+  - - kind: property
+      entity: '2287843420'
+      prop: sehir
+      value: Antalya
+      evidence:
+      - doc: sicil_2287843420.md
+        literals:
+        - Bozdağ Mobilya Yatırım Grubu Ltd. Şti.
+        - Antalya
+- q: KS-2024-010 kodlu akdin imza çizelgesinde hangi gün kayıtlı?
+  docs:
+  - ks_2024_010.md
+  answer:
+  - - 16 Ekim 2024
+    - '2024-10-16'
+    - 16.10.2024
+  chain:
+  - - kind: property
+      entity: KS-2024-010
+      prop: imza_tarihi
+      value: '2024-10-16'
+      evidence:
+      - doc: ks_2024_010.md
+        literals:
+        - 16.10.2024
+- q: İki imza sahibinin şirket adlarını HS-2023-003 referanslı akit dosyasından çıkarır mısınız?
+  docs:
+  - hs_2023_003.md
+  answer:
+  - - Suna Sağlık A.Ş.
+    - Suna Sağlık AŞ
+    - Suna Sağlık
+    - Suna
+  - - Mercan Yatırım A.Ş.
+    - Mercan Yatırım AŞ
+    - Mercan Yatırım
+    - Mercan
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '5014664721'
+      target: HS-2023-003
+      props:
+        rol: musteri
+      evidence:
+      - doc: hs_2023_003.md
+        literals:
+        - HS-2023-003
+        - Suna Sağlık
+        - müşteri
+  - - kind: relation
+      type: TARAFIDIR
+      source: '1255916741'
+      target: HS-2023-003
+      props:
+        rol: saglayici
+      evidence:
+      - doc: hs_2023_003.md
+        literals:
+        - HS-2023-003
+        - Mercan Yatırım A.Ş.
+        - sağlayıcı
+- q: İki imza sahibinin şirket adlarını ES-2022-006 referanslı akit dosyasından çıkarır mısınız?
+  docs:
+  - es_2022_006.md
+  answer:
+  - - Bora Sağlık Ltd. Şti.
+    - Bora Sağlık Ltd Şti
+    - Bora Sağlık
+  - - Elvan Yazılım Ltd. Şti.
+    - Elvan Yazılım Ltd Şti
+    - Elvan Yazılım
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '8285699885'
+      target: ES-2022-006
+      props:
+        rol: musteri
+      evidence:
+      - doc: es_2022_006.md
+        literals:
+        - ES-2022-006
+        - Bora Sağlık Ltd. Şti.
+        - müşteri
+  - - kind: relation
+      type: TARAFIDIR
+      source: '4587235785'
+      target: ES-2022-006
+      props:
+        rol: saglayici
+      evidence:
+      - doc: es_2022_006.md
+        literals:
+        - ES-2022-006
+        - Elvan Yazılım Ltd. Şti.
+        - sağlayıcı
+- q: Tescil fişinde «Lodos Tarım A.Ş.» adına açılmış vergi kimliğinin numarası kaçtır?
+  docs:
+  - sicil_7693223774.md
+  answer:
+  - - '7693223774'
+  chain:
+  - - kind: property
+      entity: '7693223774'
+      prop: vergi_no
+      value: '7693223774'
+      evidence:
+      - doc: sicil_7693223774.md
+        literals:
+        - Lodos Tarım
+        - '7693223774'
+- q: Vergi mükellefi olarak «Gelincik Metal» adına düzenlenen kimlik numarasını verir misiniz?
+  docs:
+  - sicil_1646180124.md
+  answer:
+  - - '1646180124'
+  chain:
+  - - kind: property
+      entity: '1646180124'
+      prop: vergi_no
+      value: '1646180124'
+      evidence:
+      - doc: sicil_1646180124.md
+        literals:
+        - Gelincik Metal Ltd. Şti.
+        - '1646180124'
+- q: Akit dosyasındaki KS-2021-002 referansı için imzaların atıldığı günü yazabilir misiniz?
+  docs:
+  - ks_2021_002.md
+  answer:
+  - - 5 Haziran 2021
+    - '2021-06-05'
+    - 05.06.2021
+  chain:
+  - - kind: property
+      entity: KS-2021-002
+      prop: imza_tarihi
+      value: '2021-06-05'
+      evidence:
+      - doc: ks_2021_002.md
+        literals:
+        - '2021-06-05'
+- q: Merkez adresinin bağlı olduğu ili yazar mısınız? Aradığım şirket «Anadolu Sağlık».
+  docs:
+  - sicil_2706550709.md
+  answer:
+  - - Ordu
+  chain:
+  - - kind: property
+      entity: '2706550709'
+      prop: sehir
+      value: Ordu
+      evidence:
+      - doc: sicil_2706550709.md
+        literals:
+        - Anadolu Sağlık A.Ş.
+        - Ordu
+- q: İki imza sahibinin şirket adlarını DS-2025-007 referanslı akit dosyasından çıkarır mısınız?
+  docs:
+  - ds_2025_007.md
+  answer:
+  - - Irmak Lojistik Ltd. Şti.
+    - Irmak Lojistik Ltd Şti
+    - Irmak Lojistik
+  - - Vadi Ambalaj Ltd. Şti.
+    - Vadi Ambalaj Ltd Şti
+    - Vadi Ambalaj
+    - Vadi
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '3016205417'
+      target: DS-2025-007
+      props:
+        rol: musteri
+      evidence:
+      - doc: ds_2025_007.md
+        literals:
+        - DS-2025-007
+        - Irmak Lojistik Ltd. Şti.
+        - müşteri
+  - - kind: relation
+      type: TARAFIDIR
+      source: '1139245443'
+      target: DS-2025-007
+      props:
+        rol: saglayici
+      evidence:
+      - doc: ds_2025_007.md
+        literals:
+        - DS-2025-007
+        - Vadi Ambalaj Ltd Şti
+        - sağlayıcı
+- q: Tescil fişinde «Liman Kâğıt» adına açılmış vergi kimliğinin numarası kaçtır?
+  docs:
+  - sicil_8417100892.md
+  answer:
+  - - '8417100892'
+  chain:
+  - - kind: property
+      entity: '8417100892'
+      prop: vergi_no
+      value: '8417100892'
+      evidence:
+      - doc: sicil_8417100892.md
+        literals:
+        - Liman Kâğıt
+        - '8417100892'
+- q: Vergi mükellefi olarak «Delta Holding» adına düzenlenen kimlik numarasını verir misiniz?
+  docs:
+  - sicil_2927289342.md
+  answer:
+  - - '2927289342'
+  chain:
+  - - kind: property
+      entity: '2927289342'
+      prop: vergi_no
+      value: '2927289342'
+      evidence:
+      - doc: sicil_2927289342.md
+        literals:
+        - Delta Holding A.Ş.
+        - '2927289342'
+- q: Tescil fişinde «Meşe Makine» adına açılmış vergi kimliğinin numarası kaçtır?
+  docs:
+  - sicil_5846761025.md
+  answer:
+  - - '5846761025'
+  chain:
+  - - kind: property
+      entity: '5846761025'
+      prop: vergi_no
+      value: '5846761025'
+      evidence:
+      - doc: sicil_5846761025.md
+        literals:
+        - Meşe Makine
+        - '5846761025'
+multi_hop:
+- q: «Bahar Cam» sermayesindeki pay sıralamasında başı çeken şirketin resmî merkez adresi hangi ilde?
+  docs:
+  - sicil_9325629888.md
+  - sicil_5306084073.md
+  answer:
+  - - Gaziantep
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '5306084073'
+      target: '9325629888'
+      props:
+        oran: 76
+      evidence:
+      - doc: faaliyet_5306084073.md
+        literals:
+        - Meşe Mobilya Ltd. Şti.
+        - Bahar Cam
+        - yüzde 76
+      - doc: sicil_9325629888.md
+        literals:
+        - Meşe Mobilya
+        - Bahar Cam A.Ş.
+        - yüzde 76
+    - kind: property
+      entity: '5306084073'
+      prop: sehir
+      value: Gaziantep
+      evidence:
+      - doc: sicil_5306084073.md
+        literals:
+        - Meşe Mobilya Ltd. Şti.
+        - Gaziantep
+- q: «Kozalak Mobilya» sermayesindeki pay sıralamasında başı çeken şirketin resmî merkez adresi hangi
+    ilde?
+  docs:
+  - sicil_4404527068.md
+  - sicil_1646180124.md
+  answer:
+  - - Hatay
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1646180124'
+      target: '4404527068'
+      props:
+        oran: 52
+      evidence:
+      - doc: faaliyet_1646180124.md
+        literals:
+        - Gelincik Metal
+        - Kozalak Mobilya AŞ
+        - '% 52'
+      - doc: sicil_4404527068.md
+        literals:
+        - Kozalak Mobilya A.Ş.
+        - Gelincik Metal Ltd Şti
+        - '%52'
+    - kind: property
+      entity: '1646180124'
+      prop: sehir
+      value: Hatay
+      evidence:
+      - doc: sicil_1646180124.md
+        literals:
+        - Gelincik Metal Ltd. Şti.
+        - Hatay
+- q: «Kuzey» sermayesindeki pay sıralamasında başı çeken şirketin resmî merkez adresi hangi ilde?
+  docs:
+  - sicil_6889732185.md
+  - sicil_3587656458.md
+  answer:
+  - - Sakarya
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '3587656458'
+      target: '6889732185'
+      props:
+        oran: 69
+      evidence:
+      - doc: faaliyet_3587656458.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - Kuzey Makine Ltd. Şti.
+        - 69%
+      - doc: sicil_6889732185.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - Kuzey Makine Ltd. Şti.
+        - 69%
+    - kind: property
+      entity: '3587656458'
+      prop: sehir
+      value: Sakarya
+      evidence:
+      - doc: sicil_3587656458.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - Sakarya
+- q: «Ihlamur Yatırım» sermayesindeki en yüksek payı taşıyan ortak vergi siciline hangi kimlikle girmiş?
+  docs:
+  - sicil_5833846289.md
+  - sicil_8417100892.md
+  answer:
+  - - '8417100892'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '8417100892'
+      target: '5833846289'
+      props:
+        oran: 71
+      evidence:
+      - doc: faaliyet_8417100892.md
+        literals:
+        - Liman Kâğıt A.Ş.
+        - Ihlamur Yatırım A.Ş.
+        - '%71'
+      - doc: sicil_5833846289.md
+        literals:
+        - Liman Kâğıt AŞ
+        - Ihlamur Yatırım AŞ
+        - 71%
+    - kind: property
+      entity: '8417100892'
+      prop: vergi_no
+      value: '8417100892'
+      evidence:
+      - doc: sicil_8417100892.md
+        literals:
+        - Liman Kâğıt
+        - '8417100892'
+- q: «Bozdağ Metal» sermayesindeki en yüksek payı taşıyan ortak vergi siciline hangi kimlikle girmiş?
+  docs:
+  - sicil_7425083648.md
+  - sicil_1974034962.md
+  answer:
+  - - '1974034962'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1974034962'
+      target: '7425083648'
+      props:
+        oran: 74
+      evidence:
+      - doc: faaliyet_1974034962.md
+        literals:
+        - Toprak Holding A.Ş.
+        - Bozdağ Metal A.Ş.
+        - 74%
+      - doc: sicil_7425083648.md
+        literals:
+        - Toprak Holding
+        - Bozdağ Metal A.Ş.
+        - 74%
+    - kind: property
+      entity: '1974034962'
+      prop: vergi_no
+      value: '1974034962'
+      evidence:
+      - doc: sicil_1974034962.md
+        literals:
+        - Toprak Holding
+        - '1974034962'
+- q: «Güney İnşaat Ltd. Şti.» sermayesindeki pay sıralamasında başı çeken şirketin resmî merkez adresi
+    hangi ilde?
+  docs:
+  - sicil_9127757993.md
+  - sicil_4135471169.md
+  answer:
+  - - Aydın
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '4135471169'
+      target: '9127757993'
+      props:
+        oran: 54
+      evidence:
+      - doc: faaliyet_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Güney İnşaat Ltd Şti
+        - '%54'
+      - doc: sicil_9127757993.md
+        literals:
+        - Irmak Holding A.Ş.
+        - Güney İnşaat Ltd Şti
+        - yüzde 54
+    - kind: property
+      entity: '4135471169'
+      prop: sehir
+      value: Aydın
+      evidence:
+      - doc: sicil_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Aydın
+- q: «Hazar Metal Ltd. Şti.» sermayesindeki pay sıralamasında başı çeken şirketin resmî merkez adresi
+    hangi ilde?
+  docs:
+  - sicil_6604531617.md
+  - sicil_6319353863.md
+  answer:
+  - - Antalya
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '6319353863'
+      target: '6604531617'
+      props:
+        oran: 82
+      evidence:
+      - doc: faaliyet_6319353863.md
+        literals:
+        - Doruk Holding A.Ş.
+        - Hazar Metal Ltd. Şti.
+        - '%82'
+      - doc: sicil_6604531617.md
+        literals:
+        - Doruk Holding AŞ
+        - Hazar Metal Ltd. Şti.
+        - '% 82'
+    - kind: property
+      entity: '6319353863'
+      prop: sehir
+      value: Antalya
+      evidence:
+      - doc: sicil_6319353863.md
+        literals:
+        - Doruk Holding
+        - Antalya
+- q: «Kuzey» sermayesindeki en yüksek payı taşıyan ortak vergi siciline hangi kimlikle girmiş?
+  docs:
+  - sicil_6889732185.md
+  - sicil_3587656458.md
+  answer:
+  - - '3587656458'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '3587656458'
+      target: '6889732185'
+      props:
+        oran: 69
+      evidence:
+      - doc: faaliyet_3587656458.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - Kuzey Makine Ltd. Şti.
+        - 69%
+      - doc: sicil_6889732185.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - Kuzey Makine Ltd. Şti.
+        - 69%
+    - kind: property
+      entity: '3587656458'
+      prop: vergi_no
+      value: '3587656458'
+      evidence:
+      - doc: sicil_3587656458.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - '3587656458'
+- q: «Zeytin Elektronik Ltd. Şti.» sermayesindeki en yüksek payı taşıyan ortak vergi siciline hangi kimlikle
+    girmiş?
+  docs:
+  - sicil_5529045013.md
+  - sicil_9070434311.md
+  answer:
+  - - '9070434311'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '9070434311'
+      target: '5529045013'
+      props:
+        oran: 79
+      evidence:
+      - doc: faaliyet_9070434311.md
+        literals:
+        - Karaca Tekstil Pazarlama Ltd. Şti.
+        - Zeytin Elektronik Ltd. Şti.
+        - '%79'
+      - doc: sicil_5529045013.md
+        literals:
+        - Karaca Tekstil Pazarlama Ltd. Şti.
+        - Zeytin Elektronik Ltd. Şti.
+        - '% 79'
+    - kind: property
+      entity: '9070434311'
+      prop: vergi_no
+      value: '9070434311'
+      evidence:
+      - doc: sicil_9070434311.md
+        literals:
+        - Karaca Tekstil Pazarlama Ltd Şti
+        - '9070434311'
+- q: «Ekin İnşaat Ltd. Şti.» sermayesindeki en yüksek payı taşıyan ortak vergi siciline hangi kimlikle
+    girmiş?
+  docs:
+  - sicil_8827746879.md
+  - sicil_5846761025.md
+  answer:
+  - - '5846761025'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '5846761025'
+      target: '8827746879'
+      props:
+        oran: 84
+      evidence:
+      - doc: faaliyet_5846761025.md
+        literals:
+        - Meşe Makine Ltd. Şti.
+        - Ekin İnşaat Ltd. Şti.
+        - yüzde 84
+      - doc: sicil_8827746879.md
+        literals:
+        - Ekin İnşaat Ltd. Şti.
+        - Meşe Makine
+        - yüzde 84
+    - kind: property
+      entity: '5846761025'
+      prop: vergi_no
+      value: '5846761025'
+      evidence:
+      - doc: sicil_5846761025.md
+        literals:
+        - Meşe Makine
+        - '5846761025'
+- q: «Işık Yatırım» sermayesindeki en yüksek payı taşıyan ortak vergi siciline hangi kimlikle girmiş?
+  docs:
+  - sicil_1054552441.md
+  - sicil_1200808642.md
+  answer:
+  - - '1200808642'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1200808642'
+      target: '1054552441'
+      props:
+        oran: 67
+      evidence:
+      - doc: faaliyet_1200808642.md
+        literals:
+        - Deniz Tarım Ltd. Şti.
+        - Işık Yatırım A.Ş.
+        - '% 67'
+      - doc: sicil_1054552441.md
+        literals:
+        - Deniz Tarım
+        - Işık Yatırım A.Ş.
+        - yüzde 67
+    - kind: property
+      entity: '1200808642'
+      prop: vergi_no
+      value: '1200808642'
+      evidence:
+      - doc: sicil_1200808642.md
+        literals:
+        - Deniz Tarım Ltd. Şti.
+        - '1200808642'
+- q: «Karaca Tekstil Pazarlama Ltd. Şti.» sermayesindeki en yüksek payı taşıyan ortak vergi siciline hangi
+    kimlikle girmiş?
+  docs:
+  - sicil_9070434311.md
+  - sicil_5846761025.md
+  answer:
+  - - '5846761025'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '5846761025'
+      target: '9070434311'
+      props:
+        oran: 82
+      evidence:
+      - doc: faaliyet_5846761025.md
+        literals:
+        - Meşe Makine Ltd. Şti.
+        - Karaca Tekstil Pazarlama Ltd. Şti.
+        - 82%
+      - doc: sicil_9070434311.md
+        literals:
+        - Meşe Makine Ltd. Şti.
+        - Karaca Tekstil Pazarlama Ltd Şti
+        - yüzde 82
+    - kind: property
+      entity: '5846761025'
+      prop: vergi_no
+      value: '5846761025'
+      evidence:
+      - doc: sicil_5846761025.md
+        literals:
+        - Meşe Makine
+        - '5846761025'
+- q: «Zeytin İnşaat» sermayesindeki pay sıralamasında başı çeken şirketin resmî merkez adresi hangi ilde?
+  docs:
+  - faaliyet_8722649039.md
+  - sicil_8722649039.md
+  answer:
+  - - Van
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '8722649039'
+      target: '4360701464'
+      props:
+        oran: 68
+      evidence:
+      - doc: faaliyet_8722649039.md
+        literals:
+        - Zeytin Holding A.Ş.
+        - Zeytin İnşaat AŞ
+        - yüzde 68
+    - kind: property
+      entity: '8722649039'
+      prop: sehir
+      value: Van
+      evidence:
+      - doc: sicil_8722649039.md
+        literals:
+        - Zeytin Holding A.Ş.
+        - Van
+- q: Akit referansı YS-2024-010 ve taraf hanesi “müşteri”. Bu hanedeki şirket vergi siciline hangi kimlik
+    numarasıyla girmiş?
+  docs:
+  - ys_2024_010.md
+  - sicil_5975970569.md
+  answer:
+  - - '5975970569'
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '5975970569'
+      target: YS-2024-010
+      props:
+        rol: musteri
+      evidence:
+      - doc: ys_2024_010.md
+        literals:
+        - YS-2024-010
+        - Gediz Kâğıt A.Ş.
+        - müşteri
+    - kind: property
+      entity: '5975970569'
+      prop: vergi_no
+      value: '5975970569'
+      evidence:
+      - doc: sicil_5975970569.md
+        literals:
+        - Gediz Kâğıt AŞ
+        - '5975970569'
+- q: «Zirve Kimya» sermayesindeki pay sıralamasında başı çeken şirketin resmî merkez adresi hangi ilde?
+  docs:
+  - sicil_8844639171.md
+  - sicil_1255916741.md
+  answer:
+  - - Erzurum
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1255916741'
+      target: '8844639171'
+      props:
+        oran: 73
+      evidence:
+      - doc: faaliyet_1255916741.md
+        literals:
+        - Mercan Yatırım A.Ş.
+        - Zirve Kimya
+        - 73%
+      - doc: sicil_8844639171.md
+        literals:
+        - Mercan Yatırım
+        - Zirve Kimya A.Ş.
+        - '%73'
+    - kind: property
+      entity: '1255916741'
+      prop: sehir
+      value: Erzurum
+      evidence:
+      - doc: sicil_1255916741.md
+        literals:
+        - Mercan Yatırım
+        - Erzurum
+- q: YS-2021-006 kodlu belgede “müşteri” hanesini dolduran şirketin sermaye dağılımında ilk sırayı alan
+    ortak hangi şirkettir?
+  docs:
+  - ys_2021_006.md
+  - sicil_5344870906.md
+  answer:
+  - - Meşe Mobilya Ltd. Şti.
+    - Meşe Mobilya Ltd Şti
+    - Meşe Mobilya
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '5344870906'
+      target: YS-2021-006
+      props:
+        rol: musteri
+      evidence:
+      - doc: ys_2021_006.md
+        literals:
+        - YS-2021-006
+        - Ayaz Lojistik
+        - müşteri
+    - kind: relation
+      type: ORTAGIDIR
+      source: '5306084073'
+      target: '5344870906'
+      props:
+        oran: 72
+      evidence:
+      - doc: faaliyet_5306084073.md
+        literals:
+        - Meşe Mobilya Ltd. Şti.
+        - Ayaz Lojistik Ltd. Şti.
+        - '%72'
+      - doc: sicil_5344870906.md
+        literals:
+        - Meşe Mobilya Ltd. Şti.
+        - Ayaz Lojistik Ltd. Şti.
+        - '% 72'
+- q: «Bahar Cam A.Ş.» sermayesindeki en yüksek payı taşıyan ortak vergi siciline hangi kimlikle girmiş?
+  docs:
+  - sicil_9325629888.md
+  - sicil_5306084073.md
+  answer:
+  - - '5306084073'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '5306084073'
+      target: '9325629888'
+      props:
+        oran: 76
+      evidence:
+      - doc: faaliyet_5306084073.md
+        literals:
+        - Meşe Mobilya Ltd. Şti.
+        - Bahar Cam
+        - yüzde 76
+      - doc: sicil_9325629888.md
+        literals:
+        - Meşe Mobilya
+        - Bahar Cam A.Ş.
+        - yüzde 76
+    - kind: property
+      entity: '5306084073'
+      prop: vergi_no
+      value: '5306084073'
+      evidence:
+      - doc: sicil_5306084073.md
+        literals:
+        - Meşe Mobilya Ltd. Şti.
+        - '5306084073'
+- q: Akit referansı KS-2022-008 ve taraf hanesi “kiraya veren”. Bu hanedeki şirket vergi siciline hangi
+    kimlik numarasıyla girmiş?
+  docs:
+  - ks_2022_008.md
+  - sicil_8861015141.md
+  answer:
+  - - '8861015141'
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '8861015141'
+      target: KS-2022-008
+      props:
+        rol: kiraya_veren
+      evidence:
+      - doc: ks_2022_008.md
+        literals:
+        - KS-2022-008
+        - Milas Ambalaj A.Ş.
+        - kiraya veren
+    - kind: property
+      entity: '8861015141'
+      prop: vergi_no
+      value: '8861015141'
+      evidence:
+      - doc: sicil_8861015141.md
+        literals:
+        - Milas Ambalaj A.Ş.
+        - '8861015141'
+- q: «Gelincik Elektronik» sermayesindeki en yüksek payı taşıyan ortak vergi siciline hangi kimlikle girmiş?
+  docs:
+  - faaliyet_9918489611.md
+  - sicil_9918489611.md
+  answer:
+  - - '9918489611'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '9918489611'
+      target: '5880919751'
+      props:
+        oran: 59
+      evidence:
+      - doc: faaliyet_9918489611.md
+        literals:
+        - Zirve Danışmanlık Ltd. Şti.
+        - Gelincik Elektronik A.Ş.
+        - '% 59'
+    - kind: property
+      entity: '9918489611'
+      prop: vergi_no
+      value: '9918489611'
+      evidence:
+      - doc: sicil_9918489611.md
+        literals:
+        - Zirve Danışmanlık Ltd Şti
+        - '9918489611'
+- q: DS-2021-001 kodlu belgede “müşteri” hanesini dolduran şirketin sermaye dağılımında ilk sırayı alan
+    ortak hangi şirkettir?
+  docs:
+  - ds_2021_001.md
+  - sicil_2742908453.md
+  answer:
+  - - Yonca Holding A.Ş.
+    - Yonca Holding AŞ
+    - Yonca Holding
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '2742908453'
+      target: DS-2021-001
+      props:
+        rol: musteri
+      evidence:
+      - doc: ds_2021_001.md
+        literals:
+        - DS-2021-001
+        - Çamlı Enerji Ltd. Şti.
+        - müşteri
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1264491190'
+      target: '2742908453'
+      props:
+        oran: 55
+      evidence:
+      - doc: faaliyet_1264491190.md
+        literals:
+        - Yonca Holding A.Ş.
+        - Çamlı Enerji Ltd Şti
+        - yüzde 55
+      - doc: sicil_2742908453.md
+        literals:
+        - Yonca Holding AŞ
+        - Çamlı Enerji
+        - 55%
+- q: «Karaca Mekanik Ltd. Şti.» sermayesindeki pay sıralamasında başı çeken şirketin resmî merkez adresi
+    hangi ilde?
+  docs:
+  - sicil_5928223722.md
+  - sicil_8827746879.md
+  answer:
+  - - Erzurum
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '8827746879'
+      target: '5928223722'
+      props:
+        oran: 51
+      evidence:
+      - doc: faaliyet_8827746879.md
+        literals:
+        - Ekin İnşaat
+        - Karaca Mekanik Ltd. Şti.
+        - '% 51'
+      - doc: sicil_5928223722.md
+        literals:
+        - Karaca Mekanik Ltd. Şti.
+        - Ekin İnşaat Ltd. Şti.
+        - 51%
+    - kind: property
+      entity: '8827746879'
+      prop: sehir
+      value: Erzurum
+      evidence:
+      - doc: sicil_8827746879.md
+        literals:
+        - Ekin İnşaat Ltd. Şti.
+        - Erzurum
+- q: «Ihlamur Yatırım» sermayesindeki pay sıralamasında başı çeken şirketin resmî merkez adresi hangi
+    ilde?
+  docs:
+  - sicil_5833846289.md
+  - sicil_8417100892.md
+  answer:
+  - - Trabzon
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '8417100892'
+      target: '5833846289'
+      props:
+        oran: 71
+      evidence:
+      - doc: faaliyet_8417100892.md
+        literals:
+        - Liman Kâğıt A.Ş.
+        - Ihlamur Yatırım A.Ş.
+        - '%71'
+      - doc: sicil_5833846289.md
+        literals:
+        - Liman Kâğıt AŞ
+        - Ihlamur Yatırım AŞ
+        - 71%
+    - kind: property
+      entity: '8417100892'
+      prop: sehir
+      value: Trabzon
+      evidence:
+      - doc: sicil_8417100892.md
+        literals:
+        - Liman Kâğıt
+        - Trabzon
+- q: ES-2024-007 referanslı akdin “müşteri” hanesinde yazılı şirket hangi ili merkez adresi olarak tescil
+    ettirmiş?
+  docs:
+  - es_2024_007.md
+  - sicil_3950652430.md
+  answer:
+  - - Kayseri
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '3950652430'
+      target: ES-2024-007
+      props:
+        rol: musteri
+      evidence:
+      - doc: es_2024_007.md
+        literals:
+        - ES-2024-007
+        - Yıldız Yapı Ltd. Şti.
+        - müşteri
+    - kind: property
+      entity: '3950652430'
+      prop: sehir
+      value: Kayseri
+      evidence:
+      - doc: sicil_3950652430.md
+        literals:
+        - Yıldız Yapı
+        - Kayseri
+- q: «Liman Kâğıt A.Ş.» sermayesindeki pay sıralamasında başı çeken şirketin resmî merkez adresi hangi
+    ilde?
+  docs:
+  - faaliyet_4075274157.md
+  - sicil_4075274157.md
+  answer:
+  - - Muğla
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '4075274157'
+      target: '8417100892'
+      props:
+        oran: 81
+      evidence:
+      - doc: faaliyet_4075274157.md
+        literals:
+        - Irmak Cam
+        - Liman Kâğıt
+        - '%81'
+    - kind: property
+      entity: '4075274157'
+      prop: sehir
+      value: Muğla
+      evidence:
+      - doc: sicil_4075274157.md
+        literals:
+        - Irmak Cam A.Ş.
+        - Muğla
+- q: «Yakamoz Elektronik» sermayesindeki pay sıralamasında başı çeken şirketin resmî merkez adresi hangi
+    ilde?
+  docs:
+  - faaliyet_7178161262.md
+  - sicil_7178161262.md
+  answer:
+  - - İstanbul
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '7178161262'
+      target: '3509319091'
+      props:
+        oran: 78
+      evidence:
+      - doc: faaliyet_7178161262.md
+        literals:
+        - Işık Ambalaj Dış Ticaret Ltd. Şti.
+        - Yakamoz Elektronik Ltd. Şti.
+        - 78%
+    - kind: property
+      entity: '7178161262'
+      prop: sehir
+      value: İstanbul
+      evidence:
+      - doc: sicil_7178161262.md
+        literals:
+        - Işık Ambalaj Dış Ticaret Ltd. Şti.
+        - İstanbul
+- q: ES-2022-010 referanslı akdin “sağlayıcı” hanesinde yazılı şirket hangi ili merkez adresi olarak tescil
+    ettirmiş?
+  docs:
+  - es_2022_010.md
+  - sicil_6523431014.md
+  answer:
+  - - Diyarbakır
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '6523431014'
+      target: ES-2022-010
+      props:
+        rol: saglayici
+      evidence:
+      - doc: es_2022_010.md
+        literals:
+        - ES-2022-010
+        - Karadeniz İnşaat Ltd. Şti.
+        - sağlayıcı
+    - kind: property
+      entity: '6523431014'
+      prop: sehir
+      value: Diyarbakır
+      evidence:
+      - doc: sicil_6523431014.md
+        literals:
+        - Karadeniz İnşaat Ltd. Şti.
+        - Diyarbakır
+- q: Akit referansı ES-2021-002 ve taraf hanesi “müşteri”. Bu hanedeki şirket vergi siciline hangi kimlik
+    numarasıyla girmiş?
+  docs:
+  - es_2021_002.md
+  - sicil_6308242128.md
+  answer:
+  - - '6308242128'
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '6308242128'
+      target: ES-2021-002
+      props:
+        rol: musteri
+      evidence:
+      - doc: es_2021_002.md
+        literals:
+        - ES-2021-002
+        - Poyraz Tekstil Ltd. Şti.
+        - müşteri
+    - kind: property
+      entity: '6308242128'
+      prop: vergi_no
+      value: '6308242128'
+      evidence:
+      - doc: sicil_6308242128.md
+        literals:
+        - Poyraz Tekstil Ltd Şti
+        - '6308242128'
+- q: «Zeytin Kimya» sermayesindeki pay sıralamasında başı çeken şirketin resmî merkez adresi hangi ilde?
+  docs:
+  - sicil_7937929558.md
+  - sicil_8861015141.md
+  answer:
+  - - Edirne
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '8861015141'
+      target: '7937929558'
+      props:
+        oran: 67
+      evidence:
+      - doc: faaliyet_8861015141.md
+        literals:
+        - Milas Ambalaj AŞ
+        - Zeytin Kimya Ltd. Şti.
+        - '% 67'
+      - doc: sicil_7937929558.md
+        literals:
+        - Milas Ambalaj A.Ş.
+        - Zeytin Kimya Ltd. Şti.
+        - 67%
+    - kind: property
+      entity: '8861015141'
+      prop: sehir
+      value: Edirne
+      evidence:
+      - doc: sicil_8861015141.md
+        literals:
+        - Milas Ambalaj A.Ş.
+        - Edirne
+- q: «Elvan Mekanik A.Ş.» sermayesindeki en yüksek payı taşıyan ortak vergi siciline hangi kimlikle girmiş?
+  docs:
+  - sicil_6095291116.md
+  - sicil_4135471169.md
+  answer:
+  - - '4135471169'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '4135471169'
+      target: '6095291116'
+      props:
+        oran: 55
+      evidence:
+      - doc: faaliyet_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Elvan Mekanik A.Ş.
+        - yüzde 55
+      - doc: sicil_6095291116.md
+        literals:
+        - Irmak Holding AŞ
+        - Elvan Mekanik A.Ş.
+        - yüzde 55
+    - kind: property
+      entity: '4135471169'
+      prop: vergi_no
+      value: '4135471169'
+      evidence:
+      - doc: sicil_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - '4135471169'
+- q: «Fırat» sermayesindeki en yüksek payı taşıyan ortak vergi siciline hangi kimlikle girmiş?
+  docs:
+  - sicil_2010148393.md
+  - sicil_9325136745.md
+  answer:
+  - - '9325136745'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '9325136745'
+      target: '2010148393'
+      props:
+        oran: 57
+      evidence:
+      - doc: faaliyet_9325136745.md
+        literals:
+        - Belen Mobilya Ltd. Şti.
+        - Fırat Yazılım Ltd. Şti.
+        - '%57'
+      - doc: sicil_2010148393.md
+        literals:
+        - Belen Mobilya Ltd. Şti.
+        - Fırat Yazılım Ltd. Şti.
+        - '%57'
+    - kind: property
+      entity: '9325136745'
+      prop: vergi_no
+      value: '9325136745'
+      evidence:
+      - doc: sicil_9325136745.md
+        literals:
+        - Belen Mobilya Ltd Şti
+        - '9325136745'
+- q: «Gelincik Danışmanlık» sermayesindeki en yüksek payı taşıyan ortak vergi siciline hangi kimlikle
+    girmiş?
+  docs:
+  - sicil_6000386741.md
+  - sicil_5925477663.md
+  answer:
+  - - '5925477663'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '5925477663'
+      target: '6000386741'
+      props:
+        oran: 63
+      evidence:
+      - doc: faaliyet_5925477663.md
+        literals:
+        - Rüzgâr Holding A.Ş.
+        - Gelincik Danışmanlık AŞ
+        - '%63'
+      - doc: sicil_6000386741.md
+        literals:
+        - Rüzgâr Holding A.Ş.
+        - Gelincik Danışmanlık AŞ
+        - 63%
+    - kind: property
+      entity: '5925477663'
+      prop: vergi_no
+      value: '5925477663'
+      evidence:
+      - doc: sicil_5925477663.md
+        literals:
+        - Rüzgâr Holding A.Ş.
+        - '5925477663'
+- q: «Irmak Lojistik» sermayesindeki pay sıralamasında başı çeken şirketin resmî merkez adresi hangi ilde?
+  docs:
+  - faaliyet_1603505254.md
+  - sicil_1603505254.md
+  answer:
+  - - Muğla
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1603505254'
+      target: '3016205417'
+      props:
+        oran: 84
+      evidence:
+      - doc: faaliyet_1603505254.md
+        literals:
+        - Yonca Mekanik Ltd. Şti.
+        - Irmak Lojistik Ltd. Şti.
+        - 84%
+    - kind: property
+      entity: '1603505254'
+      prop: sehir
+      value: Muğla
+      evidence:
+      - doc: sicil_1603505254.md
+        literals:
+        - Yonca Mekanik Ltd. Şti.
+        - Muğla
+- q: Akit referansı DS-2025-010 ve taraf hanesi “müşteri”. Bu hanedeki şirket vergi siciline hangi kimlik
+    numarasıyla girmiş?
+  docs:
+  - ds_2025_010.md
+  - sicil_4975980319.md
+  answer:
+  - - '4975980319'
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '4975980319'
+      target: DS-2025-010
+      props:
+        rol: musteri
+      evidence:
+      - doc: ds_2025_010.md
+        literals:
+        - DS-2025-010
+        - Zirve Yatırım Ltd Şti
+        - müşteri
+    - kind: property
+      entity: '4975980319'
+      prop: vergi_no
+      value: '4975980319'
+      evidence:
+      - doc: sicil_4975980319.md
+        literals:
+        - Zirve Yatırım
+        - '4975980319'
+- q: «Gelincik Metal» sermayesindeki en yüksek payı taşıyan ortak vergi siciline hangi kimlikle girmiş?
+  docs:
+  - sicil_1646180124.md
+  - sicil_2138938117.md
+  answer:
+  - - '2138938117'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2138938117'
+      target: '1646180124'
+      props:
+        oran: 60
+      evidence:
+      - doc: faaliyet_2138938117.md
+        literals:
+        - Güney Holding
+        - Gelincik Metal Ltd. Şti.
+        - '%60'
+      - doc: sicil_1646180124.md
+        literals:
+        - Güney Holding A.Ş.
+        - Gelincik Metal Ltd. Şti.
+        - 60%
+    - kind: property
+      entity: '2138938117'
+      prop: vergi_no
+      value: '2138938117'
+      evidence:
+      - doc: sicil_2138938117.md
+        literals:
+        - Güney Holding A.Ş.
+        - '2138938117'
+- q: DS-2022-004 referanslı akdin “sağlayıcı” hanesinde yazılı şirket hangi ili merkez adresi olarak tescil
+    ettirmiş?
+  docs:
+  - ds_2022_004.md
+  - sicil_1392892535.md
+  answer:
+  - - İzmir
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '1392892535'
+      target: DS-2022-004
+      props:
+        rol: saglayici
+      evidence:
+      - doc: ds_2022_004.md
+        literals:
+        - DS-2022-004
+        - Engin Ambalaj A.Ş.
+        - sağlayıcı
+    - kind: property
+      entity: '1392892535'
+      prop: sehir
+      value: İzmir
+      evidence:
+      - doc: sicil_1392892535.md
+        literals:
+        - Engin Ambalaj A.Ş.
+        - İzmir
+- q: HS-2023-014 kodlu belgede “sağlayıcı” hanesini dolduran şirketin sermaye dağılımında ilk sırayı alan
+    ortak hangi şirkettir?
+  docs:
+  - hs_2023_014.md
+  - sicil_9348433579.md
+  answer:
+  - - Karaca Tekstil A.Ş.
+    - Karaca Tekstil AŞ
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '9348433579'
+      target: HS-2023-014
+      props:
+        rol: saglayici
+      evidence:
+      - doc: hs_2023_014.md
+        literals:
+        - HS-2023-014
+        - Duru Mobilya A.Ş.
+        - sağlayıcı
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1602849739'
+      target: '9348433579'
+      props:
+        oran: 62
+      evidence:
+      - doc: faaliyet_1602849739.md
+        literals:
+        - Karaca Tekstil A.Ş.
+        - Duru Mobilya A.Ş.
+        - '% 62'
+      - doc: sicil_9348433579.md
+        literals:
+        - Karaca Tekstil A.Ş.
+        - Duru Mobilya A.Ş.
+        - '% 62'
+- q: HS-2025-002 kodlu belgede “sağlayıcı” hanesini dolduran şirketin sermaye dağılımında ilk sırayı alan
+    ortak hangi şirkettir?
+  docs:
+  - hs_2025_002.md
+  - faaliyet_7178161262.md
+  answer:
+  - - Işık Ambalaj Dış Ticaret Ltd. Şti.
+    - Işık Ambalaj Dış Ticaret Ltd Şti
+    - Işık Ambalaj Dış Ticaret
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '3509319091'
+      target: HS-2025-002
+      props:
+        rol: saglayici
+      evidence:
+      - doc: hs_2025_002.md
+        literals:
+        - HS-2025-002
+        - Yakamoz Elektronik Ltd. Şti.
+        - sağlayıcı
+    - kind: relation
+      type: ORTAGIDIR
+      source: '7178161262'
+      target: '3509319091'
+      props:
+        oran: 78
+      evidence:
+      - doc: faaliyet_7178161262.md
+        literals:
+        - Işık Ambalaj Dış Ticaret Ltd. Şti.
+        - Yakamoz Elektronik Ltd. Şti.
+        - 78%
+- q: «Zeytin Yatırım» sermayesindeki en yüksek payı taşıyan ortak vergi siciline hangi kimlikle girmiş?
+  docs:
+  - sicil_4254507021.md
+  - sicil_4866521123.md
+  answer:
+  - - '4866521123'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '4866521123'
+      target: '4254507021'
+      props:
+        oran: 85
+      evidence:
+      - doc: faaliyet_4866521123.md
+        literals:
+        - Karaca Holding A.Ş.
+        - Zeytin Yatırım A.Ş.
+        - '%85'
+      - doc: sicil_4254507021.md
+        literals:
+        - Karaca Holding AŞ
+        - Zeytin Yatırım A.Ş.
+        - yüzde 85
+    - kind: property
+      entity: '4866521123'
+      prop: vergi_no
+      value: '4866521123'
+      evidence:
+      - doc: sicil_4866521123.md
+        literals:
+        - Karaca Holding A.Ş.
+        - '4866521123'
+- q: Akit referansı KS-2021-007 ve taraf hanesi “kiracı”. Bu hanedeki şirket vergi siciline hangi kimlik
+    numarasıyla girmiş?
+  docs:
+  - ks_2021_007.md
+  - sicil_8861015141.md
+  answer:
+  - - '8861015141'
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '8861015141'
+      target: KS-2021-007
+      props:
+        rol: kiraci
+      evidence:
+      - doc: ks_2021_007.md
+        literals:
+        - KS-2021-007
+        - Milas Ambalaj A.Ş.
+        - kiracı
+    - kind: property
+      entity: '8861015141'
+      prop: vergi_no
+      value: '8861015141'
+      evidence:
+      - doc: sicil_8861015141.md
+        literals:
+        - Milas Ambalaj A.Ş.
+        - '8861015141'
+- q: HS-2021-015 referanslı akdin “sağlayıcı” hanesinde yazılı şirket hangi ili merkez adresi olarak tescil
+    ettirmiş?
+  docs:
+  - hs_2021_015.md
+  - sicil_6604531617.md
+  answer:
+  - - Balıkesir
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '6604531617'
+      target: HS-2021-015
+      props:
+        rol: saglayici
+      evidence:
+      - doc: hs_2021_015.md
+        literals:
+        - HS-2021-015
+        - Hazar Metal Ltd. Şti.
+        - sağlayıcı
+    - kind: property
+      entity: '6604531617'
+      prop: sehir
+      value: Balıkesir
+      evidence:
+      - doc: sicil_6604531617.md
+        literals:
+        - Hazar Metal Ltd. Şti.
+        - Balıkesir
+deep_hop:
+- q: ES-2024-005 kodlu akitte “sağlayıcı” hanesindeki şirketten başlayarak ortaklık zincirinde iki kez
+    en yüksek payı seçin. Zincirin sonunda hangi şirket var?
+  docs:
+  - es_2024_005.md
+  - faaliyet_4075274157.md
+  - faaliyet_2791634701.md
+  answer:
+  - - Lale Holding A.Ş.
+    - Lale Holding AŞ
+    - Lale Holding
+    - Lale
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '8417100892'
+      target: ES-2024-005
+      props:
+        rol: saglayici
+      evidence:
+      - doc: es_2024_005.md
+        literals:
+        - ES-2024-005
+        - Liman Kâğıt A.Ş.
+        - sağlayıcı
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4075274157'
+      target: '8417100892'
+      props:
+        oran: 81
+      evidence:
+      - doc: faaliyet_4075274157.md
+        literals:
+        - Irmak Cam
+        - Liman Kâğıt
+        - '%81'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '2791634701'
+      target: '4075274157'
+      props:
+        oran: 61
+      evidence:
+      - doc: faaliyet_2791634701.md
+        literals:
+        - Lale Holding A.Ş.
+        - Irmak Cam AŞ
+        - 61%
+- q: Sermaye zincirini «Bahar Cam A.Ş.» şirketinden yukarı doğru üç halka izleyin. Her halkada payı en
+    yüksek ortağı seçtiğinizde son halkanın unvanı nedir?
+  docs:
+  - sicil_9325629888.md
+  - sicil_5306084073.md
+  - sicil_7425083648.md
+  answer:
+  - - Toprak Holding A.Ş.
+    - Toprak Holding AŞ
+    - Toprak Holding
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '5306084073'
+      target: '9325629888'
+      props:
+        oran: 76
+      evidence:
+      - doc: faaliyet_5306084073.md
+        literals:
+        - Meşe Mobilya Ltd. Şti.
+        - Bahar Cam
+        - yüzde 76
+      - doc: sicil_9325629888.md
+        literals:
+        - Meşe Mobilya
+        - Bahar Cam A.Ş.
+        - yüzde 76
+    - kind: relation
+      type: ORTAGIDIR
+      source: '7425083648'
+      target: '5306084073'
+      props:
+        oran: 83
+      evidence:
+      - doc: faaliyet_7425083648.md
+        literals:
+        - Bozdağ Metal AŞ
+        - Meşe Mobilya Ltd. Şti.
+        - 83%
+      - doc: sicil_5306084073.md
+        literals:
+        - Bozdağ Metal A.Ş.
+        - Meşe Mobilya Ltd. Şti.
+        - yüzde 83
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1974034962'
+      target: '7425083648'
+      props:
+        oran: 74
+      evidence:
+      - doc: faaliyet_1974034962.md
+        literals:
+        - Toprak Holding A.Ş.
+        - Bozdağ Metal A.Ş.
+        - 74%
+      - doc: sicil_7425083648.md
+        literals:
+        - Toprak Holding
+        - Bozdağ Metal A.Ş.
+        - 74%
+- q: Sermaye zincirini «Işık Ambalaj Ltd. Şti.» şirketinden yukarı doğru üç halka izleyin. Her halkada
+    payı en yüksek ortağı seçtiğinizde son halkanın unvanı nedir?
+  docs:
+  - sicil_3871840003.md
+  - sicil_3587656458.md
+  - sicil_6571545483.md
+  answer:
+  - - Irmak Holding A.Ş.
+    - Irmak Holding AŞ
+    - Irmak Holding
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '3587656458'
+      target: '3871840003'
+      props:
+        oran: 53
+      evidence:
+      - doc: faaliyet_3587656458.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - Işık Ambalaj Ltd. Şti.
+        - yüzde 53
+      - doc: sicil_3871840003.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - Işık Ambalaj Ltd. Şti.
+        - '% 53'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '6571545483'
+      target: '3587656458'
+      props:
+        oran: 60
+      evidence:
+      - doc: faaliyet_6571545483.md
+        literals:
+        - Doğa Lojistik A.Ş.
+        - Kuzgun İnşaat Ltd. Şti.
+        - yüzde 60
+      - doc: sicil_3587656458.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - Doğa Lojistik A.Ş.
+        - yüzde 60
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4135471169'
+      target: '6571545483'
+      props:
+        oran: 65
+      evidence:
+      - doc: faaliyet_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Doğa Lojistik A.Ş.
+        - 65%
+      - doc: sicil_6571545483.md
+        literals:
+        - Irmak Holding A.Ş.
+        - Doğa Lojistik AŞ
+        - '% 65'
+- q: «Ekin İnşaat Ltd. Şti.» üzerinden sermaye zincirinde iki seviye yukarı çıkın ve her seviyede payı
+    en yüksek ortağı seçin. Vardığınız şirketin merkez adresi hangi ilde kayıtlı?
+  docs:
+  - sicil_8827746879.md
+  - sicil_5846761025.md
+  - sicil_3741347399.md
+  answer:
+  - - Kayseri
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '5846761025'
+      target: '8827746879'
+      props:
+        oran: 84
+      evidence:
+      - doc: faaliyet_5846761025.md
+        literals:
+        - Meşe Makine Ltd. Şti.
+        - Ekin İnşaat Ltd. Şti.
+        - yüzde 84
+      - doc: sicil_8827746879.md
+        literals:
+        - Ekin İnşaat Ltd. Şti.
+        - Meşe Makine
+        - yüzde 84
+    - kind: relation
+      type: ORTAGIDIR
+      source: '3741347399'
+      target: '5846761025'
+      props:
+        oran: 68
+      evidence:
+      - doc: faaliyet_3741347399.md
+        literals:
+        - Çağlayan Holding
+        - Meşe Makine
+        - 68%
+      - doc: sicil_5846761025.md
+        literals:
+        - Çağlayan Holding AŞ
+        - Meşe Makine
+        - '% 68'
+    - kind: property
+      entity: '3741347399'
+      prop: sehir
+      value: Kayseri
+      evidence:
+      - doc: sicil_3741347399.md
+        literals:
+        - Çağlayan Holding A.Ş.
+        - Kayseri
+- q: Sermaye zincirini «Zeytin Kimya» şirketinden yukarı doğru üç halka izleyin. Her halkada payı en yüksek
+    ortağı seçtiğinizde son halkanın unvanı nedir?
+  docs:
+  - sicil_7937929558.md
+  - sicil_8861015141.md
+  - sicil_7425083648.md
+  answer:
+  - - Toprak Holding A.Ş.
+    - Toprak Holding AŞ
+    - Toprak Holding
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '8861015141'
+      target: '7937929558'
+      props:
+        oran: 67
+      evidence:
+      - doc: faaliyet_8861015141.md
+        literals:
+        - Milas Ambalaj AŞ
+        - Zeytin Kimya Ltd. Şti.
+        - '% 67'
+      - doc: sicil_7937929558.md
+        literals:
+        - Milas Ambalaj A.Ş.
+        - Zeytin Kimya Ltd. Şti.
+        - 67%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '7425083648'
+      target: '8861015141'
+      props:
+        oran: 73
+      evidence:
+      - doc: faaliyet_7425083648.md
+        literals:
+        - Bozdağ Metal AŞ
+        - Milas Ambalaj A.Ş.
+        - '%73'
+      - doc: sicil_8861015141.md
+        literals:
+        - Bozdağ Metal AŞ
+        - Milas Ambalaj A.Ş.
+        - '% 73'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1974034962'
+      target: '7425083648'
+      props:
+        oran: 74
+      evidence:
+      - doc: faaliyet_1974034962.md
+        literals:
+        - Toprak Holding A.Ş.
+        - Bozdağ Metal A.Ş.
+        - 74%
+      - doc: sicil_7425083648.md
+        literals:
+        - Toprak Holding
+        - Bozdağ Metal A.Ş.
+        - 74%
+- q: «Uludağ» üzerinden sermaye zincirinde iki seviye yukarı çıkın ve her seviyede payı en yüksek ortağı
+    seçin. Vardığınız şirketin merkez adresi hangi ilde kayıtlı?
+  docs:
+  - faaliyet_8861015141.md
+  - sicil_8861015141.md
+  - sicil_7425083648.md
+  answer:
+  - - Bursa
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '8861015141'
+      target: '4276711958'
+      props:
+        oran: 66
+      evidence:
+      - doc: faaliyet_8861015141.md
+        literals:
+        - Milas Ambalaj AŞ
+        - Uludağ Danışmanlık
+        - '%66'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '7425083648'
+      target: '8861015141'
+      props:
+        oran: 73
+      evidence:
+      - doc: faaliyet_7425083648.md
+        literals:
+        - Bozdağ Metal AŞ
+        - Milas Ambalaj A.Ş.
+        - '%73'
+      - doc: sicil_8861015141.md
+        literals:
+        - Bozdağ Metal AŞ
+        - Milas Ambalaj A.Ş.
+        - '% 73'
+    - kind: property
+      entity: '7425083648'
+      prop: sehir
+      value: Bursa
+      evidence:
+      - doc: sicil_7425083648.md
+        literals:
+        - Bozdağ Metal A.Ş.
+        - Bursa
+- q: «Nil Yazılım Ltd. Şti.» için payı en yüksek ortağı seçip aynı seçimi onun ortakları arasında tekrarladığınızda,
+    ulaştığınız şirketin vergi kimliği kaçtır?
+  docs:
+  - faaliyet_4404527068.md
+  - sicil_4404527068.md
+  - sicil_1646180124.md
+  answer:
+  - - '1646180124'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '4404527068'
+      target: '4936289721'
+      props:
+        oran: 71
+      evidence:
+      - doc: faaliyet_4404527068.md
+        literals:
+        - Kozalak Mobilya AŞ
+        - Nil Yazılım Ltd Şti
+        - '% 71'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1646180124'
+      target: '4404527068'
+      props:
+        oran: 52
+      evidence:
+      - doc: faaliyet_1646180124.md
+        literals:
+        - Gelincik Metal
+        - Kozalak Mobilya AŞ
+        - '% 52'
+      - doc: sicil_4404527068.md
+        literals:
+        - Kozalak Mobilya A.Ş.
+        - Gelincik Metal Ltd Şti
+        - '%52'
+    - kind: property
+      entity: '1646180124'
+      prop: vergi_no
+      value: '1646180124'
+      evidence:
+      - doc: sicil_1646180124.md
+        literals:
+        - Gelincik Metal Ltd. Şti.
+        - '1646180124'
+- q: «Kuzgun İnşaat Ltd. Şti.» için payı en yüksek ortağı seçip aynı seçimi onun ortakları arasında tekrarladığınızda,
+    ulaştığınız şirketin vergi kimliği kaçtır?
+  docs:
+  - sicil_3587656458.md
+  - sicil_6571545483.md
+  - sicil_4135471169.md
+  answer:
+  - - '4135471169'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '6571545483'
+      target: '3587656458'
+      props:
+        oran: 60
+      evidence:
+      - doc: faaliyet_6571545483.md
+        literals:
+        - Doğa Lojistik A.Ş.
+        - Kuzgun İnşaat Ltd. Şti.
+        - yüzde 60
+      - doc: sicil_3587656458.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - Doğa Lojistik A.Ş.
+        - yüzde 60
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4135471169'
+      target: '6571545483'
+      props:
+        oran: 65
+      evidence:
+      - doc: faaliyet_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Doğa Lojistik A.Ş.
+        - 65%
+      - doc: sicil_6571545483.md
+        literals:
+        - Irmak Holding A.Ş.
+        - Doğa Lojistik AŞ
+        - '% 65'
+    - kind: property
+      entity: '4135471169'
+      prop: vergi_no
+      value: '4135471169'
+      evidence:
+      - doc: sicil_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - '4135471169'
+- q: Sermaye zincirini «Belen Mekanik» şirketinden yukarı doğru üç halka izleyin. Her halkada payı en
+    yüksek ortağı seçtiğinizde son halkanın unvanı nedir?
+  docs:
+  - faaliyet_3840111448.md
+  - sicil_3840111448.md
+  - sicil_3278281181.md
+  answer:
+  - - Lale Holding A.Ş.
+    - Lale Holding AŞ
+    - Lale Holding
+    - Lale
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '3840111448'
+      target: '9043343051'
+      props:
+        oran: 77
+      evidence:
+      - doc: faaliyet_3840111448.md
+        literals:
+        - Güneş Tarım A.Ş.
+        - Belen Mekanik
+        - yüzde 77
+    - kind: relation
+      type: ORTAGIDIR
+      source: '3278281181'
+      target: '3840111448'
+      props:
+        oran: 52
+      evidence:
+      - doc: faaliyet_3278281181.md
+        literals:
+        - Hisar Mekanik Ltd Şti
+        - Güneş Tarım AŞ
+        - yüzde 52
+      - doc: sicil_3840111448.md
+        literals:
+        - Hisar Mekanik Ltd. Şti.
+        - Güneş Tarım A.Ş.
+        - yüzde 52
+    - kind: relation
+      type: ORTAGIDIR
+      source: '2791634701'
+      target: '3278281181'
+      props:
+        oran: 67
+      evidence:
+      - doc: faaliyet_2791634701.md
+        literals:
+        - Lale Holding A.Ş.
+        - Hisar Mekanik Ltd. Şti.
+        - '% 67'
+      - doc: sicil_3278281181.md
+        literals:
+        - Lale Holding
+        - Hisar Mekanik Ltd Şti
+        - '% 67'
+- q: «Kozalak Yapı» için payı en yüksek ortağı seçip aynı seçimi onun ortakları arasında tekrarladığınızda,
+    ulaştığınız şirketin vergi kimliği kaçtır?
+  docs:
+  - sicil_8179661340.md
+  - sicil_6571545483.md
+  - sicil_4135471169.md
+  answer:
+  - - '4135471169'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '6571545483'
+      target: '8179661340'
+      props:
+        oran: 62
+      evidence:
+      - doc: faaliyet_6571545483.md
+        literals:
+        - Doğa Lojistik A.Ş.
+        - Kozalak Yapı
+        - '%62'
+      - doc: sicil_8179661340.md
+        literals:
+        - Doğa Lojistik A.Ş.
+        - Kozalak Yapı Ltd. Şti.
+        - 62%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4135471169'
+      target: '6571545483'
+      props:
+        oran: 65
+      evidence:
+      - doc: faaliyet_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Doğa Lojistik A.Ş.
+        - 65%
+      - doc: sicil_6571545483.md
+        literals:
+        - Irmak Holding A.Ş.
+        - Doğa Lojistik AŞ
+        - '% 65'
+    - kind: property
+      entity: '4135471169'
+      prop: vergi_no
+      value: '4135471169'
+      evidence:
+      - doc: sicil_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - '4135471169'
+- q: Sermaye zincirini «Deren Mobilya A.Ş.» şirketinden yukarı doğru üç halka izleyin. Her halkada payı
+    en yüksek ortağı seçtiğinizde son halkanın unvanı nedir?
+  docs:
+  - sicil_3279586409.md
+  - sicil_5533482294.md
+  - sicil_7693223774.md
+  answer:
+  - - Ardıç Holding A.Ş.
+    - Ardıç Holding AŞ
+    - Ardıç Holding
+    - Ardıç
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '5533482294'
+      target: '3279586409'
+      props:
+        oran: 51
+      evidence:
+      - doc: faaliyet_5533482294.md
+        literals:
+        - Bozdağ Mobilya A.Ş.
+        - Deren Mobilya A.Ş.
+        - '% 51'
+      - doc: sicil_3279586409.md
+        literals:
+        - Deren Mobilya A.Ş.
+        - Bozdağ Mobilya A.Ş.
+        - 51%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '7693223774'
+      target: '5533482294'
+      props:
+        oran: 79
+      evidence:
+      - doc: faaliyet_7693223774.md
+        literals:
+        - Lodos Tarım A.Ş.
+        - Bozdağ Mobilya A.Ş.
+        - yüzde 79
+      - doc: sicil_5533482294.md
+        literals:
+        - Lodos Tarım A.Ş.
+        - Bozdağ Mobilya A.Ş.
+        - '% 79'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1250164508'
+      target: '7693223774'
+      props:
+        oran: 74
+      evidence:
+      - doc: faaliyet_1250164508.md
+        literals:
+        - Ardıç Holding A.Ş.
+        - Lodos Tarım A.Ş.
+        - '% 74'
+      - doc: sicil_7693223774.md
+        literals:
+        - Ardıç Holding A.Ş.
+        - Lodos Tarım
+        - '% 74'
+- q: «Umut Kâğıt» için payı en yüksek ortağı seçip aynı seçimi onun ortakları arasında tekrarladığınızda,
+    ulaştığınız şirketin vergi kimliği kaçtır?
+  docs:
+  - sicil_5569702169.md
+  - sicil_5306084073.md
+  - sicil_7425083648.md
+  answer:
+  - - '7425083648'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '5306084073'
+      target: '5569702169'
+      props:
+        oran: 65
+      evidence:
+      - doc: faaliyet_5306084073.md
+        literals:
+        - Meşe Mobilya Ltd. Şti.
+        - Umut Kâğıt
+        - 65%
+      - doc: sicil_5569702169.md
+        literals:
+        - Meşe Mobilya Ltd. Şti.
+        - Umut Kâğıt Ltd. Şti.
+        - '% 65'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '7425083648'
+      target: '5306084073'
+      props:
+        oran: 83
+      evidence:
+      - doc: faaliyet_7425083648.md
+        literals:
+        - Bozdağ Metal AŞ
+        - Meşe Mobilya Ltd. Şti.
+        - 83%
+      - doc: sicil_5306084073.md
+        literals:
+        - Bozdağ Metal A.Ş.
+        - Meşe Mobilya Ltd. Şti.
+        - yüzde 83
+    - kind: property
+      entity: '7425083648'
+      prop: vergi_no
+      value: '7425083648'
+      evidence:
+      - doc: sicil_7425083648.md
+        literals:
+        - Bozdağ Metal A.Ş.
+        - '7425083648'
+- q: «Irmak Holding» şirketinin doğrudan ortak olduğu şirketleri bulun ve onların doğrudan ortak olduğu
+    kuruluşlara bakın. Bu kuruluşların merkez illerini tekrarsız sıralayın.
+  docs:
+  - sicil_6571545483.md
+  - sicil_3587656458.md
+  - sicil_8179661340.md
+  - sicil_9918489611.md
+  - faaliyet_9918489611.md
+  - sicil_5880919751.md
+  - sicil_9127757993.md
+  - faaliyet_9127757993.md
+  - sicil_1934430823.md
+  - sicil_8771439941.md
+  - sicil_5846761025.md
+  - sicil_9070434311.md
+  - sicil_8827746879.md
+  answer:
+  - - Sakarya
+  - - Adana
+  - - Erzurum
+  - - Balıkesir
+  - - Manisa
+  - - Mersin
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '4135471169'
+      target: '6571545483'
+      props:
+        oran: 65
+      evidence:
+      - doc: faaliyet_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Doğa Lojistik A.Ş.
+        - 65%
+      - doc: sicil_6571545483.md
+        literals:
+        - Irmak Holding A.Ş.
+        - Doğa Lojistik AŞ
+        - '% 65'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '6571545483'
+      target: '3587656458'
+      props:
+        oran: 60
+      evidence:
+      - doc: faaliyet_6571545483.md
+        literals:
+        - Doğa Lojistik A.Ş.
+        - Kuzgun İnşaat Ltd. Şti.
+        - yüzde 60
+      - doc: sicil_3587656458.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - Doğa Lojistik A.Ş.
+        - yüzde 60
+    - kind: property
+      entity: '3587656458'
+      prop: sehir
+      value: Sakarya
+      evidence:
+      - doc: sicil_3587656458.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - Sakarya
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '4135471169'
+      target: '6571545483'
+      props:
+        oran: 65
+      evidence:
+      - doc: faaliyet_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Doğa Lojistik A.Ş.
+        - 65%
+      - doc: sicil_6571545483.md
+        literals:
+        - Irmak Holding A.Ş.
+        - Doğa Lojistik AŞ
+        - '% 65'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '6571545483'
+      target: '8179661340'
+      props:
+        oran: 62
+      evidence:
+      - doc: faaliyet_6571545483.md
+        literals:
+        - Doğa Lojistik A.Ş.
+        - Kozalak Yapı
+        - '%62'
+      - doc: sicil_8179661340.md
+        literals:
+        - Doğa Lojistik A.Ş.
+        - Kozalak Yapı Ltd. Şti.
+        - 62%
+    - kind: property
+      entity: '8179661340'
+      prop: sehir
+      value: Adana
+      evidence:
+      - doc: sicil_8179661340.md
+        literals:
+        - Kozalak Yapı Ltd. Şti.
+        - Adana
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '4135471169'
+      target: '5846761025'
+      props:
+        oran: 6
+      evidence:
+      - doc: faaliyet_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Meşe Makine Ltd. Şti.
+        - '% 6'
+      - doc: sicil_5846761025.md
+        literals:
+        - Irmak Holding
+        - Meşe Makine
+        - '%6'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '5846761025'
+      target: '8827746879'
+      props:
+        oran: 84
+      evidence:
+      - doc: faaliyet_5846761025.md
+        literals:
+        - Meşe Makine Ltd. Şti.
+        - Ekin İnşaat Ltd. Şti.
+        - yüzde 84
+      - doc: sicil_8827746879.md
+        literals:
+        - Ekin İnşaat Ltd. Şti.
+        - Meşe Makine
+        - yüzde 84
+    - kind: property
+      entity: '8827746879'
+      prop: sehir
+      value: Erzurum
+      evidence:
+      - doc: sicil_8827746879.md
+        literals:
+        - Ekin İnşaat Ltd. Şti.
+        - Erzurum
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '4135471169'
+      target: '9127757993'
+      props:
+        oran: 54
+      evidence:
+      - doc: faaliyet_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Güney İnşaat Ltd Şti
+        - '%54'
+      - doc: sicil_9127757993.md
+        literals:
+        - Irmak Holding A.Ş.
+        - Güney İnşaat Ltd Şti
+        - yüzde 54
+    - kind: relation
+      type: ORTAGIDIR
+      source: '9127757993'
+      target: '1934430823'
+      props:
+        oran: 72
+      evidence:
+      - doc: faaliyet_9127757993.md
+        literals:
+        - Güney İnşaat Ltd. Şti.
+        - Belen Mobilya Dış Ticaret Ltd. Şti.
+        - '%72'
+    - kind: property
+      entity: '1934430823'
+      prop: sehir
+      value: Balıkesir
+      evidence:
+      - doc: sicil_1934430823.md
+        literals:
+        - Belen Mobilya Dış Ticaret Ltd. Şti.
+        - Balıkesir
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '4135471169'
+      target: '9127757993'
+      props:
+        oran: 54
+      evidence:
+      - doc: faaliyet_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Güney İnşaat Ltd Şti
+        - '%54'
+      - doc: sicil_9127757993.md
+        literals:
+        - Irmak Holding A.Ş.
+        - Güney İnşaat Ltd Şti
+        - yüzde 54
+    - kind: relation
+      type: ORTAGIDIR
+      source: '9127757993'
+      target: '8771439941'
+      props:
+        oran: 65
+      evidence:
+      - doc: faaliyet_9127757993.md
+        literals:
+        - Güney İnşaat Ltd. Şti.
+        - Kanyon Mobilya AŞ
+        - '% 65'
+      - doc: sicil_8771439941.md
+        literals:
+        - Güney İnşaat Ltd. Şti.
+        - Kanyon Mobilya A.Ş.
+        - '% 65'
+    - kind: property
+      entity: '8771439941'
+      prop: sehir
+      value: Manisa
+      evidence:
+      - doc: sicil_8771439941.md
+        literals:
+        - Kanyon Mobilya A.Ş.
+        - Manisa
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '4135471169'
+      target: '5846761025'
+      props:
+        oran: 6
+      evidence:
+      - doc: faaliyet_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Meşe Makine Ltd. Şti.
+        - '% 6'
+      - doc: sicil_5846761025.md
+        literals:
+        - Irmak Holding
+        - Meşe Makine
+        - '%6'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '5846761025'
+      target: '9070434311'
+      props:
+        oran: 82
+      evidence:
+      - doc: faaliyet_5846761025.md
+        literals:
+        - Meşe Makine Ltd. Şti.
+        - Karaca Tekstil Pazarlama Ltd. Şti.
+        - 82%
+      - doc: sicil_9070434311.md
+        literals:
+        - Meşe Makine Ltd. Şti.
+        - Karaca Tekstil Pazarlama Ltd Şti
+        - yüzde 82
+    - kind: property
+      entity: '9070434311'
+      prop: sehir
+      value: Mersin
+      evidence:
+      - doc: sicil_9070434311.md
+        literals:
+        - Karaca Tekstil Pazarlama Ltd Şti
+        - Mersin
+- q: «Zeytin Kimya» üzerinden sermaye zincirinde iki seviye yukarı çıkın ve her seviyede payı en yüksek
+    ortağı seçin. Vardığınız şirketin merkez adresi hangi ilde kayıtlı?
+  docs:
+  - sicil_7937929558.md
+  - sicil_8861015141.md
+  - sicil_7425083648.md
+  answer:
+  - - Bursa
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '8861015141'
+      target: '7937929558'
+      props:
+        oran: 67
+      evidence:
+      - doc: faaliyet_8861015141.md
+        literals:
+        - Milas Ambalaj AŞ
+        - Zeytin Kimya Ltd. Şti.
+        - '% 67'
+      - doc: sicil_7937929558.md
+        literals:
+        - Milas Ambalaj A.Ş.
+        - Zeytin Kimya Ltd. Şti.
+        - 67%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '7425083648'
+      target: '8861015141'
+      props:
+        oran: 73
+      evidence:
+      - doc: faaliyet_7425083648.md
+        literals:
+        - Bozdağ Metal AŞ
+        - Milas Ambalaj A.Ş.
+        - '%73'
+      - doc: sicil_8861015141.md
+        literals:
+        - Bozdağ Metal AŞ
+        - Milas Ambalaj A.Ş.
+        - '% 73'
+    - kind: property
+      entity: '7425083648'
+      prop: sehir
+      value: Bursa
+      evidence:
+      - doc: sicil_7425083648.md
+        literals:
+        - Bozdağ Metal A.Ş.
+        - Bursa
+- q: «Lale Holding A.Ş.» şirketinin doğrudan ortak olduğu şirketleri bulun ve onların doğrudan ortak olduğu
+    kuruluşlara bakın. Bu kuruluşların merkez illerini tekrarsız sıralayın.
+  docs:
+  - sicil_4368167113.md
+  - sicil_1603505254.md
+  - sicil_5523703701.md
+  - faaliyet_5523703701.md
+  - sicil_6866280715.md
+  - sicil_2376959038.md
+  - sicil_1602849739.md
+  - faaliyet_2791634701.md
+  - faaliyet_4075274157.md
+  - sicil_8417100892.md
+  - sicil_4856105606.md
+  - sicil_1255916741.md
+  - sicil_5014664721.md
+  - sicil_3278281181.md
+  - sicil_3840111448.md
+  - sicil_2309975460.md
+  - sicil_7178161262.md
+  - sicil_7789903628.md
+  - sicil_5880919751.md
+  - sicil_4360701464.md
+  - faaliyet_4360701464.md
+  - sicil_2077228269.md
+  answer:
+  - - Muğla
+  - - Hatay
+  - - Kocaeli
+  - - Konya
+  - - Trabzon
+  - - Antalya
+  - - Erzurum
+  - - İstanbul
+  - - Malatya
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2791634701'
+      target: '4075274157'
+      props:
+        oran: 61
+      evidence:
+      - doc: faaliyet_2791634701.md
+        literals:
+        - Lale Holding A.Ş.
+        - Irmak Cam AŞ
+        - 61%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4075274157'
+      target: '5014664721'
+      props:
+        oran: 59
+      evidence:
+      - doc: faaliyet_4075274157.md
+        literals:
+        - Irmak Cam
+        - Suna Sağlık A.Ş.
+        - 59%
+      - doc: sicil_5014664721.md
+        literals:
+        - Irmak Cam AŞ
+        - Suna Sağlık AŞ
+        - 59%
+    - kind: property
+      entity: '5014664721'
+      prop: sehir
+      value: Muğla
+      evidence:
+      - doc: sicil_5014664721.md
+        literals:
+        - Suna Sağlık AŞ
+        - Muğla
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2791634701'
+      target: '4360701464'
+      props:
+        oran: 17
+      evidence:
+      - doc: faaliyet_2791634701.md
+        literals:
+        - Lale Holding A.Ş.
+        - Zeytin İnşaat A.Ş.
+        - yüzde 17
+      - doc: sicil_4360701464.md
+        literals:
+        - Lale Holding AŞ
+        - Zeytin İnşaat A.Ş.
+        - 17%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4360701464'
+      target: '2077228269'
+      props:
+        oran: 78
+      evidence:
+      - doc: faaliyet_4360701464.md
+        literals:
+        - Zeytin İnşaat AŞ
+        - Asya Danışmanlık Ltd. Şti.
+        - '%78'
+    - kind: property
+      entity: '2077228269'
+      prop: sehir
+      value: Hatay
+      evidence:
+      - doc: sicil_2077228269.md
+        literals:
+        - Asya Danışmanlık Ltd. Şti.
+        - Hatay
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2791634701'
+      target: '5523703701'
+      props:
+        oran: 63
+      evidence:
+      - doc: faaliyet_2791634701.md
+        literals:
+        - Lale Holding A.Ş.
+        - Bora Ambalaj
+        - '%63'
+      - doc: sicil_5523703701.md
+        literals:
+        - Lale Holding
+        - Bora Ambalaj Ltd. Şti.
+        - '% 63'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '5523703701'
+      target: '2376959038'
+      props:
+        oran: 83
+      evidence:
+      - doc: faaliyet_5523703701.md
+        literals:
+        - Bora Ambalaj Ltd. Şti.
+        - Toros Gıda Yatırım Grubu A.Ş.
+        - '% 83'
+    - kind: property
+      entity: '2376959038'
+      prop: sehir
+      value: Kocaeli
+      evidence:
+      - doc: sicil_2376959038.md
+        literals:
+        - Toros Gıda Yatırım Grubu
+        - Kocaeli
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2791634701'
+      target: '5523703701'
+      props:
+        oran: 63
+      evidence:
+      - doc: faaliyet_2791634701.md
+        literals:
+        - Lale Holding A.Ş.
+        - Bora Ambalaj
+        - '%63'
+      - doc: sicil_5523703701.md
+        literals:
+        - Lale Holding
+        - Bora Ambalaj Ltd. Şti.
+        - '% 63'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '5523703701'
+      target: '1602849739'
+      props:
+        oran: 62
+      evidence:
+      - doc: faaliyet_5523703701.md
+        literals:
+        - Bora Ambalaj Ltd. Şti.
+        - Karaca Tekstil AŞ
+        - '%62'
+    - kind: property
+      entity: '1602849739'
+      prop: sehir
+      value: Konya
+      evidence:
+      - doc: sicil_1602849739.md
+        literals:
+        - Karaca Tekstil AŞ
+        - Konya
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2791634701'
+      target: '4075274157'
+      props:
+        oran: 61
+      evidence:
+      - doc: faaliyet_2791634701.md
+        literals:
+        - Lale Holding A.Ş.
+        - Irmak Cam AŞ
+        - 61%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4075274157'
+      target: '8417100892'
+      props:
+        oran: 81
+      evidence:
+      - doc: faaliyet_4075274157.md
+        literals:
+        - Irmak Cam
+        - Liman Kâğıt
+        - '%81'
+    - kind: property
+      entity: '8417100892'
+      prop: sehir
+      value: Trabzon
+      evidence:
+      - doc: sicil_8417100892.md
+        literals:
+        - Liman Kâğıt
+        - Trabzon
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2791634701'
+      target: '4075274157'
+      props:
+        oran: 61
+      evidence:
+      - doc: faaliyet_2791634701.md
+        literals:
+        - Lale Holding A.Ş.
+        - Irmak Cam AŞ
+        - 61%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4075274157'
+      target: '4856105606'
+      props:
+        oran: 71
+      evidence:
+      - doc: faaliyet_4075274157.md
+        literals:
+        - Irmak Cam
+        - Kıyı Lojistik Ltd Şti
+        - '%71'
+    - kind: property
+      entity: '4856105606'
+      prop: sehir
+      value: Antalya
+      evidence:
+      - doc: sicil_4856105606.md
+        literals:
+        - Kıyı Lojistik
+        - Antalya
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2791634701'
+      target: '2309975460'
+      props:
+        oran: 63
+      evidence:
+      - doc: faaliyet_2791634701.md
+        literals:
+        - Lale Holding A.Ş.
+        - Kaya Yatırım
+        - '%63'
+      - doc: sicil_2309975460.md
+        literals:
+        - Lale Holding
+        - Kaya Yatırım
+        - '% 63'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '2309975460'
+      target: '5880919751'
+      props:
+        oran: 18
+      evidence:
+      - doc: faaliyet_2309975460.md
+        literals:
+        - Kaya Yatırım
+        - Gelincik Elektronik
+        - yüzde 18
+      - doc: sicil_5880919751.md
+        literals:
+        - Kaya Yatırım
+        - Gelincik Elektronik
+        - yüzde 18
+    - kind: property
+      entity: '5880919751'
+      prop: sehir
+      value: Erzurum
+      evidence:
+      - doc: sicil_5880919751.md
+        literals:
+        - Gelincik Elektronik
+        - Erzurum
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2791634701'
+      target: '2309975460'
+      props:
+        oran: 63
+      evidence:
+      - doc: faaliyet_2791634701.md
+        literals:
+        - Lale Holding A.Ş.
+        - Kaya Yatırım
+        - '%63'
+      - doc: sicil_2309975460.md
+        literals:
+        - Lale Holding
+        - Kaya Yatırım
+        - '% 63'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '2309975460'
+      target: '7178161262'
+      props:
+        oran: 55
+      evidence:
+      - doc: faaliyet_2309975460.md
+        literals:
+        - Kaya Yatırım
+        - Işık Ambalaj Dış Ticaret Ltd. Şti.
+        - '%55'
+      - doc: sicil_7178161262.md
+        literals:
+        - Işık Ambalaj Dış Ticaret Ltd. Şti.
+        - Kaya Yatırım A.Ş.
+        - '% 55'
+    - kind: property
+      entity: '7178161262'
+      prop: sehir
+      value: İstanbul
+      evidence:
+      - doc: sicil_7178161262.md
+        literals:
+        - Işık Ambalaj Dış Ticaret Ltd. Şti.
+        - İstanbul
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2791634701'
+      target: '2309975460'
+      props:
+        oran: 63
+      evidence:
+      - doc: faaliyet_2791634701.md
+        literals:
+        - Lale Holding A.Ş.
+        - Kaya Yatırım
+        - '%63'
+      - doc: sicil_2309975460.md
+        literals:
+        - Lale Holding
+        - Kaya Yatırım
+        - '% 63'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '2309975460'
+      target: '7789903628'
+      props:
+        oran: 78
+      evidence:
+      - doc: faaliyet_2309975460.md
+        literals:
+        - Kaya Yatırım
+        - Anadolu Yapı Ltd. Şti.
+        - '% 78'
+      - doc: sicil_7789903628.md
+        literals:
+        - Kaya Yatırım A.Ş.
+        - Anadolu Yapı Ltd. Şti.
+        - '%78'
+    - kind: property
+      entity: '7789903628'
+      prop: sehir
+      value: Malatya
+      evidence:
+      - doc: sicil_7789903628.md
+        literals:
+        - Anadolu Yapı Ltd. Şti.
+        - Malatya
+- q: «Yonca Holding» şirketinin doğrudan ortak olduğu şirketleri bulun ve onların doğrudan ortak olduğu
+    kuruluşlara bakın. Bu kuruluşların merkez illerini tekrarsız sıralayın.
+  docs:
+  - sicil_3840111448.md
+  - faaliyet_3840111448.md
+  - sicil_9043343051.md
+  - sicil_9409070442.md
+  answer:
+  - - Adana
+  - - Ankara
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1264491190'
+      target: '3840111448'
+      props:
+        oran: 18
+      evidence:
+      - doc: faaliyet_1264491190.md
+        literals:
+        - Yonca Holding A.Ş.
+        - Güneş Tarım A.Ş.
+        - yüzde 18
+      - doc: sicil_3840111448.md
+        literals:
+        - Yonca Holding A.Ş.
+        - Güneş Tarım A.Ş.
+        - '%18'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '3840111448'
+      target: '9043343051'
+      props:
+        oran: 77
+      evidence:
+      - doc: faaliyet_3840111448.md
+        literals:
+        - Güneş Tarım A.Ş.
+        - Belen Mekanik
+        - yüzde 77
+    - kind: property
+      entity: '9043343051'
+      prop: sehir
+      value: Adana
+      evidence:
+      - doc: sicil_9043343051.md
+        literals:
+        - Belen Mekanik
+        - Adana
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1264491190'
+      target: '3840111448'
+      props:
+        oran: 18
+      evidence:
+      - doc: faaliyet_1264491190.md
+        literals:
+        - Yonca Holding A.Ş.
+        - Güneş Tarım A.Ş.
+        - yüzde 18
+      - doc: sicil_3840111448.md
+        literals:
+        - Yonca Holding A.Ş.
+        - Güneş Tarım A.Ş.
+        - '%18'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '3840111448'
+      target: '9409070442'
+      props:
+        oran: 73
+      evidence:
+      - doc: faaliyet_3840111448.md
+        literals:
+        - Güneş Tarım A.Ş.
+        - Toros İnşaat A.Ş.
+        - '%73'
+      - doc: sicil_9409070442.md
+        literals:
+        - Güneş Tarım AŞ
+        - Toros İnşaat A.Ş.
+        - '%73'
+    - kind: property
+      entity: '9409070442'
+      prop: sehir
+      value: Ankara
+      evidence:
+      - doc: sicil_9409070442.md
+        literals:
+        - Toros İnşaat A.Ş.
+        - Ankara
+- q: «Irmak Lojistik Ltd. Şti.» için payı en yüksek ortağı seçip aynı seçimi onun ortakları arasında tekrarladığınızda,
+    ulaştığınız şirketin vergi kimliği kaçtır?
+  docs:
+  - faaliyet_1603505254.md
+  - sicil_1603505254.md
+  - sicil_4368167113.md
+  answer:
+  - - '4368167113'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1603505254'
+      target: '3016205417'
+      props:
+        oran: 84
+      evidence:
+      - doc: faaliyet_1603505254.md
+        literals:
+        - Yonca Mekanik Ltd. Şti.
+        - Irmak Lojistik Ltd. Şti.
+        - 84%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4368167113'
+      target: '1603505254'
+      props:
+        oran: 58
+      evidence:
+      - doc: faaliyet_4368167113.md
+        literals:
+        - Kaya Tekstil A.Ş.
+        - Yonca Mekanik
+        - yüzde 58
+      - doc: sicil_1603505254.md
+        literals:
+        - Kaya Tekstil A.Ş.
+        - Yonca Mekanik Ltd. Şti.
+        - 58%
+    - kind: property
+      entity: '4368167113'
+      prop: vergi_no
+      value: '4368167113'
+      evidence:
+      - doc: sicil_4368167113.md
+        literals:
+        - Kaya Tekstil AŞ
+        - '4368167113'
+- q: «Yakamoz Lojistik» için payı en yüksek ortağı seçip aynı seçimi onun ortakları arasında tekrarladığınızda,
+    ulaştığınız şirketin vergi kimliği kaçtır?
+  docs:
+  - faaliyet_5235725552.md
+  - sicil_5235725552.md
+  - sicil_4950135453.md
+  answer:
+  - - '4950135453'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '5235725552'
+      target: '3272510972'
+      props:
+        oran: 52
+      evidence:
+      - doc: faaliyet_5235725552.md
+        literals:
+        - Turna Yazılım Ltd. Şti.
+        - Yakamoz Lojistik A.Ş.
+        - '%52'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4950135453'
+      target: '5235725552'
+      props:
+        oran: 64
+      evidence:
+      - doc: faaliyet_4950135453.md
+        literals:
+        - Ayaz Elektronik A.Ş.
+        - Turna Yazılım Ltd. Şti.
+        - '%64'
+      - doc: sicil_5235725552.md
+        literals:
+        - Ayaz Elektronik A.Ş.
+        - Turna Yazılım Ltd. Şti.
+        - 64%
+    - kind: property
+      entity: '4950135453'
+      prop: vergi_no
+      value: '4950135453'
+      evidence:
+      - doc: sicil_4950135453.md
+        literals:
+        - Ayaz Elektronik AŞ
+        - '4950135453'
+- q: «Rüzgâr» şirketinin doğrudan ortak olduğu şirketleri bulun ve onların doğrudan ortak olduğu kuruluşlara
+    bakın. Bu kuruluşların merkez illerini tekrarsız sıralayın.
+  docs:
+  - sicil_4881835131.md
+  - sicil_2287843420.md
+  - faaliyet_5925477663.md
+  - sicil_4404527068.md
+  - sicil_9325136745.md
+  answer:
+  - - Antalya
+  - - Bursa
+  - - Şanlıurfa
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '5925477663'
+      target: '4881835131'
+      props:
+        oran: 56
+      evidence:
+      - doc: faaliyet_5925477663.md
+        literals:
+        - Rüzgâr Holding A.Ş.
+        - Defne Sağlık Ltd Şti
+        - yüzde 56
+      - doc: sicil_4881835131.md
+        literals:
+        - Rüzgâr Holding AŞ
+        - Defne Sağlık Ltd Şti
+        - 56%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4881835131'
+      target: '2287843420'
+      props:
+        oran: 61
+      evidence:
+      - doc: faaliyet_4881835131.md
+        literals:
+        - Defne Sağlık Ltd. Şti.
+        - Bozdağ Mobilya Yatırım Grubu
+        - '%61'
+      - doc: sicil_2287843420.md
+        literals:
+        - Defne Sağlık Ltd Şti
+        - Bozdağ Mobilya Yatırım Grubu Ltd. Şti.
+        - 61%
+    - kind: property
+      entity: '2287843420'
+      prop: sehir
+      value: Antalya
+      evidence:
+      - doc: sicil_2287843420.md
+        literals:
+        - Bozdağ Mobilya Yatırım Grubu Ltd. Şti.
+        - Antalya
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '5925477663'
+      target: '1646180124'
+      props:
+        oran: 7
+      evidence:
+      - doc: faaliyet_5925477663.md
+        literals:
+        - Rüzgâr Holding A.Ş.
+        - Gelincik Metal Ltd. Şti.
+        - '%7'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1646180124'
+      target: '4404527068'
+      props:
+        oran: 52
+      evidence:
+      - doc: faaliyet_1646180124.md
+        literals:
+        - Gelincik Metal
+        - Kozalak Mobilya AŞ
+        - '% 52'
+      - doc: sicil_4404527068.md
+        literals:
+        - Kozalak Mobilya A.Ş.
+        - Gelincik Metal Ltd Şti
+        - '%52'
+    - kind: property
+      entity: '4404527068'
+      prop: sehir
+      value: Bursa
+      evidence:
+      - doc: sicil_4404527068.md
+        literals:
+        - Kozalak Mobilya A.Ş.
+        - Bursa
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '5925477663'
+      target: '1646180124'
+      props:
+        oran: 7
+      evidence:
+      - doc: faaliyet_5925477663.md
+        literals:
+        - Rüzgâr Holding A.Ş.
+        - Gelincik Metal Ltd. Şti.
+        - '%7'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1646180124'
+      target: '9325136745'
+      props:
+        oran: 83
+      evidence:
+      - doc: faaliyet_1646180124.md
+        literals:
+        - Gelincik Metal
+        - Belen Mobilya Ltd. Şti.
+        - yüzde 83
+      - doc: sicil_9325136745.md
+        literals:
+        - Gelincik Metal
+        - Belen Mobilya Ltd Şti
+        - '% 83'
+    - kind: property
+      entity: '9325136745'
+      prop: sehir
+      value: Şanlıurfa
+      evidence:
+      - doc: sicil_9325136745.md
+        literals:
+        - Belen Mobilya Ltd Şti
+        - Şanlıurfa
+- q: Sermaye zincirini «Koru Elektronik» şirketinden yukarı doğru üç halka izleyin. Her halkada payı en
+    yüksek ortağı seçtiğinizde son halkanın unvanı nedir?
+  docs:
+  - sicil_7757520966.md
+  - sicil_4404527068.md
+  - sicil_1646180124.md
+  answer:
+  - - Güney Holding A.Ş.
+    - Güney Holding AŞ
+    - Güney Holding
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '4404527068'
+      target: '7757520966'
+      props:
+        oran: 73
+      evidence:
+      - doc: faaliyet_4404527068.md
+        literals:
+        - Kozalak Mobilya AŞ
+        - Koru Elektronik A.Ş.
+        - 73%
+      - doc: sicil_7757520966.md
+        literals:
+        - Kozalak Mobilya AŞ
+        - Koru Elektronik AŞ
+        - 73%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1646180124'
+      target: '4404527068'
+      props:
+        oran: 52
+      evidence:
+      - doc: faaliyet_1646180124.md
+        literals:
+        - Gelincik Metal
+        - Kozalak Mobilya AŞ
+        - '% 52'
+      - doc: sicil_4404527068.md
+        literals:
+        - Kozalak Mobilya A.Ş.
+        - Gelincik Metal Ltd Şti
+        - '%52'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '2138938117'
+      target: '1646180124'
+      props:
+        oran: 60
+      evidence:
+      - doc: faaliyet_2138938117.md
+        literals:
+        - Güney Holding
+        - Gelincik Metal Ltd. Şti.
+        - '%60'
+      - doc: sicil_1646180124.md
+        literals:
+        - Güney Holding A.Ş.
+        - Gelincik Metal Ltd. Şti.
+        - 60%
+- q: YS-2025-011 kodlu belgede “müşteri” hanesindeki şirketin en yüksek paylı ortağını bulun. O ortağın
+    sermaye dağılımında ilk sırayı hangi şirket alıyor?
+  docs:
+  - ys_2025_011.md
+  - sicil_6889732185.md
+  - sicil_3587656458.md
+  answer:
+  - - Doğa Lojistik A.Ş.
+    - Doğa Lojistik AŞ
+    - Doğa Lojistik
+    - Doğa
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '6889732185'
+      target: YS-2025-011
+      props:
+        rol: musteri
+      evidence:
+      - doc: ys_2025_011.md
+        literals:
+        - YS-2025-011
+        - Kuzey Makine
+        - müşteri
+    - kind: relation
+      type: ORTAGIDIR
+      source: '3587656458'
+      target: '6889732185'
+      props:
+        oran: 69
+      evidence:
+      - doc: faaliyet_3587656458.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - Kuzey Makine Ltd. Şti.
+        - 69%
+      - doc: sicil_6889732185.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - Kuzey Makine Ltd. Şti.
+        - 69%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '6571545483'
+      target: '3587656458'
+      props:
+        oran: 60
+      evidence:
+      - doc: faaliyet_6571545483.md
+        literals:
+        - Doğa Lojistik A.Ş.
+        - Kuzgun İnşaat Ltd. Şti.
+        - yüzde 60
+      - doc: sicil_3587656458.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - Doğa Lojistik A.Ş.
+        - yüzde 60
+- q: ES-2024-012 kodlu akitte “müşteri” hanesindeki şirketten başlayarak ortaklık zincirinde iki kez en
+    yüksek payı seçin. Zincirin sonunda hangi şirket var?
+  docs:
+  - es_2024_012.md
+  - sicil_3587656458.md
+  - sicil_6571545483.md
+  answer:
+  - - Irmak Holding A.Ş.
+    - Irmak Holding AŞ
+    - Irmak Holding
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '3587656458'
+      target: ES-2024-012
+      props:
+        rol: musteri
+      evidence:
+      - doc: es_2024_012.md
+        literals:
+        - ES-2024-012
+        - Kuzgun İnşaat Ltd. Şti.
+        - müşteri
+    - kind: relation
+      type: ORTAGIDIR
+      source: '6571545483'
+      target: '3587656458'
+      props:
+        oran: 60
+      evidence:
+      - doc: faaliyet_6571545483.md
+        literals:
+        - Doğa Lojistik A.Ş.
+        - Kuzgun İnşaat Ltd. Şti.
+        - yüzde 60
+      - doc: sicil_3587656458.md
+        literals:
+        - Kuzgun İnşaat Ltd Şti
+        - Doğa Lojistik A.Ş.
+        - yüzde 60
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4135471169'
+      target: '6571545483'
+      props:
+        oran: 65
+      evidence:
+      - doc: faaliyet_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Doğa Lojistik A.Ş.
+        - 65%
+      - doc: sicil_6571545483.md
+        literals:
+        - Irmak Holding A.Ş.
+        - Doğa Lojistik AŞ
+        - '% 65'
+- q: «Kozalak Yapı Ltd. Şti.» üzerinden sermaye zincirinde iki seviye yukarı çıkın ve her seviyede payı
+    en yüksek ortağı seçin. Vardığınız şirketin merkez adresi hangi ilde kayıtlı?
+  docs:
+  - sicil_8179661340.md
+  - sicil_6571545483.md
+  - sicil_4135471169.md
+  answer:
+  - - Aydın
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '6571545483'
+      target: '8179661340'
+      props:
+        oran: 62
+      evidence:
+      - doc: faaliyet_6571545483.md
+        literals:
+        - Doğa Lojistik A.Ş.
+        - Kozalak Yapı
+        - '%62'
+      - doc: sicil_8179661340.md
+        literals:
+        - Doğa Lojistik A.Ş.
+        - Kozalak Yapı Ltd. Şti.
+        - 62%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4135471169'
+      target: '6571545483'
+      props:
+        oran: 65
+      evidence:
+      - doc: faaliyet_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Doğa Lojistik A.Ş.
+        - 65%
+      - doc: sicil_6571545483.md
+        literals:
+        - Irmak Holding A.Ş.
+        - Doğa Lojistik AŞ
+        - '% 65'
+    - kind: property
+      entity: '4135471169'
+      prop: sehir
+      value: Aydın
+      evidence:
+      - doc: sicil_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Aydın
+- q: «Nil İnşaat» için payı en yüksek ortağı seçip aynı seçimi onun ortakları arasında tekrarladığınızda,
+    ulaştığınız şirketin vergi kimliği kaçtır?
+  docs:
+  - faaliyet_1603505254.md
+  - sicil_1603505254.md
+  - sicil_4368167113.md
+  answer:
+  - - '4368167113'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1603505254'
+      target: '6030771999'
+      props:
+        oran: 71
+      evidence:
+      - doc: faaliyet_1603505254.md
+        literals:
+        - Yonca Mekanik Ltd. Şti.
+        - Nil İnşaat AŞ
+        - yüzde 71
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4368167113'
+      target: '1603505254'
+      props:
+        oran: 58
+      evidence:
+      - doc: faaliyet_4368167113.md
+        literals:
+        - Kaya Tekstil A.Ş.
+        - Yonca Mekanik
+        - yüzde 58
+      - doc: sicil_1603505254.md
+        literals:
+        - Kaya Tekstil A.Ş.
+        - Yonca Mekanik Ltd. Şti.
+        - 58%
+    - kind: property
+      entity: '4368167113'
+      prop: vergi_no
+      value: '4368167113'
+      evidence:
+      - doc: sicil_4368167113.md
+        literals:
+        - Kaya Tekstil AŞ
+        - '4368167113'
+- q: «Çağlayan Holding A.Ş.» şirketinin doğrudan ortak olduğu şirketleri bulun ve onların doğrudan ortak
+    olduğu kuruluşlara bakın. Bu kuruluşların merkez illerini tekrarsız sıralayın.
+  docs:
+  - sicil_5846761025.md
+  - sicil_9070434311.md
+  - sicil_8827746879.md
+  answer:
+  - - Mersin
+  - - Erzurum
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '3741347399'
+      target: '5846761025'
+      props:
+        oran: 68
+      evidence:
+      - doc: faaliyet_3741347399.md
+        literals:
+        - Çağlayan Holding
+        - Meşe Makine
+        - 68%
+      - doc: sicil_5846761025.md
+        literals:
+        - Çağlayan Holding AŞ
+        - Meşe Makine
+        - '% 68'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '5846761025'
+      target: '9070434311'
+      props:
+        oran: 82
+      evidence:
+      - doc: faaliyet_5846761025.md
+        literals:
+        - Meşe Makine Ltd. Şti.
+        - Karaca Tekstil Pazarlama Ltd. Şti.
+        - 82%
+      - doc: sicil_9070434311.md
+        literals:
+        - Meşe Makine Ltd. Şti.
+        - Karaca Tekstil Pazarlama Ltd Şti
+        - yüzde 82
+    - kind: property
+      entity: '9070434311'
+      prop: sehir
+      value: Mersin
+      evidence:
+      - doc: sicil_9070434311.md
+        literals:
+        - Karaca Tekstil Pazarlama Ltd Şti
+        - Mersin
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '3741347399'
+      target: '5846761025'
+      props:
+        oran: 68
+      evidence:
+      - doc: faaliyet_3741347399.md
+        literals:
+        - Çağlayan Holding
+        - Meşe Makine
+        - 68%
+      - doc: sicil_5846761025.md
+        literals:
+        - Çağlayan Holding AŞ
+        - Meşe Makine
+        - '% 68'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '5846761025'
+      target: '8827746879'
+      props:
+        oran: 84
+      evidence:
+      - doc: faaliyet_5846761025.md
+        literals:
+        - Meşe Makine Ltd. Şti.
+        - Ekin İnşaat Ltd. Şti.
+        - yüzde 84
+      - doc: sicil_8827746879.md
+        literals:
+        - Ekin İnşaat Ltd. Şti.
+        - Meşe Makine
+        - yüzde 84
+    - kind: property
+      entity: '8827746879'
+      prop: sehir
+      value: Erzurum
+      evidence:
+      - doc: sicil_8827746879.md
+        literals:
+        - Ekin İnşaat Ltd. Şti.
+        - Erzurum
+- q: «Karaca Tekstil Pazarlama Ltd. Şti.» üzerinden sermaye zincirinde iki seviye yukarı çıkın ve her
+    seviyede payı en yüksek ortağı seçin. Vardığınız şirketin merkez adresi hangi ilde kayıtlı?
+  docs:
+  - sicil_9070434311.md
+  - sicil_5846761025.md
+  - sicil_3741347399.md
+  answer:
+  - - Kayseri
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '5846761025'
+      target: '9070434311'
+      props:
+        oran: 82
+      evidence:
+      - doc: faaliyet_5846761025.md
+        literals:
+        - Meşe Makine Ltd. Şti.
+        - Karaca Tekstil Pazarlama Ltd. Şti.
+        - 82%
+      - doc: sicil_9070434311.md
+        literals:
+        - Meşe Makine Ltd. Şti.
+        - Karaca Tekstil Pazarlama Ltd Şti
+        - yüzde 82
+    - kind: relation
+      type: ORTAGIDIR
+      source: '3741347399'
+      target: '5846761025'
+      props:
+        oran: 68
+      evidence:
+      - doc: faaliyet_3741347399.md
+        literals:
+        - Çağlayan Holding
+        - Meşe Makine
+        - 68%
+      - doc: sicil_5846761025.md
+        literals:
+        - Çağlayan Holding AŞ
+        - Meşe Makine
+        - '% 68'
+    - kind: property
+      entity: '3741347399'
+      prop: sehir
+      value: Kayseri
+      evidence:
+      - doc: sicil_3741347399.md
+        literals:
+        - Çağlayan Holding A.Ş.
+        - Kayseri
+- q: «Ardıç Holding A.Ş.» şirketinin doğrudan ortak olduğu şirketleri bulun ve onların doğrudan ortak
+    olduğu kuruluşlara bakın. Bu kuruluşların merkez illerini tekrarsız sıralayın.
+  docs:
+  - sicil_7693223774.md
+  - sicil_5533482294.md
+  - sicil_7180591057.md
+  - sicil_9910562496.md
+  answer:
+  - - Konya
+  - - Tekirdağ
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1250164508'
+      target: '7693223774'
+      props:
+        oran: 74
+      evidence:
+      - doc: faaliyet_1250164508.md
+        literals:
+        - Ardıç Holding A.Ş.
+        - Lodos Tarım A.Ş.
+        - '% 74'
+      - doc: sicil_7693223774.md
+        literals:
+        - Ardıç Holding A.Ş.
+        - Lodos Tarım
+        - '% 74'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '7693223774'
+      target: '5533482294'
+      props:
+        oran: 79
+      evidence:
+      - doc: faaliyet_7693223774.md
+        literals:
+        - Lodos Tarım A.Ş.
+        - Bozdağ Mobilya A.Ş.
+        - yüzde 79
+      - doc: sicil_5533482294.md
+        literals:
+        - Lodos Tarım A.Ş.
+        - Bozdağ Mobilya A.Ş.
+        - '% 79'
+    - kind: property
+      entity: '5533482294'
+      prop: sehir
+      value: Konya
+      evidence:
+      - doc: sicil_5533482294.md
+        literals:
+        - Bozdağ Mobilya A.Ş.
+        - Konya
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1250164508'
+      target: '7180591057'
+      props:
+        oran: 69
+      evidence:
+      - doc: faaliyet_1250164508.md
+        literals:
+        - Ardıç Holding A.Ş.
+        - Asya Elektronik A.Ş.
+        - '% 69'
+      - doc: sicil_7180591057.md
+        literals:
+        - Ardıç Holding A.Ş.
+        - Asya Elektronik A.Ş.
+        - yüzde 69
+    - kind: relation
+      type: ORTAGIDIR
+      source: '7180591057'
+      target: '9910562496'
+      props:
+        oran: 80
+      evidence:
+      - doc: faaliyet_7180591057.md
+        literals:
+        - Asya Elektronik A.Ş.
+        - Ekin Mobilya A.Ş.
+        - '% 80'
+      - doc: sicil_9910562496.md
+        literals:
+        - Ekin Mobilya AŞ
+        - Asya Elektronik A.Ş.
+        - yüzde 80
+    - kind: property
+      entity: '9910562496'
+      prop: sehir
+      value: Tekirdağ
+      evidence:
+      - doc: sicil_9910562496.md
+        literals:
+        - Ekin Mobilya AŞ
+        - Tekirdağ
+- q: «Kozalak Kâğıt» üzerinden sermaye zincirinde iki seviye yukarı çıkın ve her seviyede payı en yüksek
+    ortağı seçin. Vardığınız şirketin merkez adresi hangi ilde kayıtlı?
+  docs:
+  - faaliyet_1602849739.md
+  - faaliyet_5523703701.md
+  - sicil_5523703701.md
+  answer:
+  - - Mersin
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1602849739'
+      target: '1900443793'
+      props:
+        oran: 52
+      evidence:
+      - doc: faaliyet_1602849739.md
+        literals:
+        - Karaca Tekstil A.Ş.
+        - Kozalak Kâğıt AŞ
+        - 52%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '5523703701'
+      target: '1602849739'
+      props:
+        oran: 62
+      evidence:
+      - doc: faaliyet_5523703701.md
+        literals:
+        - Bora Ambalaj Ltd. Şti.
+        - Karaca Tekstil AŞ
+        - '%62'
+    - kind: property
+      entity: '5523703701'
+      prop: sehir
+      value: Mersin
+      evidence:
+      - doc: sicil_5523703701.md
+        literals:
+        - Bora Ambalaj Ltd. Şti.
+        - Mersin
+- q: «Gelincik Elektronik» üzerinden sermaye zincirinde iki seviye yukarı çıkın ve her seviyede payı en
+    yüksek ortağı seçin. Vardığınız şirketin merkez adresi hangi ilde kayıtlı?
+  docs:
+  - faaliyet_9918489611.md
+  - sicil_9918489611.md
+  - sicil_4135471169.md
+  answer:
+  - - Aydın
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '9918489611'
+      target: '5880919751'
+      props:
+        oran: 59
+      evidence:
+      - doc: faaliyet_9918489611.md
+        literals:
+        - Zirve Danışmanlık Ltd. Şti.
+        - Gelincik Elektronik A.Ş.
+        - '% 59'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4135471169'
+      target: '9918489611'
+      props:
+        oran: 65
+      evidence:
+      - doc: faaliyet_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Zirve Danışmanlık Ltd. Şti.
+        - 65%
+      - doc: sicil_9918489611.md
+        literals:
+        - Irmak Holding
+        - Zirve Danışmanlık Ltd Şti
+        - '%65'
+    - kind: property
+      entity: '4135471169'
+      prop: sehir
+      value: Aydın
+      evidence:
+      - doc: sicil_4135471169.md
+        literals:
+        - Irmak Holding AŞ
+        - Aydın
+- q: «Toprak Holding A.Ş.» şirketinin doğrudan ortak olduğu şirketleri bulun ve onların doğrudan ortak
+    olduğu kuruluşlara bakın. Bu kuruluşların merkez illerini tekrarsız sıralayın.
+  docs:
+  - sicil_7425083648.md
+  - sicil_5306084073.md
+  - sicil_8861015141.md
+  - sicil_3840111448.md
+  - faaliyet_3840111448.md
+  - sicil_9043343051.md
+  - sicil_9409070442.md
+  answer:
+  - - Gaziantep
+  - - Edirne
+  - - Adana
+  - - Ankara
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1974034962'
+      target: '7425083648'
+      props:
+        oran: 74
+      evidence:
+      - doc: faaliyet_1974034962.md
+        literals:
+        - Toprak Holding A.Ş.
+        - Bozdağ Metal A.Ş.
+        - 74%
+      - doc: sicil_7425083648.md
+        literals:
+        - Toprak Holding
+        - Bozdağ Metal A.Ş.
+        - 74%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '7425083648'
+      target: '5306084073'
+      props:
+        oran: 83
+      evidence:
+      - doc: faaliyet_7425083648.md
+        literals:
+        - Bozdağ Metal AŞ
+        - Meşe Mobilya Ltd. Şti.
+        - 83%
+      - doc: sicil_5306084073.md
+        literals:
+        - Bozdağ Metal A.Ş.
+        - Meşe Mobilya Ltd. Şti.
+        - yüzde 83
+    - kind: property
+      entity: '5306084073'
+      prop: sehir
+      value: Gaziantep
+      evidence:
+      - doc: sicil_5306084073.md
+        literals:
+        - Meşe Mobilya Ltd. Şti.
+        - Gaziantep
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1974034962'
+      target: '7425083648'
+      props:
+        oran: 74
+      evidence:
+      - doc: faaliyet_1974034962.md
+        literals:
+        - Toprak Holding A.Ş.
+        - Bozdağ Metal A.Ş.
+        - 74%
+      - doc: sicil_7425083648.md
+        literals:
+        - Toprak Holding
+        - Bozdağ Metal A.Ş.
+        - 74%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '7425083648'
+      target: '8861015141'
+      props:
+        oran: 73
+      evidence:
+      - doc: faaliyet_7425083648.md
+        literals:
+        - Bozdağ Metal AŞ
+        - Milas Ambalaj A.Ş.
+        - '%73'
+      - doc: sicil_8861015141.md
+        literals:
+        - Bozdağ Metal AŞ
+        - Milas Ambalaj A.Ş.
+        - '% 73'
+    - kind: property
+      entity: '8861015141'
+      prop: sehir
+      value: Edirne
+      evidence:
+      - doc: sicil_8861015141.md
+        literals:
+        - Milas Ambalaj A.Ş.
+        - Edirne
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1974034962'
+      target: '3840111448'
+      props:
+        oran: 5
+      evidence:
+      - doc: faaliyet_1974034962.md
+        literals:
+        - Toprak Holding A.Ş.
+        - Güneş Tarım A.Ş.
+        - '%5'
+      - doc: sicil_3840111448.md
+        literals:
+        - Toprak Holding AŞ
+        - Güneş Tarım A.Ş.
+        - yüzde 5
+    - kind: relation
+      type: ORTAGIDIR
+      source: '3840111448'
+      target: '9043343051'
+      props:
+        oran: 77
+      evidence:
+      - doc: faaliyet_3840111448.md
+        literals:
+        - Güneş Tarım A.Ş.
+        - Belen Mekanik
+        - yüzde 77
+    - kind: property
+      entity: '9043343051'
+      prop: sehir
+      value: Adana
+      evidence:
+      - doc: sicil_9043343051.md
+        literals:
+        - Belen Mekanik
+        - Adana
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1974034962'
+      target: '3840111448'
+      props:
+        oran: 5
+      evidence:
+      - doc: faaliyet_1974034962.md
+        literals:
+        - Toprak Holding A.Ş.
+        - Güneş Tarım A.Ş.
+        - '%5'
+      - doc: sicil_3840111448.md
+        literals:
+        - Toprak Holding AŞ
+        - Güneş Tarım A.Ş.
+        - yüzde 5
+    - kind: relation
+      type: ORTAGIDIR
+      source: '3840111448'
+      target: '9409070442'
+      props:
+        oran: 73
+      evidence:
+      - doc: faaliyet_3840111448.md
+        literals:
+        - Güneş Tarım A.Ş.
+        - Toros İnşaat A.Ş.
+        - '%73'
+      - doc: sicil_9409070442.md
+        literals:
+        - Güneş Tarım AŞ
+        - Toros İnşaat A.Ş.
+        - '%73'
+    - kind: property
+      entity: '9409070442'
+      prop: sehir
+      value: Ankara
+      evidence:
+      - doc: sicil_9409070442.md
+        literals:
+        - Toros İnşaat A.Ş.
+        - Ankara
+- q: Sermaye zincirini «Akasya» şirketinden yukarı doğru üç halka izleyin. Her halkada payı en yüksek
+    ortağı seçtiğinizde son halkanın unvanı nedir?
+  docs:
+  - faaliyet_8417100892.md
+  - faaliyet_4075274157.md
+  - faaliyet_2791634701.md
+  answer:
+  - - Lale Holding A.Ş.
+    - Lale Holding AŞ
+    - Lale Holding
+    - Lale
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '8417100892'
+      target: '9563229817'
+      props:
+        oran: 67
+      evidence:
+      - doc: faaliyet_8417100892.md
+        literals:
+        - Liman Kâğıt A.Ş.
+        - Akasya Tekstil A.Ş.
+        - '%67'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4075274157'
+      target: '8417100892'
+      props:
+        oran: 81
+      evidence:
+      - doc: faaliyet_4075274157.md
+        literals:
+        - Irmak Cam
+        - Liman Kâğıt
+        - '%81'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '2791634701'
+      target: '4075274157'
+      props:
+        oran: 61
+      evidence:
+      - doc: faaliyet_2791634701.md
+        literals:
+        - Lale Holding A.Ş.
+        - Irmak Cam AŞ
+        - 61%
+- q: Sermaye zincirini «Zirve Danışmanlık Pazarlama A.Ş.» şirketinden yukarı doğru üç halka izleyin. Her
+    halkada payı en yüksek ortağı seçtiğinizde son halkanın unvanı nedir?
+  docs:
+  - sicil_3094602650.md
+  - sicil_1603505254.md
+  - sicil_4368167113.md
+  answer:
+  - - Lale Holding A.Ş.
+    - Lale Holding AŞ
+    - Lale Holding
+    - Lale
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '1603505254'
+      target: '3094602650'
+      props:
+        oran: 57
+      evidence:
+      - doc: faaliyet_1603505254.md
+        literals:
+        - Yonca Mekanik Ltd. Şti.
+        - Zirve Danışmanlık Pazarlama A.Ş.
+        - yüzde 57
+      - doc: sicil_3094602650.md
+        literals:
+        - Yonca Mekanik Ltd. Şti.
+        - Zirve Danışmanlık Pazarlama A.Ş.
+        - yüzde 57
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4368167113'
+      target: '1603505254'
+      props:
+        oran: 58
+      evidence:
+      - doc: faaliyet_4368167113.md
+        literals:
+        - Kaya Tekstil A.Ş.
+        - Yonca Mekanik
+        - yüzde 58
+      - doc: sicil_1603505254.md
+        literals:
+        - Kaya Tekstil A.Ş.
+        - Yonca Mekanik Ltd. Şti.
+        - 58%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '2791634701'
+      target: '4368167113'
+      props:
+        oran: 70
+      evidence:
+      - doc: faaliyet_2791634701.md
+        literals:
+        - Lale Holding A.Ş.
+        - Kaya Tekstil A.Ş.
+        - '% 70'
+      - doc: sicil_4368167113.md
+        literals:
+        - Kaya Tekstil AŞ
+        - Lale Holding A.Ş.
+        - '% 70'
+- q: HS-2022-010 kodlu akitte “sağlayıcı” hanesindeki şirketten başlayarak ortaklık zincirinde iki kez
+    en yüksek payı seçin. Zincirin sonunda hangi şirket var?
+  docs:
+  - hs_2022_010.md
+  - sicil_7178161262.md
+  - sicil_2309975460.md
+  answer:
+  - - Lale Holding A.Ş.
+    - Lale Holding AŞ
+    - Lale Holding
+    - Lale
+  chain:
+  - - kind: relation
+      type: TARAFIDIR
+      source: '7178161262'
+      target: HS-2022-010
+      props:
+        rol: saglayici
+      evidence:
+      - doc: hs_2022_010.md
+        literals:
+        - HS-2022-010
+        - Işık Ambalaj Dış Ticaret Ltd Şti
+        - sağlayıcı
+    - kind: relation
+      type: ORTAGIDIR
+      source: '2309975460'
+      target: '7178161262'
+      props:
+        oran: 55
+      evidence:
+      - doc: faaliyet_2309975460.md
+        literals:
+        - Kaya Yatırım
+        - Işık Ambalaj Dış Ticaret Ltd. Şti.
+        - '%55'
+      - doc: sicil_7178161262.md
+        literals:
+        - Işık Ambalaj Dış Ticaret Ltd. Şti.
+        - Kaya Yatırım A.Ş.
+        - '% 55'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '2791634701'
+      target: '2309975460'
+      props:
+        oran: 63
+      evidence:
+      - doc: faaliyet_2791634701.md
+        literals:
+        - Lale Holding A.Ş.
+        - Kaya Yatırım
+        - '%63'
+      - doc: sicil_2309975460.md
+        literals:
+        - Lale Holding
+        - Kaya Yatırım
+        - '% 63'
+- q: Sermaye zincirini «Ekin Kimya Ltd. Şti.» şirketinden yukarı doğru üç halka izleyin. Her halkada payı
+    en yüksek ortağı seçtiğinizde son halkanın unvanı nedir?
+  docs:
+  - faaliyet_9910562496.md
+  - sicil_9910562496.md
+  - sicil_7180591057.md
+  answer:
+  - - Ardıç Holding A.Ş.
+    - Ardıç Holding AŞ
+    - Ardıç Holding
+    - Ardıç
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '9910562496'
+      target: '1374973234'
+      props:
+        oran: 65
+      evidence:
+      - doc: faaliyet_9910562496.md
+        literals:
+        - Ekin Mobilya
+        - Ekin Kimya Ltd. Şti.
+        - yüzde 65
+    - kind: relation
+      type: ORTAGIDIR
+      source: '7180591057'
+      target: '9910562496'
+      props:
+        oran: 80
+      evidence:
+      - doc: faaliyet_7180591057.md
+        literals:
+        - Asya Elektronik A.Ş.
+        - Ekin Mobilya A.Ş.
+        - '% 80'
+      - doc: sicil_9910562496.md
+        literals:
+        - Ekin Mobilya AŞ
+        - Asya Elektronik A.Ş.
+        - yüzde 80
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1250164508'
+      target: '7180591057'
+      props:
+        oran: 69
+      evidence:
+      - doc: faaliyet_1250164508.md
+        literals:
+        - Ardıç Holding A.Ş.
+        - Asya Elektronik A.Ş.
+        - '% 69'
+      - doc: sicil_7180591057.md
+        literals:
+        - Ardıç Holding A.Ş.
+        - Asya Elektronik A.Ş.
+        - yüzde 69
+- q: «Delta Holding» şirketinin doğrudan ortak olduğu şirketleri bulun ve onların doğrudan ortak olduğu
+    kuruluşlara bakın. Bu kuruluşların merkez illerini tekrarsız sıralayın.
+  docs:
+  - sicil_1553617520.md
+  - sicil_9756747354.md
+  - faaliyet_1553617520.md
+  - sicil_1200808642.md
+  - sicil_5132609404.md
+  - sicil_9091273989.md
+  - sicil_1934430823.md
+  answer:
+  - - Çanakkale
+  - - Antalya
+  - - Gaziantep
+  - - Balıkesir
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2927289342'
+      target: '1553617520'
+      props:
+        oran: 79
+      evidence:
+      - doc: faaliyet_2927289342.md
+        literals:
+        - Delta Holding
+        - Pınar Mobilya Ltd. Şti.
+        - '% 79'
+      - doc: sicil_1553617520.md
+        literals:
+        - Delta Holding A.Ş.
+        - Pınar Mobilya Ltd. Şti.
+        - yüzde 79
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1553617520'
+      target: '5132609404'
+      props:
+        oran: 75
+      evidence:
+      - doc: faaliyet_1553617520.md
+        literals:
+        - Pınar Mobilya Ltd. Şti.
+        - Kuzgun İnşaat Yatırım Grubu Ltd. Şti.
+        - yüzde 75
+      - doc: sicil_5132609404.md
+        literals:
+        - Pınar Mobilya
+        - Kuzgun İnşaat Yatırım Grubu Ltd. Şti.
+        - 75%
+    - kind: property
+      entity: '5132609404'
+      prop: sehir
+      value: Çanakkale
+      evidence:
+      - doc: sicil_5132609404.md
+        literals:
+        - Kuzgun İnşaat Yatırım Grubu Ltd. Şti.
+        - Çanakkale
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2927289342'
+      target: '1553617520'
+      props:
+        oran: 79
+      evidence:
+      - doc: faaliyet_2927289342.md
+        literals:
+        - Delta Holding
+        - Pınar Mobilya Ltd. Şti.
+        - '% 79'
+      - doc: sicil_1553617520.md
+        literals:
+        - Delta Holding A.Ş.
+        - Pınar Mobilya Ltd. Şti.
+        - yüzde 79
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1553617520'
+      target: '1200808642'
+      props:
+        oran: 62
+      evidence:
+      - doc: faaliyet_1553617520.md
+        literals:
+        - Pınar Mobilya Ltd. Şti.
+        - Deniz Tarım Ltd. Şti.
+        - 62%
+    - kind: property
+      entity: '1200808642'
+      prop: sehir
+      value: Antalya
+      evidence:
+      - doc: sicil_1200808642.md
+        literals:
+        - Deniz Tarım Ltd. Şti.
+        - Antalya
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2927289342'
+      target: '1553617520'
+      props:
+        oran: 79
+      evidence:
+      - doc: faaliyet_2927289342.md
+        literals:
+        - Delta Holding
+        - Pınar Mobilya Ltd. Şti.
+        - '% 79'
+      - doc: sicil_1553617520.md
+        literals:
+        - Delta Holding A.Ş.
+        - Pınar Mobilya Ltd. Şti.
+        - yüzde 79
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1553617520'
+      target: '9091273989'
+      props:
+        oran: 57
+      evidence:
+      - doc: faaliyet_1553617520.md
+        literals:
+        - Pınar Mobilya Ltd. Şti.
+        - Bozdağ Mekanik Ltd. Şti.
+        - 57%
+    - kind: property
+      entity: '9091273989'
+      prop: sehir
+      value: Gaziantep
+      evidence:
+      - doc: sicil_9091273989.md
+        literals:
+        - Bozdağ Mekanik Ltd. Şti.
+        - Gaziantep
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2927289342'
+      target: '1553617520'
+      props:
+        oran: 79
+      evidence:
+      - doc: faaliyet_2927289342.md
+        literals:
+        - Delta Holding
+        - Pınar Mobilya Ltd. Şti.
+        - '% 79'
+      - doc: sicil_1553617520.md
+        literals:
+        - Delta Holding A.Ş.
+        - Pınar Mobilya Ltd. Şti.
+        - yüzde 79
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1553617520'
+      target: '1934430823'
+      props:
+        oran: 18
+      evidence:
+      - doc: faaliyet_1553617520.md
+        literals:
+        - Pınar Mobilya Ltd. Şti.
+        - Belen Mobilya Dış Ticaret Ltd Şti
+        - yüzde 18
+      - doc: sicil_1934430823.md
+        literals:
+        - Pınar Mobilya Ltd. Şti.
+        - Belen Mobilya Dış Ticaret Ltd. Şti.
+        - 18%
+    - kind: property
+      entity: '1934430823'
+      prop: sehir
+      value: Balıkesir
+      evidence:
+      - doc: sicil_1934430823.md
+        literals:
+        - Belen Mobilya Dış Ticaret Ltd. Şti.
+        - Balıkesir
+- q: «Güney Holding» şirketinin doğrudan ortak olduğu şirketleri bulun ve onların doğrudan ortak olduğu
+    kuruluşlara bakın. Bu kuruluşların merkez illerini tekrarsız sıralayın.
+  docs:
+  - faaliyet_2138938117.md
+  - sicil_5235725552.md
+  - sicil_1646180124.md
+  - sicil_4404527068.md
+  - sicil_9325136745.md
+  answer:
+  - - Samsun
+  - - Bursa
+  - - Şanlıurfa
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2138938117'
+      target: '4950135453'
+      props:
+        oran: 82
+      evidence:
+      - doc: faaliyet_2138938117.md
+        literals:
+        - Güney Holding
+        - Ayaz Elektronik AŞ
+        - yüzde 82
+    - kind: relation
+      type: ORTAGIDIR
+      source: '4950135453'
+      target: '5235725552'
+      props:
+        oran: 64
+      evidence:
+      - doc: faaliyet_4950135453.md
+        literals:
+        - Ayaz Elektronik A.Ş.
+        - Turna Yazılım Ltd. Şti.
+        - '%64'
+      - doc: sicil_5235725552.md
+        literals:
+        - Ayaz Elektronik A.Ş.
+        - Turna Yazılım Ltd. Şti.
+        - 64%
+    - kind: property
+      entity: '5235725552'
+      prop: sehir
+      value: Samsun
+      evidence:
+      - doc: sicil_5235725552.md
+        literals:
+        - Turna Yazılım Ltd. Şti.
+        - Samsun
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2138938117'
+      target: '1646180124'
+      props:
+        oran: 60
+      evidence:
+      - doc: faaliyet_2138938117.md
+        literals:
+        - Güney Holding
+        - Gelincik Metal Ltd. Şti.
+        - '%60'
+      - doc: sicil_1646180124.md
+        literals:
+        - Güney Holding A.Ş.
+        - Gelincik Metal Ltd. Şti.
+        - 60%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1646180124'
+      target: '4404527068'
+      props:
+        oran: 52
+      evidence:
+      - doc: faaliyet_1646180124.md
+        literals:
+        - Gelincik Metal
+        - Kozalak Mobilya AŞ
+        - '% 52'
+      - doc: sicil_4404527068.md
+        literals:
+        - Kozalak Mobilya A.Ş.
+        - Gelincik Metal Ltd Şti
+        - '%52'
+    - kind: property
+      entity: '4404527068'
+      prop: sehir
+      value: Bursa
+      evidence:
+      - doc: sicil_4404527068.md
+        literals:
+        - Kozalak Mobilya A.Ş.
+        - Bursa
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '2138938117'
+      target: '1646180124'
+      props:
+        oran: 60
+      evidence:
+      - doc: faaliyet_2138938117.md
+        literals:
+        - Güney Holding
+        - Gelincik Metal Ltd. Şti.
+        - '%60'
+      - doc: sicil_1646180124.md
+        literals:
+        - Güney Holding A.Ş.
+        - Gelincik Metal Ltd. Şti.
+        - 60%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '1646180124'
+      target: '9325136745'
+      props:
+        oran: 83
+      evidence:
+      - doc: faaliyet_1646180124.md
+        literals:
+        - Gelincik Metal
+        - Belen Mobilya Ltd. Şti.
+        - yüzde 83
+      - doc: sicil_9325136745.md
+        literals:
+        - Gelincik Metal
+        - Belen Mobilya Ltd Şti
+        - '% 83'
+    - kind: property
+      entity: '9325136745'
+      prop: sehir
+      value: Şanlıurfa
+      evidence:
+      - doc: sicil_9325136745.md
+        literals:
+        - Belen Mobilya Ltd Şti
+        - Şanlıurfa
+- q: «Yonca Mekanik Ltd. Şti.» üzerinden sermaye zincirinde iki seviye yukarı çıkın ve her seviyede payı
+    en yüksek ortağı seçin. Vardığınız şirketin merkez adresi hangi ilde kayıtlı?
+  docs:
+  - sicil_1603505254.md
+  - sicil_4368167113.md
+  - sicil_2791634701.md
+  answer:
+  - - Ordu
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '4368167113'
+      target: '1603505254'
+      props:
+        oran: 58
+      evidence:
+      - doc: faaliyet_4368167113.md
+        literals:
+        - Kaya Tekstil A.Ş.
+        - Yonca Mekanik
+        - yüzde 58
+      - doc: sicil_1603505254.md
+        literals:
+        - Kaya Tekstil A.Ş.
+        - Yonca Mekanik Ltd. Şti.
+        - 58%
+    - kind: relation
+      type: ORTAGIDIR
+      source: '2791634701'
+      target: '4368167113'
+      props:
+        oran: 70
+      evidence:
+      - doc: faaliyet_2791634701.md
+        literals:
+        - Lale Holding A.Ş.
+        - Kaya Tekstil A.Ş.
+        - '% 70'
+      - doc: sicil_4368167113.md
+        literals:
+        - Kaya Tekstil AŞ
+        - Lale Holding A.Ş.
+        - '% 70'
+    - kind: property
+      entity: '2791634701'
+      prop: sehir
+      value: Ordu
+      evidence:
+      - doc: sicil_2791634701.md
+        literals:
+        - Lale Holding AŞ
+        - Ordu
+- q: «Güney Cam A.Ş.» için payı en yüksek ortağı seçip aynı seçimi onun ortakları arasında tekrarladığınızda,
+    ulaştığınız şirketin vergi kimliği kaçtır?
+  docs:
+  - sicil_1243519895.md
+  - sicil_5533482294.md
+  - sicil_7693223774.md
+  answer:
+  - - '7693223774'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '5533482294'
+      target: '1243519895'
+      props:
+        oran: 75
+      evidence:
+      - doc: faaliyet_5533482294.md
+        literals:
+        - Bozdağ Mobilya A.Ş.
+        - Güney Cam A.Ş.
+        - '%75'
+      - doc: sicil_1243519895.md
+        literals:
+        - Bozdağ Mobilya A.Ş.
+        - Güney Cam
+        - '%75'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '7693223774'
+      target: '5533482294'
+      props:
+        oran: 79
+      evidence:
+      - doc: faaliyet_7693223774.md
+        literals:
+        - Lodos Tarım A.Ş.
+        - Bozdağ Mobilya A.Ş.
+        - yüzde 79
+      - doc: sicil_5533482294.md
+        literals:
+        - Lodos Tarım A.Ş.
+        - Bozdağ Mobilya A.Ş.
+        - '% 79'
+    - kind: property
+      entity: '7693223774'
+      prop: vergi_no
+      value: '7693223774'
+      evidence:
+      - doc: sicil_7693223774.md
+        literals:
+        - Lodos Tarım
+        - '7693223774'
+- q: «Toros İnşaat» için payı en yüksek ortağı seçip aynı seçimi onun ortakları arasında tekrarladığınızda,
+    ulaştığınız şirketin vergi kimliği kaçtır?
+  docs:
+  - sicil_9409070442.md
+  - sicil_3840111448.md
+  - sicil_3278281181.md
+  answer:
+  - - '3278281181'
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '3840111448'
+      target: '9409070442'
+      props:
+        oran: 73
+      evidence:
+      - doc: faaliyet_3840111448.md
+        literals:
+        - Güneş Tarım A.Ş.
+        - Toros İnşaat A.Ş.
+        - '%73'
+      - doc: sicil_9409070442.md
+        literals:
+        - Güneş Tarım AŞ
+        - Toros İnşaat A.Ş.
+        - '%73'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '3278281181'
+      target: '3840111448'
+      props:
+        oran: 52
+      evidence:
+      - doc: faaliyet_3278281181.md
+        literals:
+        - Hisar Mekanik Ltd Şti
+        - Güneş Tarım AŞ
+        - yüzde 52
+      - doc: sicil_3840111448.md
+        literals:
+        - Hisar Mekanik Ltd. Şti.
+        - Güneş Tarım A.Ş.
+        - yüzde 52
+    - kind: property
+      entity: '3278281181'
+      prop: vergi_no
+      value: '3278281181'
+      evidence:
+      - doc: sicil_3278281181.md
+        literals:
+        - Hisar Mekanik Ltd Şti
+        - '3278281181'
+- q: «Marmara Tekstil A.Ş.» üzerinden sermaye zincirinde iki seviye yukarı çıkın ve her seviyede payı
+    en yüksek ortağı seçin. Vardığınız şirketin merkez adresi hangi ilde kayıtlı?
+  docs:
+  - sicil_7390599424.md
+  - sicil_7178161262.md
+  - sicil_2309975460.md
+  answer:
+  - - Hatay
+  chain:
+  - - kind: relation
+      type: ORTAGIDIR
+      source: '7178161262'
+      target: '7390599424'
+      props:
+        oran: 58
+      evidence:
+      - doc: faaliyet_7178161262.md
+        literals:
+        - Işık Ambalaj Dış Ticaret Ltd. Şti.
+        - Marmara Tekstil
+        - '% 58'
+      - doc: sicil_7390599424.md
+        literals:
+        - Marmara Tekstil
+        - Işık Ambalaj Dış Ticaret Ltd. Şti.
+        - '%58'
+    - kind: relation
+      type: ORTAGIDIR
+      source: '2309975460'
+      target: '7178161262'
+      props:
+        oran: 55
+      evidence:
+      - doc: faaliyet_2309975460.md
+        literals:
+        - Kaya Yatırım
+        - Işık Ambalaj Dış Ticaret Ltd. Şti.
+        - '%55'
+      - doc: sicil_7178161262.md
+        literals:
+        - Işık Ambalaj Dış Ticaret Ltd. Şti.
+        - Kaya Yatırım A.Ş.
+        - '% 55'
+    - kind: property
+      entity: '2309975460'
+      prop: sehir
+      value: Hatay
+      evidence:
+      - doc: sicil_2309975460.md
+        literals:
+        - Kaya Yatırım
+        - Hatay
+free_text:
+- q: Akit referansı HS-2025-002. Akdin imzayla başlayan geçerlilik dönemi kaç gün devam eder?
+  docs:
+  - hs_2025_002.md
+  answer:
+  - - 1.090 gün
+    - 1090 gün
+    - 1,090 gün
+  chain:
+  - - kind: text
+      entity: HS-2025-002
+      field: sure
+      value: '1090'
+      evidence:
+      - doc: hs_2025_002.md
+        literals:
+        - 1090 gün
+- q: Akit referansı YS-2025-012. Akdin bitimini izleyen kaç gün boyunca taraflar sır saklamakla yükümlü?
+  docs:
+  - ys_2025_012.md
+  answer:
+  - - 2.523 gün
+    - 2523 gün
+    - 2,523 gün
+  chain:
+  - - kind: text
+      entity: YS-2025-012
+      field: gizlilik
+      value: '2523'
+      evidence:
+      - doc: ys_2025_012.md
+        literals:
+        - 2523 gün
+- q: Akit referansı HS-2025-007. Olağan fesih günüyle yazılı ihbarın ulaşması arasında en az kaç gün olmalı?
+  docs:
+  - hs_2025_007.md
+  answer:
+  - - 307 gün
+  chain:
+  - - kind: text
+      entity: HS-2025-007
+      field: bildirim
+      value: '307'
+      evidence:
+      - doc: hs_2025_007.md
+        literals:
+        - 307 gün
+- q: Akit referansı KS-2023-001. Vade geçince temerrüt hesabında hangi yıllık faiz oranı esas alınıyor?
+  docs:
+  - ks_2023_001.md
+  answer:
+  - - '%35,35'
+    - '% 35,35'
+    - yüzde 35,35
+    - 35,35%
+    - '%35.35'
+  chain:
+  - - kind: text
+      entity: KS-2023-001
+      field: faiz
+      value: '3535'
+      evidence:
+      - doc: ks_2023_001.md
+        literals:
+        - '%35.35'
+- q: Akit referansı KS-2024-005. Kiracı kira teminatı olarak hangi tutarı yatıracak?
+  docs:
+  - ks_2024_005.md
+  answer:
+  - - 300.900 TL
+    - 300900 TL
+    - 300,900 TL
+  chain:
+  - - kind: text
+      entity: KS-2024-005
+      field: depozito
+      value: '300900'
+      evidence:
+      - doc: ks_2024_005.md
+        literals:
+        - 300,900 TL
+- q: Akit referansı DS-2024-001. Akdin bitimini izleyen kaç gün boyunca taraflar sır saklamakla yükümlü?
+  docs:
+  - ds_2024_001.md
+  answer:
+  - - 3.373 gün
+    - 3373 gün
+    - 3,373 gün
+  chain:
+  - - kind: text
+      entity: DS-2024-001
+      field: gizlilik
+      value: '3373'
+      evidence:
+      - doc: ds_2024_001.md
+        literals:
+        - 3,373 gün
+- q: Akit referansı KS-2022-007. Akdin imzayla başlayan geçerlilik dönemi kaç gün devam eder?
+  docs:
+  - ks_2022_007.md
+  answer:
+  - - 1.094 gün
+    - 1094 gün
+    - 1,094 gün
+  chain:
+  - - kind: text
+      entity: KS-2022-007
+      field: sure
+      value: '1094'
+      evidence:
+      - doc: ks_2022_007.md
+        literals:
+        - 1094 gün
+- q: Akit referansı YS-2023-012. Lisans kapsamında aynı anda yazılıma erişebilecek kişi sayısının üst
+    sınırı nedir?
+  docs:
+  - ys_2023_012.md
+  answer:
+  - - 1.170 kullanıcı
+    - 1170 kullanıcı
+    - 1,170 kullanıcı
+  chain:
+  - - kind: text
+      entity: YS-2023-012
+      field: kullanici
+      value: '1170'
+      evidence:
+      - doc: ys_2023_012.md
+        literals:
+        - 1,170 kullanıcı
+- q: Akit referansı KS-2025-012. Kiracı kira teminatı olarak hangi tutarı yatıracak?
+  docs:
+  - ks_2025_012.md
+  answer:
+  - - 320.900 TL
+    - 320900 TL
+    - 320,900 TL
+  chain:
+  - - kind: text
+      entity: KS-2025-012
+      field: depozito
+      value: '320900'
+      evidence:
+      - doc: ks_2025_012.md
+        literals:
+        - 320.900 TL
+- q: Akit referansı HS-2025-006. Akdin bitimini izleyen kaç gün boyunca taraflar sır saklamakla yükümlü?
+  docs:
+  - hs_2025_006.md
+  answer:
+  - - 2.797 gün
+    - 2797 gün
+    - 2,797 gün
+  chain:
+  - - kind: text
+      entity: HS-2025-006
+      field: gizlilik
+      value: '2797'
+      evidence:
+      - doc: hs_2025_006.md
+        literals:
+        - 2,797 gün
+- q: Akit referansı ES-2022-007. Akdin imzayla başlayan geçerlilik dönemi kaç gün devam eder?
+  docs:
+  - es_2022_007.md
+  answer:
+  - - 1.588 gün
+    - 1588 gün
+    - 1,588 gün
+  chain:
+  - - kind: text
+      entity: ES-2022-007
+      field: sure
+      value: '1588'
+      evidence:
+      - doc: es_2022_007.md
+        literals:
+        - 1.588 gün
+- q: Akit referansı DS-2023-009. İşin tamamı için tarafların anlaştığı tutar nedir?
+  docs:
+  - ds_2023_009.md
+  answer:
+  - - 5.364.900 TL
+    - 5364900 TL
+    - 5,364,900 TL
+  chain:
+  - - kind: text
+      entity: DS-2023-009
+      field: bedel
+      value: '5364900'
+      evidence:
+      - doc: ds_2023_009.md
+        literals:
+        - 5364900 TL
+- q: Akit referansı YS-2022-002. Akdin imzayla başlayan geçerlilik dönemi kaç gün devam eder?
+  docs:
+  - ys_2022_002.md
+  answer:
+  - - 1.432 gün
+    - 1432 gün
+    - 1,432 gün
+  chain:
+  - - kind: text
+      entity: YS-2022-002
+      field: sure
+      value: '1432'
+      evidence:
+      - doc: ys_2022_002.md
+        literals:
+        - 1432 gün
+- q: Akit referansı HS-2023-012. Akdin bitimini izleyen kaç gün boyunca taraflar sır saklamakla yükümlü?
+  docs:
+  - hs_2023_012.md
+  answer:
+  - - 2.432 gün
+    - 2432 gün
+    - 2,432 gün
+  chain:
+  - - kind: text
+      entity: HS-2023-012
+      field: gizlilik
+      value: '2432'
+      evidence:
+      - doc: hs_2023_012.md
+        literals:
+        - 2,432 gün
+- q: Akit referansı ES-2024-010. İşin tamamı için tarafların anlaştığı tutar nedir?
+  docs:
+  - es_2024_010.md
+  answer:
+  - - 6.082.700 TL
+    - 6082700 TL
+    - 6,082,700 TL
+  chain:
+  - - kind: text
+      entity: ES-2024-010
+      field: bedel
+      value: '6082700'
+      evidence:
+      - doc: es_2024_010.md
+        literals:
+        - 6.082.700 TL
+- q: Akit referansı KS-2024-009. Vade geçince temerrüt hesabında hangi yıllık faiz oranı esas alınıyor?
+  docs:
+  - ks_2024_009.md
+  answer:
+  - - '%33,60'
+    - '% 33,60'
+    - yüzde 33,60
+    - 33,60%
+    - '%33.60'
+  chain:
+  - - kind: text
+      entity: KS-2024-009
+      field: faiz
+      value: '3360'
+      evidence:
+      - doc: ks_2024_009.md
+        literals:
+        - yüzde 33,60
+- q: Akit referansı YS-2021-004. Lisans kapsamında aynı anda yazılıma erişebilecek kişi sayısının üst
+    sınırı nedir?
+  docs:
+  - ys_2021_004.md
+  answer:
+  - - 4.263 kullanıcı
+    - 4263 kullanıcı
+    - 4,263 kullanıcı
+  chain:
+  - - kind: text
+      entity: YS-2021-004
+      field: kullanici
+      value: '4263'
+      evidence:
+      - doc: ys_2021_004.md
+        literals:
+        - 4263 kullanıcı
+- q: Akit referansı DS-2021-011. Olağan fesih günüyle yazılı ihbarın ulaşması arasında en az kaç gün olmalı?
+  docs:
+  - ds_2021_011.md
+  answer:
+  - - 19 gün
+  chain:
+  - - kind: text
+      entity: DS-2021-011
+      field: bildirim
+      value: '19'
+      evidence:
+      - doc: ds_2021_011.md
+        literals:
+        - 19 gün
+- q: Akit referansı KS-2021-007. Kiracı kira teminatı olarak hangi tutarı yatıracak?
+  docs:
+  - ks_2021_007.md
+  answer:
+  - - 380.750 TL
+    - 380750 TL
+    - 380,750 TL
+  chain:
+  - - kind: text
+      entity: KS-2021-007
+      field: depozito
+      value: '380750'
+      evidence:
+      - doc: ks_2021_007.md
+        literals:
+        - 380750 TL
+- q: Akit referansı KS-2025-003. Kiracı kira teminatı olarak hangi tutarı yatıracak?
+  docs:
+  - ks_2025_003.md
+  answer:
+  - - 268.550 TL
+    - 268550 TL
+    - 268,550 TL
+  chain:
+  - - kind: text
+      entity: KS-2025-003
+      field: depozito
+      value: '268550'
+      evidence:
+      - doc: ks_2025_003.md
+        literals:
+        - 268.550 TL
+- q: Akit referansı DS-2024-015. Vade geçince temerrüt hesabında hangi yıllık faiz oranı esas alınıyor?
+  docs:
+  - ds_2024_015.md
+  answer:
+  - - '%41,63'
+    - '% 41,63'
+    - yüzde 41,63
+    - 41,63%
+    - '%41.63'
+  chain:
+  - - kind: text
+      entity: DS-2024-015
+      field: faiz
+      value: '4163'
+      evidence:
+      - doc: ds_2024_015.md
+        literals:
+        - 41,63%
+- q: Akit referansı YS-2023-010. Lisans kapsamında aynı anda yazılıma erişebilecek kişi sayısının üst
+    sınırı nedir?
+  docs:
+  - ys_2023_010.md
+  answer:
+  - - 1.934 kullanıcı
+    - 1934 kullanıcı
+    - 1,934 kullanıcı
+  chain:
+  - - kind: text
+      entity: YS-2023-010
+      field: kullanici
+      value: '1934'
+      evidence:
+      - doc: ys_2023_010.md
+        literals:
+        - 1,934 kullanıcı
+- q: Akit referansı YS-2025-011. Lisans kapsamında aynı anda yazılıma erişebilecek kişi sayısının üst
+    sınırı nedir?
+  docs:
+  - ys_2025_011.md
+  answer:
+  - - 1.332 kullanıcı
+    - 1332 kullanıcı
+    - 1,332 kullanıcı
+  chain:
+  - - kind: text
+      entity: YS-2025-011
+      field: kullanici
+      value: '1332'
+      evidence:
+      - doc: ys_2025_011.md
+        literals:
+        - 1332 kullanıcı
+- q: Akit referansı HS-2022-001. Akdin bitimini izleyen kaç gün boyunca taraflar sır saklamakla yükümlü?
+  docs:
+  - hs_2022_001.md
+  answer:
+  - - 2.750 gün
+    - 2750 gün
+    - 2,750 gün
+  chain:
+  - - kind: text
+      entity: HS-2022-001
+      field: gizlilik
+      value: '2750'
+      evidence:
+      - doc: hs_2022_001.md
+        literals:
+        - 2,750 gün
+- q: Akit referansı KS-2022-004. Vade geçince temerrüt hesabında hangi yıllık faiz oranı esas alınıyor?
+  docs:
+  - ks_2022_004.md
+  answer:
+  - - '%50,48'
+    - '% 50,48'
+    - yüzde 50,48
+    - 50,48%
+    - '%50.48'
+  chain:
+  - - kind: text
+      entity: KS-2022-004
+      field: faiz
+      value: '5048'
+      evidence:
+      - doc: ks_2022_004.md
+        literals:
+        - '%50,48'
+- q: Akit referansı HS-2022-009. Olağan fesih günüyle yazılı ihbarın ulaşması arasında en az kaç gün olmalı?
+  docs:
+  - hs_2022_009.md
+  answer:
+  - - 75 gün
+  chain:
+  - - kind: text
+      entity: HS-2022-009
+      field: bildirim
+      value: '75'
+      evidence:
+      - doc: hs_2022_009.md
+        literals:
+        - 75 gün
+- q: Akit referansı DS-2024-016. İşin tamamı için tarafların anlaştığı tutar nedir?
+  docs:
+  - ds_2024_016.md
+  answer:
+  - - 11.253.450 TL
+    - 11253450 TL
+    - 11,253,450 TL
+  chain:
+  - - kind: text
+      entity: DS-2024-016
+      field: bedel
+      value: '11253450'
+      evidence:
+      - doc: ds_2024_016.md
+        literals:
+        - 11.253.450 TL
+- q: Akit referansı ES-2025-003. Olağan fesih günüyle yazılı ihbarın ulaşması arasında en az kaç gün olmalı?
+  docs:
+  - es_2025_003.md
+  answer:
+  - - 92 gün
+  chain:
+  - - kind: text
+      entity: ES-2025-003
+      field: bildirim
+      value: '92'
+      evidence:
+      - doc: es_2025_003.md
+        literals:
+        - 92 gün
+- q: Akit referansı ES-2022-005. İşin tamamı için tarafların anlaştığı tutar nedir?
+  docs:
+  - es_2022_005.md
+  answer:
+  - - 7.794.300 TL
+    - 7794300 TL
+    - 7,794,300 TL
+  chain:
+  - - kind: text
+      entity: ES-2022-005
+      field: bedel
+      value: '7794300'
+      evidence:
+      - doc: es_2022_005.md
+        literals:
+        - 7.794.300 TL
+- q: Akit referansı DS-2021-007. Akdin imzayla başlayan geçerlilik dönemi kaç gün devam eder?
+  docs:
+  - ds_2021_007.md
+  answer:
+  - - 507 gün
+  chain:
+  - - kind: text
+      entity: DS-2021-007
+      field: sure
+      value: '507'
+      evidence:
+      - doc: ds_2021_007.md
+        literals:
+        - 507 gün
+- q: Akit referansı KS-2025-007. Vade geçince temerrüt hesabında hangi yıllık faiz oranı esas alınıyor?
+  docs:
+  - ks_2025_007.md
+  answer:
+  - - '%28,91'
+    - '% 28,91'
+    - yüzde 28,91
+    - 28,91%
+    - '%28.91'
+  chain:
+  - - kind: text
+      entity: KS-2025-007
+      field: faiz
+      value: '2891'
+      evidence:
+      - doc: ks_2025_007.md
+        literals:
+        - '%28,91'
+- q: Akit referansı KS-2023-008. Akdin imzayla başlayan geçerlilik dönemi kaç gün devam eder?
+  docs:
+  - ks_2023_008.md
+  answer:
+  - - 1.794 gün
+    - 1794 gün
+    - 1,794 gün
+  chain:
+  - - kind: text
+      entity: KS-2023-008
+      field: sure
+      value: '1794'
+      evidence:
+      - doc: ks_2023_008.md
+        literals:
+        - 1,794 gün
+- q: Akit referansı KS-2022-015. Kiracı kira teminatı olarak hangi tutarı yatıracak?
+  docs:
+  - ks_2022_015.md
+  answer:
+  - - 204.150 TL
+    - 204150 TL
+    - 204,150 TL
+  chain:
+  - - kind: text
+      entity: KS-2022-015
+      field: depozito
+      value: '204150'
+      evidence:
+      - doc: ks_2022_015.md
+        literals:
+        - 204150 TL
+- q: Akit referansı YS-2023-013. Lisans kapsamında aynı anda yazılıma erişebilecek kişi sayısının üst
+    sınırı nedir?
+  docs:
+  - ys_2023_013.md
+  answer:
+  - - 3.014 kullanıcı
+    - 3014 kullanıcı
+    - 3,014 kullanıcı
+  chain:
+  - - kind: text
+      entity: YS-2023-013
+      field: kullanici
+      value: '3014'
+      evidence:
+      - doc: ys_2023_013.md
+        literals:
+        - 3014 kullanıcı
+- q: Akit referansı HS-2025-002. Olağan fesih günüyle yazılı ihbarın ulaşması arasında en az kaç gün olmalı?
+  docs:
+  - hs_2025_002.md
+  answer:
+  - - 53 gün
+  chain:
+  - - kind: text
+      entity: HS-2025-002
+      field: bildirim
+      value: '53'
+      evidence:
+      - doc: hs_2025_002.md
+        literals:
+        - 53 gün
+- q: Akit referansı YS-2023-011. Vade geçince temerrüt hesabında hangi yıllık faiz oranı esas alınıyor?
+  docs:
+  - ys_2023_011.md
+  answer:
+  - - '%51,95'
+    - '% 51,95'
+    - yüzde 51,95
+    - 51,95%
+    - '%51.95'
+  chain:
+  - - kind: text
+      entity: YS-2023-011
+      field: faiz
+      value: '5195'
+      evidence:
+      - doc: ys_2023_011.md
+        literals:
+        - 51,95%
+- q: Akit referansı HS-2023-015. Akdin bitimini izleyen kaç gün boyunca taraflar sır saklamakla yükümlü?
+  docs:
+  - hs_2023_015.md
+  answer:
+  - - 3.230 gün
+    - 3230 gün
+    - 3,230 gün
+  chain:
+  - - kind: text
+      entity: HS-2023-015
+      field: gizlilik
+      value: '3230'
+      evidence:
+      - doc: hs_2023_015.md
+        literals:
+        - 3230 gün
+- q: Akit referansı KS-2022-003. Kiracı kira teminatı olarak hangi tutarı yatıracak?
+  docs:
+  - ks_2022_003.md
+  answer:
+  - - 350.050 TL
+    - 350050 TL
+    - 350,050 TL
+  chain:
+  - - kind: text
+      entity: KS-2022-003
+      field: depozito
+      value: '350050'
+      evidence:
+      - doc: ks_2022_003.md
+        literals:
+        - 350,050 TL
+- q: Akit referansı YS-2021-003. Olağan fesih günüyle yazılı ihbarın ulaşması arasında en az kaç gün olmalı?
+  docs:
+  - ys_2021_003.md
+  answer:
+  - - 362 gün
+  chain:
+  - - kind: text
+      entity: YS-2021-003
+      field: bildirim
+      value: '362'
+      evidence:
+      - doc: ys_2021_003.md
+        literals:
+        - 362 gün
+- q: Akit referansı HS-2021-016. İşin tamamı için tarafların anlaştığı tutar nedir?
+  docs:
+  - hs_2021_016.md
+  answer:
+  - - 11.359.350 TL
+    - 11359350 TL
+    - 11,359,350 TL
+  chain:
+  - - kind: text
+      entity: HS-2021-016
+      field: bedel
+      value: '11359350'
+      evidence:
+      - doc: hs_2021_016.md
+        literals:
+        - 11359350 TL

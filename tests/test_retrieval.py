@@ -9,6 +9,7 @@ import pytest
 
 from rag_with_oag import Ontology, RetrievalConfig
 from rag_with_oag._tokens import count_tokens
+from rag_with_oag.rerank import Reranker
 from rag_with_oag.retrieval.context import CHUNKS_HEADER, FACTS_HEADER, pack_facts
 from rag_with_oag.retrieval.hybrid import HybridRetriever
 from rag_with_oag.retrieval.oag import Subgraph
@@ -211,3 +212,66 @@ async def test_hybrid_no_seeds_matches_rag(hybrid: HybridRetriever) -> None:
     hybrid.oag.subgraph.assert_not_awaited()
     hybrid.repo.seed_document_chunks.assert_not_awaited()
     hybrid.repo.evidence_chunks.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    ("lexical", "rerank_candidates", "candidate_ids", "ranked_ids"),
+    [
+        (False, 1, ["a", "b"], ["b", "a"]),
+        (False, 3, ["a", "b", "c"], ["c", "b"]),
+        (True, 3, ["b", "lexical", "a"], ["lexical", "b"]),
+    ],
+)
+async def test_rag_and_hybrid_rerank_the_same_candidates(
+    hybrid: HybridRetriever,
+    lexical: bool,
+    rerank_candidates: int,
+    candidate_ids: list[str],
+    ranked_ids: list[str],
+) -> None:
+    k = 2
+    hybrid.config = RetrievalConfig(
+        rag_lexical=lexical, rerank_candidates=rerank_candidates, hybrid_text_reserve=2
+    )
+    a, b, c, text_hit, seed, evidence = (
+        ChunkHit(id_, id_, f"{id_}.txt", id_, 1.0)
+        for id_ in ("a", "b", "c", "lexical", "seed", "evidence")
+    )
+    _search(hybrid, hits=[a, b, c], facts=[], seed_hits=[seed], evidence=[evidence])
+    vector_search = AsyncMock(side_effect=lambda vector, count: [a, b, c][:count])
+    hybrid.repo.search_chunks = vector_search
+    text_search = AsyncMock(return_value=[b, text_hit])
+    hybrid.repo.search_chunks_text = text_search
+    scores = {"a": 1.0, "b": 2.0, "c": 3.0, "lexical": 4.0}
+    reranker = create_autospec(Reranker, instance=True)
+    reranker.rerank.side_effect = lambda query, texts: [scores[text] for text in texts]
+    hybrid.reranker = reranker
+    rag = RAGRetriever(hybrid.repo, hybrid.embedder, hybrid.config, reranker=reranker)
+    vector = [1.0, 0.0]
+
+    rag_ctx = await rag.retrieve("Atlas", k=k, vector=vector)
+    hybrid_ctx = await hybrid.retrieve("Atlas", k=k, vector=vector)
+
+    assert [hit.chunk_id for hit in rag_ctx.chunks] == ranked_ids
+    assert [hit.score for hit in rag_ctx.chunks] == [scores[id_] for id_ in ranked_ids]
+    assert hybrid_ctx.chunks == [seed, rag_ctx.chunks[0]]
+    assert reranker.rerank.await_count == 2
+    assert [call.args for call in reranker.rerank.await_args_list] == [("Atlas", candidate_ids)] * 2
+    assert vector_search.await_count == 2
+    fetch_k = max(k, rerank_candidates) * (3 if lexical else 1)
+    assert [call.args for call in vector_search.await_args_list] == [(vector, fetch_k)] * 2
+    assert [call.args for call in text_search.await_args_list] == (
+        [("atlas*", fetch_k)] * 2 if lexical else []
+    )
+    hybrid.repo.seed_document_chunks.assert_awaited_once_with(["atlas"], vector, k)
+    hybrid.repo.evidence_chunks.assert_awaited_once_with(["atlas", "related"], vector, k)
+
+
+async def test_rag_default_keeps_original_vector_hits(hybrid: HybridRetriever) -> None:
+    hit = ChunkHit("vector", "doc", "source.txt", "Atlas", 0.8)
+    _search(hybrid, hits=[hit], facts=[])
+    rag = RAGRetriever(hybrid.repo, hybrid.embedder, RetrievalConfig())
+
+    assert (await rag.retrieve("Atlas", k=1, vector=[1.0])).chunks == [hit]
+    hybrid.repo.search_chunks.assert_awaited_once_with([1.0], 1)
+    hybrid.repo.search_chunks_text.assert_not_awaited()

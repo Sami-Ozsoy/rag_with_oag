@@ -6,6 +6,7 @@ import pytest
 import pytest_asyncio
 
 from rag_with_oag import Ontology, RetrievalConfig
+from rag_with_oag._text import fulltext_query
 from rag_with_oag.ingest.extractor import ChunkGraph, EntityMention
 from rag_with_oag.ingest.resolver import EntityResolver
 from rag_with_oag.retrieval.oag import OAGRetriever
@@ -110,8 +111,14 @@ async def test_without_anchors_linking_keeps_the_fused_ranking(retriever: OAGRet
     assert hits == await _link(retriever, question, RetrievalConfig(link_exact_anchors=False))
 
 
-async def test_disabling_anchors_keeps_confusable_text_hits(retriever: OAGRetriever) -> None:
+async def test_contract_phrase_ranks_first_without_anchors(retriever: OAGRetriever) -> None:
     question = "DS-2023-008'in tarafları kim?"
-    hits = await _link(retriever, question, RetrievalConfig(link_exact_anchors=False))
-    assert {hit.name.split()[0] for hit in hits} >= set(CONTRACT_KEYS[:3])
+    expected = "DS-2023-008 Danışmanlık Sözleşmesi"
+    config = RetrievalConfig(link_exact_anchors=False)
+
+    text_hits = await retriever.repo.search_entities_text(fulltext_query(question), config.link_k)
+    assert [hit.name for hit in text_hits] == [expected]
+
+    hits = await _link(retriever, question, config)
+    assert hits[0].name == expected
     assert all(hit.score < 1.0 for hit in hits)

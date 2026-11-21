@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -15,10 +16,13 @@ from rag_with_oag import (
     KnowledgeBase,
     KnowledgeBaseClosedError,
     ModeNotAvailableError,
+    RetrievalConfig,
 )
+from rag_with_oag._text import fulltext_query
 from rag_with_oag.ingest.chunker import AdaptiveChunker
 from rag_with_oag.ingest.pipeline import IngestPipeline, build_chunks
-from rag_with_oag.store import schema
+from rag_with_oag.store import queries as q
+from rag_with_oag.store import repository, schema
 from rag_with_oag.store.connection import GraphConnection
 from rag_with_oag.store.repository import GraphRepository
 
@@ -39,6 +43,7 @@ async def test_schema_setup_is_idempotent(repo: GraphRepository) -> None:
     assert {
         ("Chunk", "embedding", "VECTOR"),
         ("Chunk", "text", "FULLTEXT"),
+        ("Chunk", "text_norm", "FULLTEXT"),
         ("Document", "id", "RANGE"),
     } <= indexes
     assert repo.meta.embed_dim == 8
@@ -79,6 +84,108 @@ async def test_search_returns_similarity_best_first_with_neighbors(
 
 async def test_search_before_any_ingest_is_empty(repo: GraphRepository) -> None:
     assert await repo.search_chunks([0.1] * 8, 5) == []
+    assert await repo.search_chunks_text("sozles*", 5) == []
+
+
+class _MisleadingEmbedder(FakeEmbedder):
+    def _vector(self, text: str) -> list[float]:
+        return [0.0, 1.0] if "Sözleşme." in text else [1.0, 0.0]
+
+
+async def test_lexical_chunk_search_recovers_id_and_suffix_matches(
+    connection: GraphConnection, kb_name: str
+) -> None:
+    embedder = _MisleadingEmbedder()
+    plain = AsyncKnowledgeBase(kb_name, connection=connection, embedder=embedder)
+    lexical = AsyncKnowledgeBase(
+        kb_name,
+        connection=connection,
+        embedder=embedder,
+        retrieval=RetrievalConfig(rag_lexical=True),
+    )
+    try:
+        report = await plain.ingest(
+            [
+                Document.from_text("KS-2024-002 — Sözleşme.", source="correct.txt"),
+                Document.from_text("KS-2024-003 — Duyuru.", source="decoy.txt"),
+            ]
+        )
+        assert report.ok, report.failures
+        for question in ("KS-2024-002'nin", "SÖZLEŞMESİNDEKİ"):
+            assert [hit.source for hit in (await plain.retrieve(question, k=1)).chunks] == [
+                "decoy.txt"
+            ]
+            assert [hit.source for hit in (await lexical.retrieve(question, k=1)).chunks] == [
+                "correct.txt"
+            ]
+            hits = await lexical.store.search_chunks_text(fulltext_query(question), 3)
+            assert [hit.source for hit in hits] == ["correct.txt"]
+    finally:
+        await plain.store.drop()
+        await lexical.close()
+        await plain.close()
+
+
+async def test_open_backfills_legacy_chunk_text_in_batches(
+    connection: GraphConnection, kb_name: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    graph = connection.graph(kb_name)
+    monkeypatch.setattr(connection, "graph", lambda _: graph)
+    monkeypatch.setattr(repository, "WRITE_BATCH", 1)
+    vectors = "MATCH (c:Chunk) RETURN c.embedding ORDER BY c.id"
+    meta = "MATCH (m:Meta) RETURN properties(m)"
+    try:
+        await graph.query(q.CREATE_META, {"kb": kb_name, "schema_version": 1})
+        await graph.query(
+            q.SET_META_EMBEDDING, {"kb": kb_name, "embed_model": "fake-embed", "embed_dim": 2}
+        )
+        await graph.query(
+            q.SET_META_ONTOLOGY, {"kb": kb_name, "version": "legacy", "name": "legacy", "yaml": ""}
+        )
+        await graph.query(q.CREATE_FULLTEXT_INDEX.format(label="Chunk", field="text"))
+        await schema.create_vector_indexes(graph, 2)
+        await graph.query(
+            "CREATE (d:Document {id: 'd', source: 'legacy.txt'})"
+            "-[:HAS_CHUNK]->(:Chunk {id: 'first', doc_id: 'd', text: 'KS-2024-002', "
+            "embedding: vecf32([1.0, 0.0])}), "
+            "(d)-[:HAS_CHUNK]->(:Chunk {id: 'second', doc_id: 'd', text: 'Sözleşme', "
+            "embedding: vecf32([0.0, 1.0])})"
+        )
+        saved_vectors = (await graph.ro_query(vectors)).result_set
+        saved_meta = (await graph.ro_query(meta)).result_set
+        assert ("Chunk", "text_norm", "FULLTEXT") not in await schema.existing_indexes(graph)
+        assert (await graph.ro_query("MATCH (c:Chunk) RETURN c.text_norm")).result_set == [
+            [None],
+            [None],
+        ]
+        queries = AsyncMock(wraps=graph.query)
+        monkeypatch.setattr(graph, "query", queries)
+
+        async with AsyncKnowledgeBase(
+            kb_name, connection=connection, embedder=FakeEmbedder(dim=2)
+        ) as kb:
+            assert ("Chunk", "text_norm", "FULLTEXT") in await schema.existing_indexes(graph)
+            assert await kb.store.query("MATCH (c:Chunk) RETURN c.text_norm ORDER BY c.id") == [
+                ["ks 2024 002"],
+                ["sozlesme"],
+            ]
+            hits = await kb.store.search_chunks_text(fulltext_query("KS-2024-002’nin"), 1)
+            assert [hit.chunk_id for hit in hits] == ["first"]
+            assert (await graph.ro_query(vectors)).result_set == saved_vectors
+            assert (await graph.ro_query(meta)).result_set == saved_meta
+        writes = [
+            call.args[1]["rows"]
+            for call in queries.await_args_list
+            if call.args[0] == q.SET_CHUNK_TEXT_NORM
+        ]
+        assert len(writes) == 2 and all(len(batch) == 1 for batch in writes)
+        assert sorted(batch[0]["id"] for batch in writes) == ["first", "second"]
+
+        queries.reset_mock()
+        async with AsyncKnowledgeBase(kb_name, connection=connection, embedder=FakeEmbedder(dim=2)):
+            assert [call.args[0] for call in queries.await_args_list] == [q.CREATE_META]
+    finally:
+        await graph.delete()
 
 
 # --- pipeline ----------------------------------------------------------------

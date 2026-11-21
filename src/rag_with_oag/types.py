@@ -69,7 +69,7 @@ class Chunk:
 
 @dataclass(frozen=True, slots=True)
 class ChunkHit:
-    """A retrieved chunk. ``score`` is cosine similarity: higher is better."""
+    """A retrieved chunk with a similarity, lexical, fusion or reranker score. Higher is better."""
 
     chunk_id: str
     doc_id: str

@@ -67,7 +67,8 @@ UPSERT_CHUNKS = """
 UNWIND $rows AS r
 MATCH (d:Document {id: r.doc_id})
 MERGE (c:Chunk {id: r.id})
-SET c.doc_id = r.doc_id, c.idx = r.idx, c.text = r.text, c.token_count = r.token_count,
+SET c.doc_id = r.doc_id, c.idx = r.idx, c.text = r.text, c.text_norm = r.text_norm,
+    c.token_count = r.token_count,
     c.start_char = r.start_char, c.end_char = r.end_char, c.section_path = r.section_path,
     c.page_index = r.page_index, c.chunk_strategy = r.chunk_strategy,
     c.embedding = vecf32(r.embedding)
@@ -85,6 +86,18 @@ MATCH (:Document {id: $id})-[:HAS_CHUNK]->(c:Chunk)
 RETURN c.id, c.doc_id, c.idx, c.text, c.token_count, c.start_char, c.end_char,
        c.section_path, c.page_index, c.chunk_strategy
 ORDER BY c.idx
+"""
+
+CHUNKS_MISSING_TEXT_NORM = """
+MATCH (c:Chunk) WHERE c.text_norm IS NULL
+RETURN c.id, c.text
+LIMIT $limit
+"""
+
+SET_CHUNK_TEXT_NORM = """
+UNWIND $rows AS r
+MATCH (c:Chunk {id: r.id}) WHERE c.text_norm IS NULL
+SET c.text_norm = r.text_norm
 """
 
 # --- ingest: extraction cache and graph --------------------------------------
@@ -169,6 +182,17 @@ OPTIONAL MATCH (c)-[:NEXT]->(next:Chunk)
 RETURN c.id, c.doc_id, d.source, c.text, score, c.section_path, c.page_index,
        prev.id, prev.text, next.id, next.text
 ORDER BY score ASC
+"""
+
+SEARCH_CHUNKS_TEXT = """
+CALL db.idx.fulltext.queryNodes('Chunk', $q) YIELD node AS c, score
+MATCH (d:Document)-[:HAS_CHUNK]->(c)
+OPTIONAL MATCH (prev:Chunk)-[:NEXT]->(c)
+OPTIONAL MATCH (c)-[:NEXT]->(next:Chunk)
+RETURN c.id, c.doc_id, d.source, c.text, score, c.section_path, c.page_index,
+       prev.id, prev.text, next.id, next.text
+ORDER BY score DESC, c.id ASC
+LIMIT $k
 """
 
 _RANK_CHUNKS = """

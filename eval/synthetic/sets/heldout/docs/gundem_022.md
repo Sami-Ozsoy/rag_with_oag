@@ -1,0 +1,3 @@
+# Etkinlik ajandası 022 | Bisiklet rotası defteri
+
+Park çıkışındaki yokuşu geçince dinlenmeye uygun bir çeşme bulundu. Karadeniz İnşaat Ltd. Şti. ekibinden bisikletçiler dönüş yolunu çizdikleri deftere bu noktayı da ekledi. Rota tamamlandığında herkes en çok hangi manzarayı hatırladığını küçük bir karta yazdı.

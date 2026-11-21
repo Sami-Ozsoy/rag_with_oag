@@ -26,6 +26,7 @@ from rag_with_oag.ingest.loaders import Source
 from rag_with_oag.ingest.pipeline import IngestPipeline
 from rag_with_oag.llm.client import ChatModel, LLMClient
 from rag_with_oag.ontology.model import Ontology
+from rag_with_oag.rerank import Reranker
 from rag_with_oag.retrieval.hybrid import HybridRetriever
 from rag_with_oag.retrieval.oag import OAGRetriever
 from rag_with_oag.retrieval.rag import RAGRetriever
@@ -62,6 +63,7 @@ class AsyncKnowledgeBase:
         path: str | Path | None = None,
         url: str | None = None,
         retrieval: RetrievalConfig | None = None,
+        reranker: Reranker | None = None,
         extraction: ExtractionConfig | None = None,
         chunker: Chunker | None = None,
         connection: GraphConnection | None = None,
@@ -104,13 +106,15 @@ class AsyncKnowledgeBase:
         )
         self.store = GraphRepository(self._connection, self.name)
         self._chunker = chunker or AdaptiveChunker(self.retrieval_config)
-        self._rag = RAGRetriever(self.store, self.embedder, self.retrieval_config)
+        self._rag = RAGRetriever(
+            self.store, self.embedder, self.retrieval_config, reranker=reranker
+        )
         self._oag: OAGRetriever | None = None
         self._hybrid: HybridRetriever | None = None
         if self.ontology is not None:
             args = (self.store, self.embedder, self.ontology, self.retrieval_config)
             self._oag = OAGRetriever(*args)
-            self._hybrid = HybridRetriever(*args)
+            self._hybrid = HybridRetriever(*args, reranker=reranker)
         self._open_lock = asyncio.Lock()
         self._opened = False
         self._closed = False
@@ -126,6 +130,7 @@ class AsyncKnowledgeBase:
                 await self.store.init(
                     embed_model=embedder_identity(self.embedder), ontology=self.ontology
                 )
+                await self.store.backfill_chunk_text_norm()
                 self._opened = True
         return self
 

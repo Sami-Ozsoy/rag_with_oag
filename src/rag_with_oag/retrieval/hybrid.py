@@ -1,6 +1,6 @@
 """Hybrid: ontology facts and the source text behind them, in one context.
 
-1. Entity linking (exact anchors or ranked matches) and chunk vector search run in parallel.
+1. Entity linking and RAG retrieval run in parallel. RAG hits can use lexical fusion and reranking.
 2. The ontology walk produces seed facts, then relation and entity facts by hop.
 3. Rank chunks from documents that mention seeds and evidence chunks that mention subgraph entities.
 4. Reserve up to ``hybrid_text_reserve`` unique hits, alternating seed-document and RAG hits.
@@ -20,9 +20,11 @@ from itertools import chain, zip_longest
 from rag_with_oag.config import RetrievalConfig
 from rag_with_oag.embed.base import Embedder, embed_queries
 from rag_with_oag.ontology.model import Ontology
+from rag_with_oag.rerank import Reranker
 from rag_with_oag.retrieval.context import pack_context
 from rag_with_oag.retrieval.linking import rrf
 from rag_with_oag.retrieval.oag import OAGRetriever
+from rag_with_oag.retrieval.rag import search_rag_hits
 from rag_with_oag.store.repository import GraphRepository
 from rag_with_oag.types import ChunkHit, RetrievedContext
 
@@ -34,10 +36,13 @@ class HybridRetriever:
         embedder: Embedder,
         ontology: Ontology,
         config: RetrievalConfig,
+        *,
+        reranker: Reranker | None = None,
     ) -> None:
         self.repo = repo
         self.embedder = embedder
         self.config = config
+        self.reranker = reranker
         self.oag = OAGRetriever(repo, embedder, ontology, config)
 
     async def retrieve(
@@ -53,7 +58,8 @@ class HybridRetriever:
         if vector is None:
             [vector] = await embed_queries(self.embedder, [question])
         seeds, rag_hits = await asyncio.gather(
-            self.oag.linker.link(question, vector), self.repo.search_chunks(vector, k)
+            self.oag.linker.link(question, vector),
+            search_rag_hits(self.repo, question, vector, k, cfg, self.reranker),
         )
         if not seeds:
             return pack_context(

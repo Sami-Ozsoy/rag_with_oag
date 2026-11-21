@@ -505,6 +505,11 @@ def test_fulltext_query_is_prefix_terms_without_syntax() -> None:
     assert set(hostile) <= set("abcdefghijklmnopqrstuvwxyz0123456789*|")
 
 
+def test_fulltext_query_matches_folded_contract_number_as_a_phrase() -> None:
+    assert fulltext_query("KS-2024-002'nin sözleşmesindeki") == '"ks 2024 002"|sozles*'
+    assert fulltext_query("KS-2024-002’nin ve ks-2024-002") == '"ks 2024 002"'
+
+
 def test_rrf_rewards_agreement() -> None:
     fused = rrf([["a", "b", "c"], ["c", "a"]], key=lambda x: x)
     assert [item for item, _ in fused] == ["a", "c", "b"]

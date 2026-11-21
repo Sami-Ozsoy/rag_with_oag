@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections import Counter
+from hashlib import sha256
 from pathlib import Path
-from typing import Never
 from unittest.mock import AsyncMock, MagicMock, call
 
 import pytest
 import tiktoken
-import tiktoken.load
 import yaml
 from eval import run_golden
 from eval.graph_quality import (
@@ -21,7 +21,7 @@ from eval.graph_quality import (
     FoundRelation,
     score_graph_quality,
 )
-from eval.synthetic import generate
+from eval.synthetic import generate, templates, templates_b
 from redis.exceptions import ResponseError
 
 from rag_with_oag import EmbedConfig, Ontology, OntologyMismatchError
@@ -36,36 +36,34 @@ def snapshot(root: Path) -> dict[Path, bytes]:
 
 @pytest.fixture
 def offline_encoding(monkeypatch: pytest.MonkeyPatch) -> None:
-    class UncachedEncoding(Exception):
-        pass
-
     class OfflineEncoding:
         def encode_ordinary(self, text: str) -> range:
             return range(len(text) // 3)
 
-    def block_download(path: str) -> Never:
-        raise UncachedEncoding(path)
-
-    # On a clean machine the first tiktoken use would download its BPE table.
-    # Use the cached encoding when available. These assertions concern corpus
-    # evidence and determinism, so an offline length estimate suffices otherwise.
-    monkeypatch.setattr(tiktoken.load, "read_file", block_download)
-    try:
-        tiktoken.get_encoding("cl100k_base")
-    except UncachedEncoding:
-        monkeypatch.setattr(tiktoken, "get_encoding", lambda _: OfflineEncoding())
+    # Use the same token estimate for the stored snapshot on every machine.
+    monkeypatch.setattr(tiktoken, "get_encoding", lambda _: OfflineEncoding())
 
 
-def test_generate_tiny_set(tmp_path: Path, offline_encoding: None) -> None:
+@pytest.mark.parametrize(("variant", "seed"), [("a", 7), ("b", 101)])
+def test_generate_tiny_set(tmp_path: Path, offline_encoding: None, variant: str, seed: int) -> None:
     args = ["--companies", "20", "--contracts", "20", "--questions", "20"]
     first = tmp_path / "first"
     second = tmp_path / "second"
     other_seed = tmp_path / "other_seed"
-    generate.main(["--out", str(first), "--seed", "7", *args])
-    generate.main(["--out", str(second), "--seed", "7", *args])
-    generate.main(["--out", str(other_seed), "--seed", "8", *args])
+    choice = ["--variant", variant]
+    generate.main(
+        ["--out", str(first), "--seed", str(seed), *([] if variant == "a" else choice), *args]
+    )
+    generate.main(["--out", str(second), "--seed", str(seed), *choice, *args])
+    generate.main(["--out", str(other_seed), "--seed", str(seed + 1), *choice, *args])
     original = snapshot(first)
     assert original == snapshot(second)
+    if variant == "a":
+        # Path-to-SHA-256 manifest from the original generator with this fixture.
+        hashes = {path.as_posix(): sha256(data).hexdigest() for path, data in original.items()}
+        assert sha256(json.dumps(hashes, sort_keys=True).encode()).hexdigest() == (
+            "677f73bf2547b5a96f169d13b9a59374704bb90e0c044395b9cb9d803bbb9535"
+        )
     assert (first / "expected_graph.json").read_bytes() != (
         other_seed / "expected_graph.json"
     ).read_bytes()
@@ -114,6 +112,31 @@ def test_generate_tiny_set(tmp_path: Path, offline_encoding: None) -> None:
     parties = Counter(r["target"] for r in graph["relations"] if r["type"] == "TARAFIDIR")
     assert len(parties) == 20 and set(parties.values()) == {2}
     assert any(r["type"] == "ORTAGIDIR" for r in graph["relations"])
+
+
+def test_variant_fact_templates_are_disjoint() -> None:
+    def sentences(phrases: templates.TemplateSet) -> set[str]:
+        fact_templates = (
+            phrases.contract_title,
+            *phrases.party_paragraphs,
+            *phrases.registry_records,
+            phrases.registry_name,
+            *phrases.ownership_passages,
+            phrases.ownership_list,
+            phrases.ownership_entry,
+            *(statement for clause in phrases.clauses.values() for statement in clause.statements),
+        )
+        return {
+            re.sub(r"\{\w+\}", "{}", sentence).strip().rstrip(".!?")
+            for template in fact_templates
+            for sentence in re.split(r"[.!?]\s+|\n+", template)
+            if sentence.strip()
+        }
+
+    assert templates.A.clauses.keys() == templates_b.B.clauses.keys()
+    assert templates.A.questions.keys() == templates_b.B.questions.keys()
+    assert len(templates_b.B.boilerplate) >= 25
+    assert sentences(templates.A).isdisjoint(sentences(templates_b.B))
 
 
 def test_generation_rejects_chain_without_evidence_in_question_docs(
@@ -232,6 +255,7 @@ async def test_read_seed_cache_checks_source_ontology(
     fingerprint = ontology.fingerprint if matches else "different"
     meta = Meta("source", 1, "source-embedder", None, fingerprint, ontology.name)
     connection = MagicMock(open=AsyncMock(), close=AsyncMock())
+    connection.graph.return_value.ro_query = AsyncMock(return_value=MagicMock(result_set=[]))
     entries = [["key1", "data1"], ["key2", "data2"]]
     query = AsyncMock(return_value=entries)
     monkeypatch.setattr(run_golden, "GraphConnection", MagicMock(return_value=connection))
@@ -269,6 +293,8 @@ async def test_fresh_snapshots_source_and_seeds_target_before_ingest(
         concurrency=2,
         modes="rag",
         equal_budget=False,
+        lexical=False,
+        rerank=None,
     )
     entries = {"key1": "data1", "key2": "data2"}
     steps = MagicMock(

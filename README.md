@@ -70,27 +70,27 @@ from rag_with_oag import KnowledgeBase, LLMConfig, EmbedConfig, Ontology
 
 kb = KnowledgeBase(
     "contracts",
-    path="./rag_with_oag.db",                  # embedded FalkorDB file
+    path="./rag_with_oag.db",  # embedded FalkorDB file
     llm=LLMConfig(base_url="http://localhost:11434/v1", model="qwen2.5:7b-instruct"),
     embedder=EmbedConfig(model="text-embedding-3-small"),
     ontology=Ontology.from_yaml("ontology.yaml"),  # leave out for RAG only
 )
 
-kb.ingest(["docs/"])          # txt, md, rst, html (+ pdf with the extra)
+kb.ingest(["docs/"])  # txt, md, rst, html (+ pdf with the extra)
 
 res = kb.query("Which company owns the provider in contract HS-2024-01?")
-print(res.answer)             # cites graph facts as [F1] and passages as [C1]
+print(res.answer)  # cites graph facts as [F1] and passages as [C1]
 kb.close()
 ```
 
 What else a result holds:
 
 ```python
-res.facts       # typed facts from the graph
-res.chunks      # source passages
-res.mode_used   # "hybrid", or "rag" if nothing in the question matched the graph
+res.facts  # typed facts from the graph
+res.chunks  # source passages
+res.mode_used  # "hybrid", or "rag" if nothing in the question matched the graph
 
-ctx = kb.retrieve("...", mode="oag")   # retrieval only, no LLM call
+ctx = kb.retrieve("...", mode="oag")  # retrieval only, no LLM call
 ```
 
 `AsyncKnowledgeBase` offers the same API with `await`. To use a FalkorDB server

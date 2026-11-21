@@ -1,4 +1,49 @@
-"""Turkish document templates. Fillers carry no facts from the ontology."""
+"""Template types and the original Turkish phrasing pools."""
+
+from dataclasses import dataclass
+
+type Section = tuple[str, str]
+
+
+@dataclass(frozen=True)
+class ClauseText:
+    heading: str
+    statements: tuple[str, ...]
+    question: str
+
+
+@dataclass(frozen=True)
+class TemplateSet:
+    contract_title: str
+    signature_heading: str
+    party_paragraphs: tuple[str, ...]
+    signature_after: int
+    clause_slots: tuple[int, ...]
+    clauses: dict[str, ClauseText]
+    boilerplate: tuple[Section, ...]
+    contract_notes: tuple[str, ...]
+    registry_title: str
+    registry_record_position: int
+    registry_records: tuple[str, ...]
+    registry_name: str
+    ownership_passages: tuple[str, ...]
+    ownership_list: str
+    ownership_entry: str
+    ownership_separator: str
+    report_title: str
+    finance_heading: str
+    finance_position: int
+    finance_notes: tuple[str, ...]
+    report_sections: tuple[Section, ...]
+    report_notes: tuple[str, ...]
+    portfolio_heading: str
+    meetings_heading: str
+    meeting_notes: tuple[str, ...]
+    noise_title: str
+    noise: tuple[Section, ...]
+    questions: dict[str, tuple[str, ...]]
+    free_text_question: str
+
 
 CONTRACT_BOILERPLATE = (
     (
@@ -407,4 +452,169 @@ NOISE = (
         "{name} okuma grubu tarafından gönderilen başlıklar gündeme alındı. "
         "Bir sonraki buluşmanın açılışını yapacak gönüllü belirlendi ve okuma sırası güncellendi.",
     ),
+)
+
+
+A = TemplateSet(
+    boilerplate=CONTRACT_BOILERPLATE,
+    contract_notes=CONTRACT_NOTES,
+    contract_title="# {name}",
+    signature_heading="İmza ve taraflar",
+    party_paragraphs=(
+        "{num} numaralı metin {date} tarihinde {a} ({left}) ile {b} ({right}) arasında imzalandı.",
+        "{num} numaralı sözleşmenin imza tarihi {date}. İmza sayfasında {right} olarak {b}, "
+        "{left} olarak {a} yer alır.",
+        "{date} tarihli imzalar, {num} numaralı sözleşmede {left} sıfatıyla {a} ve {right} "
+        "sıfatıyla {b} adına atıldı.",
+    ),
+    signature_after=0,
+    clause_slots=(1, 3, 5),
+    registry_title="# Ticaret Sicil Kaydı",
+    registry_record_position=0,
+    registry_records=(
+        "{name} için açılan sicil dosyasında şirket merkezi {city}, vergi numarası {key} "
+        "olarak geçer.",
+        "{name} adına tescil edilen vergi kimlik numarası {key}; merkez ili ise {city} olarak"
+        " kayıtlıdır.",
+        "{name} sicil özetinde merkez ili {city} olarak belirtilmiştir. Vergi no: {key}.",
+    ),
+    registry_name="Kayıtlı ticaret unvanı “{name}” olarak geçer. Faaliyet alanı {sector}.",
+    ownership_passages=(
+        "{owner}, {owned} unvanlı şirketin sermayesinde {pct} oranında paya sahiptir.",
+        "{owned} şirketinin ortakları arasında {pct} payla {owner} yer almaktadır.",
+        "{owned} şirketindeki payların {pct} oranındaki bölümü {owner} tarafından tutulmaktadır.",
+        "{owned} için ortaklık dökümünde {owner} ({pct}) pay sahibi olarak gösterilmiştir.",
+    ),
+    ownership_list="{name} için sicile işlenen ortak ve pay dökümü: {entries}.",
+    ownership_entry="{name} ({pct})",
+    ownership_separator=", ",
+    report_title="# {name} 2025 Faaliyet Raporu",
+    finance_heading="Finansal göstergeler",
+    finance_position=0,
+    finance_notes=(
+        "Yılın kapanışında ciro {sales} milyon TL, net kâr {profit} milyon TL olarak "
+        "hesaplandı. Dönem sonundaki çalışan sayısı {employees} kişiydi.",
+        "Yıllık gelir tablosunda {sales} milyon TL ciro ve {profit} milyon TL dönem kârı "
+        "raporlandı. İnsan kaynakları kayıtlarına göre yıl {employees} çalışanla tamamlandı.",
+        "Yıl boyunca satışların toplamı {sales} milyon TL'ye ulaştı. {profit} milyon TL net "
+        "kâr kaydedildi. Dönem raporuna esas personel mevcudu {employees} kişiydi.",
+    ),
+    report_sections=REPORT_SECTIONS,
+    report_notes=REPORT_NOTES,
+    portfolio_heading="Pay portföyü",
+    meetings_heading="Birim görüşmeleri",
+    meeting_notes=(
+        "{name} için sonraki dönem hazırlıkları bakım programı üzerinden görüşüldü.",
+        "{name} ekibinden gelen çalışma notları dönem kapanışında incelendi.",
+        "İzleme toplantılarında {name} için uygulama kayıtlarının güncellenmesi ele alındı.",
+    ),
+    noise_title="# {heading} · {index:03d}",
+    noise=NOISE,
+    free_text_question="{number} numaralı metne göre {lower_question}",
+    clauses={
+        "bedel": ClauseText(
+            "Sözleşme bedeli",
+            (
+                "Toplam sözleşme bedeli {v} olarak belirlenmiştir.",
+                "Taraflar bu iş için toplam {v} ödenmesi üzerinde anlaşmıştır.",
+            ),
+            "Toplam sözleşme bedeli ne kadardır?",
+        ),
+        "sure": ClauseText(
+            "Yürürlük süresi",
+            (
+                "Sözleşmenin yürürlük süresi {v} olarak kararlaştırılmıştır.",
+                "İmzanın ardından sözleşme {v} boyunca yürürlükte kalır.",
+            ),
+            "Sözleşmenin yürürlük süresi kaç gündür?",
+        ),
+        "bildirim": ClauseText(
+            "Fesih bildirimi",
+            (
+                "Olağan fesih için {v} önceden yazılı bildirim yapılır.",
+                "Fesih ihbarnamesi, olağan fesih tarihinden en az {v} önce ulaşmalıdır.",
+            ),
+            "Olağan fesih için kaç gün önceden bildirim gerekir?",
+        ),
+        "faiz": ClauseText(
+            "Gecikme faizi",
+            (
+                "Geciken ödemelere yıllık {v} gecikme faizi uygulanır.",
+                "Ödeme vadesi aşılırsa yıllık gecikme faizi {v} üzerinden hesaplanır.",
+            ),
+            "Yıllık gecikme faizi oranı nedir?",
+        ),
+        "depozito": ClauseText(
+            "Güvence bedeli",
+            (
+                "Kiracı, {v} tutarında depozito yatırır.",
+                "Kira konusu yer teslim edilmeden {v} depozito ödenecektir.",
+            ),
+            "Depozito ne kadardır?",
+        ),
+        "gizlilik": ClauseText(
+            "Gizlilik süresi",
+            (
+                "Gizlilik yükümlülüğü sözleşme bittikten sonra {v} daha sürer.",
+                "Sözleşmenin sona ermesinden itibaren {v} boyunca gizlilik korunur.",
+            ),
+            "Sözleşme bittikten sonra gizlilik yükümlülüğü kaç gün sürer?",
+        ),
+        "kullanici": ClauseText(
+            "Kullanıcı sınırı",
+            (
+                "Lisans, eş zamanlı en fazla {v} için geçerlidir.",
+                "Yazılımın eş zamanlı kullanımı {v} ile sınırlandırılmıştır.",
+            ),
+            "Lisans aynı anda en fazla kaç kullanıcıya izin verir?",
+        ),
+    },
+    questions={
+        "company tax": (
+            "“{name}” için sicilde hangi vergi numarası kayıtlı?",
+            "Vergi kimlik numarası aranan şirket “{name}”. Sicilde hangi numara yazıyor?",
+        ),
+        "company city": (
+            "“{name}” şirketinin merkezi hangi şehirde?",
+            "Sicile göre “{name}” şirketinin merkez ili neresi?",
+        ),
+        "owner city": ("“{name}” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?",),
+        "owner tax": ("“{name}” şirketinin en büyük hissedarının vergi numarası nedir?",),
+        "ancestor city": (
+            "“{name}” şirketinin en büyük hissedarına bakın. O hissedarın en büyük ortağının "
+            "merkezi hangi şehirde?",
+        ),
+        "ancestor tax": (
+            "“{name}” şirketindeki en yüksek paylı ortağın en yüksek paylı ortağı sicilde "
+            "hangi vergi numarasıyla kayıtlı?",
+        ),
+        "third ancestor": (
+            "“{name}” şirketinden başlayıp her adımda en büyük hissedara geçin. Üçüncü adımda"
+            " ulaşılan şirket hangisi?",
+        ),
+        "indirect cities": (
+            "“{name}” şirketinin tek bir aracı şirket üzerinden dolaylı pay sahibi olduğu "
+            "şirketlerin merkezleri hangi şehirlerdedir? Her şehri bir kez yazın.",
+        ),
+        "signature date": (
+            "{number} numaralı sözleşme hangi tarihte imzalandı?",
+            "İmza tarihi aranan sözleşme {number}. Sözleşme ne zaman imzalanmış?",
+        ),
+        "both parties": ("{number} numaralı sözleşmenin iki tarafı kimlerdir?",),
+        "party ancestor": (
+            "{number} sözleşmesindeki {label} şirketin en büyük hissedarının en büyük "
+            "hissedarı hangi şirkettir?",
+            "{number} sözleşmesinin {label} tarafını bulun. Bu tarafın en yüksek paylı "
+            "ortağında en büyük pay kime aittir?",
+        ),
+        "party city": (
+            "{number} sözleşmesinde {label} sıfatıyla imza atan şirketin merkez ili neresi?",
+        ),
+        "party tax": (
+            "{number} numaralı sözleşmedeki {label} şirketin vergi kimlik numarası nedir?",
+        ),
+        "party owner": (
+            "{number} sözleşmesinin {label} tarafında yer alan şirketin en büyük hissedarı kimdir?",
+        ),
+    },
 )
