@@ -113,8 +113,8 @@ documents on the next `ingest`.
 | Mode | Entry point | Context for the LLM |
 |---|---|---|
 | `rag` | chunk vector search | passages, plus neighbouring chunks within the budget |
-| `oag` | entity linking: names in the question + entity vectors | typed facts from walking the ontology's relations (`hops`, default 2) |
-| `hybrid` | both, in parallel | facts **and** the passages that mention those entities, fused with RAG hits by Reciprocal Rank Fusion |
+| `oag` | entity linking: names in the question + entity vectors | typed facts from walking the ontology's relations (`hops`, default 3) |
+| `hybrid` | both, in parallel | Reserve hits by alternating seed-document and RAG hits, starting with seed documents. Pack facts next, then remaining hits from Reciprocal Rank Fusion of seed-document, RAG and subgraph evidence hits. |
 
 ## CLI
 
