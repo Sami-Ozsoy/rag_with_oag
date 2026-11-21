@@ -95,6 +95,12 @@ PUT_EXTRACTIONS = "UNWIND $rows AS r MERGE (x:ExtractionCache {key: r.key}) SET 
 EXISTING_ENTITIES = "UNWIND $ids AS i MATCH (e:Entity {id: i}) RETURN e.id"
 
 _FIND_BY_KEY = "MATCH (e:Entity:{label}) WHERE e.{key} = $value RETURN e.id LIMIT 1"
+_FIND_BY_KEYS = """
+MATCH (e:Entity:{label})
+WITH e, toString(e.{key}) AS value
+WHERE value IN $values
+RETURN e.id, e.name, value
+"""
 _FIND_BY_NAME = "MATCH (e:Entity:{label} {{name_norm: $name}}) RETURN e.id LIMIT 1"
 _FIND_KEYLESS_BY_NAME = (
     "MATCH (e:Entity:{label} {{name_norm: $name}}) WHERE e.{key} IS NULL RETURN e.id LIMIT 1"
@@ -103,6 +109,10 @@ _FIND_KEYLESS_BY_NAME = (
 
 def find_by_key(label: str, key: str) -> str:
     return _FIND_BY_KEY.format(label=safe_identifier(label), key=safe_identifier(key))
+
+
+def find_by_keys(label: str, key: str) -> str:
+    return _FIND_BY_KEYS.format(label=safe_identifier(label), key=safe_identifier(key))
 
 
 def find_by_name(label: str, *, keyless: str | None = None) -> str:
@@ -188,6 +198,12 @@ CALL db.idx.fulltext.queryNodes('Entity', $q) YIELD node, score
 RETURN node.id, node.name, labels(node), score
 ORDER BY score DESC
 LIMIT $k
+"""
+
+ENTITY_NAMES_NORM = """
+UNWIND $ids AS i
+MATCH (e:Entity {id: i})
+RETURN e.id, e.name_norm
 """
 
 ENTITY_DETAILS = """

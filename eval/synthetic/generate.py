@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 from itertools import cycle, pairwise
 from pathlib import Path
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, TypedDict, cast
 
 import tiktoken
 import yaml
@@ -65,6 +65,7 @@ ROLE_NAMES = {
     "kiraya_veren": "kiraya veren",
 }
 GROUPS = ("single_hop", "multi_hop", "deep_hop", "free_text")
+ONTOLOGY_PROPERTIES = frozenset({"vergi_no", "sehir", "imza_tarihi", "numara", "tur"})
 type TokenCount = Callable[[str], int]
 
 
@@ -186,6 +187,12 @@ class QuestionRow(TypedDict):
     q: str
     docs: list[str]
     answer: list[list[str]]
+    chain: list[list[dict[str, object]]]
+
+
+class SourceEvidence(TypedDict):
+    doc: str
+    literals: list[str]
 
 
 @dataclass(frozen=True)
@@ -784,8 +791,8 @@ class World:
         return results
 
 
-def check_evidence(world: World, documents: list[Document]) -> dict[Fact, list[str]]:
-    sources: dict[Fact, list[str]] = defaultdict(list)
+def check_evidence(world: World, documents: list[Document]) -> dict[Fact, list[SourceEvidence]]:
+    sources: dict[Fact, list[SourceEvidence]] = defaultdict(list)
     require(len({d.filename for d in documents}) == len(documents), "duplicate document filename")
     require(len({d.text for d in documents}) == len(documents), "duplicate document content")
     for doc in documents:
@@ -802,10 +809,46 @@ def check_evidence(world: World, documents: list[Document]) -> dict[Fact, list[s
                 all(literals.intersection(group) for group in world.literals[fact]),
                 f"fact value or endpoint missing in {doc.filename}: {fact}",
             )
-            sources[fact].append(doc.filename)
+            sources[fact].append({"doc": doc.filename, "literals": list(evidence.literals)})
     missing = world.literals.keys() - sources.keys()
     require(not missing, f"unstated facts: {sorted(map(str, missing))}")
     return sources
+
+
+def chain_step(
+    fact: Fact,
+    shares: dict[tuple[str, str], int],
+    clause_fields: set[str],
+    sources: list[SourceEvidence],
+) -> dict[str, object]:
+    step: dict[str, object]
+    if fact.field == "owner":
+        step = {
+            "kind": "relation",
+            "type": "ORTAGIDIR",
+            "source": fact.value,
+            "target": fact.subject,
+            "props": {"oran": shares[fact.value, fact.subject]},
+        }
+    elif fact.field in ROLE_NAMES:
+        step = {
+            "kind": "relation",
+            "type": "TARAFIDIR",
+            "source": fact.value,
+            "target": fact.subject,
+            "props": {"rol": fact.field},
+        }
+    elif fact.field in ONTOLOGY_PROPERTIES:
+        step = {"kind": "property", "entity": fact.subject, "prop": fact.field, "value": fact.value}
+    elif fact.field in clause_fields:
+        step = {"kind": "text", "entity": fact.subject, "field": fact.field, "value": fact.value}
+    else:
+        raise ValueError(f"unsupported chain fact: {fact}")
+    evidence = [
+        {"doc": source["doc"], "literals": list(source["literals"])}
+        for source in sorted(sources, key=lambda source: source["doc"])
+    ]
+    return {**step, "evidence": evidence}
 
 
 def candidates(world: World, rng: random.Random) -> dict[str, list[Question]]:
@@ -1000,9 +1043,11 @@ def make_questions(
     world: World,
     count: int,
     documents: list[Document],
-    sources: dict[Fact, list[str]],
+    sources: dict[Fact, list[SourceEvidence]],
 ) -> dict[str, list[QuestionRow]]:
     document_text = {doc.filename: doc.text for doc in documents}
+    shares = {(share.owner.key, share.owned.key): share.percent for share in world.shares}
+    clause_fields = {clause.field for contract in world.contracts for clause in contract.clauses}
     groups: dict[str, list[QuestionRow]] = {}
     per_group, remainder = divmod(count, len(GROUPS))
     seen: set[str] = set()
@@ -1027,18 +1072,38 @@ def make_questions(
             paths = world.follow(question)
             require(bool(paths), f"incomplete question: {text}")
             answer: dict[str, list[str]] = {}
+            chains: dict[str, list[dict[str, object]]] = {}
             docs: dict[str, None] = {}
-            for target, chain, alternatives in paths:
+            for target, path, alternatives in paths:
                 answer[target] = alternatives
-                for fact in chain:
-                    require(bool(sources[fact]), f"missing hop {fact}: {text}")
-                    docs[sources[fact][0]] = None
+                steps = []
+                for fact in path:
+                    evidence = sources.get(fact, [])
+                    require(bool(evidence), f"missing hop {fact}: {text}")
+                    docs[evidence[0]["doc"]] = None
+                    steps.append(chain_step(fact, shares, clause_fields, evidence))
+                # Follow the answer's deduplication when several paths yield the same target.
+                chains[target] = steps
             for alternatives in answer.values():
                 require(
                     any(matches(document_text[doc], [alternatives]) for doc in docs),
                     f"unstated answer group {alternatives}: {text}",
                 )
-            groups[group].append({"q": text, "docs": list(docs), "answer": list(answer.values())})
+            for chain in chains.values():
+                for step in chain:
+                    evidence = cast(list[SourceEvidence], step["evidence"])
+                    require(
+                        any(source["doc"] in docs for source in evidence),
+                        f"chain step without evidence in question docs: {text}: {step}",
+                    )
+            groups[group].append(
+                {
+                    "q": text,
+                    "docs": list(docs),
+                    "answer": list(answer.values()),
+                    "chain": list(chains.values()),
+                }
+            )
     return groups
 
 

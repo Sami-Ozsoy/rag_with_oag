@@ -114,12 +114,11 @@ async def test_hybrid_connects_documents(
     await graph_kb.ingest(graph_docs)
     question = "Atlas Lojistik'in hizmet aldığı şirketin ana ortağı kimdir?"
 
-    one = await graph_kb.retrieve(question, hops=1)
-    assert one.mode_used == "hybrid"  # the default with an ontology
-    # Seeds are Atlas and the contract ("hizmet"); Delta is two hops from the contract.
-    assert not any("Delta" in f.render() for f in one.facts)
+    two = await graph_kb.retrieve(question)
+    assert two.mode_used == "hybrid"  # the default with an ontology
+    assert not any("Delta" in f.render() for f in two.facts)
 
-    three = await graph_kb.retrieve(question)  # default: 2 hops
+    three = await graph_kb.retrieve(question, hops=3)
     facts = [f.render() for f in three.facts]
     assert any("Delta Holding A.Ş. —ORTAGIDIR→ Bulut Yazılım Ltd. (oran: 60.0)" in f for f in facts)
     sources = {h.source for h in three.chunks}
@@ -128,7 +127,7 @@ async def test_hybrid_connects_documents(
     kinds = {c.kind for c in three.citations}
     assert kinds == {"fact", "chunk"}
 
-    result = await graph_kb.query(question)
+    result = await graph_kb.query(question, hops=3)
     assert result.mode_used == "hybrid"
     assert [c.id for c in result.citations] == ["F1", "C1"]
     system = graph_kb.llm.requests[-1][0]["content"]  # type: ignore[union-attr]

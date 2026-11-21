@@ -1,6 +1,6 @@
 """Hybrid: ontology facts and the source text behind them, in one context.
 
-1. Entity linking (OAG seeds) and chunk vector search (RAG seeds) run in parallel.
+1. Entity linking (exact anchors or ranked matches) and chunk vector search run in parallel.
 2. The ontology walk produces seed facts, then relation and entity facts by hop.
 3. Chunks that mention the subgraph's entities are ranked by similarity to the question.
 4. RAG hits and these evidence chunks are fused with Reciprocal Rank Fusion.

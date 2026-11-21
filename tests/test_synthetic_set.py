@@ -30,7 +30,8 @@ def snapshot(root: Path) -> dict[Path, bytes]:
     return {path.relative_to(root): path.read_bytes() for path in root.rglob("*") if path.is_file()}
 
 
-def test_generate_tiny_set(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.fixture
+def offline_encoding(monkeypatch: pytest.MonkeyPatch) -> None:
     class UncachedEncoding(Exception):
         pass
 
@@ -50,6 +51,8 @@ def test_generate_tiny_set(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     except UncachedEncoding:
         monkeypatch.setattr(tiktoken, "get_encoding", lambda _: OfflineEncoding())
 
+
+def test_generate_tiny_set(tmp_path: Path, offline_encoding: None) -> None:
     args = ["--companies", "20", "--contracts", "20", "--questions", "20"]
     first = tmp_path / "first"
     second = tmp_path / "second"
@@ -67,19 +70,64 @@ def test_generate_tiny_set(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     ).read_bytes()
 
     questions = yaml.safe_load((first / "questions.yaml").read_text(encoding="utf-8"))
+    graph: ExpectedGraph = json.loads((first / "expected_graph.json").read_text(encoding="utf-8"))
+    entity_props = {entity["key"]: entity["props"] for entity in graph["entities"]}
+    texts = {doc.name: doc.read_text(encoding="utf-8") for doc in (first / "docs").iterdir()}
     assert list(questions) == ["single_hop", "multi_hop", "deep_hop", "free_text"]
     assert [len(items) for items in questions.values()] == [5, 5, 5, 5]
-    for group in questions.values():
+    for name, group in questions.items():
         for question in group:
-            docs = [(first / "docs" / p).read_text(encoding="utf-8") for p in question["docs"]]
+            docs = [texts[p] for p in question["docs"]]
             for alternatives in question["answer"]:
                 assert any(run_golden.matches(doc, [alternatives]) for doc in docs)
+            assert len(question["chain"]) == len(question["answer"])
+            for path in question["chain"]:
+                assert len(path) == {"multi_hop": 2, "deep_hop": 3}.get(name, 1)
+                for step in path:
+                    evidence = step["evidence"]
+                    filenames = [source["doc"] for source in evidence]
+                    assert filenames == sorted(filenames)
+                    assert set(filenames).intersection(question["docs"])
+                    for source in evidence:
+                        assert source["literals"]
+                        assert all(
+                            literal in texts[source["doc"]] for literal in source["literals"]
+                        )
+                    match step["kind"]:
+                        case "relation":
+                            assert {
+                                k: v for k, v in step.items() if k not in {"kind", "evidence"}
+                            } in (graph["relations"])
+                        case "property":
+                            assert entity_props[step["entity"]][step["prop"]] == step["value"]
+                        case "text":
+                            assert name == "free_text"
+                            assert step["field"] not in entity_props[step["entity"]]
+                        case kind:
+                            pytest.fail(f"unexpected chain step kind: {kind}")
 
-    graph: ExpectedGraph = json.loads((first / "expected_graph.json").read_text(encoding="utf-8"))
     assert Counter(e["type"] for e in graph["entities"]) == {"Sirket": 20, "Sozlesme": 20}
     parties = Counter(r["target"] for r in graph["relations"] if r["type"] == "TARAFIDIR")
     assert len(parties) == 20 and set(parties.values()) == {2}
     assert any(r["type"] == "ORTAGIDIR" for r in graph["relations"])
+
+
+def test_generation_rejects_chain_without_evidence_in_question_docs(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, offline_encoding: None
+) -> None:
+    original_chain_step = generate.chain_step
+
+    def unsupported_step(
+        fact: generate.Fact,
+        shares: dict[tuple[str, str], int],
+        clause_fields: set[str],
+        sources: list[generate.SourceEvidence],
+    ) -> dict[str, object]:
+        return {**original_chain_step(fact, shares, clause_fields, sources), "evidence": []}
+
+    monkeypatch.setattr(generate, "chain_step", unsupported_step)
+    with pytest.raises(ValueError, match="chain step without evidence in question docs"):
+        generate.generate(tmp_path, 7, 20, 20, 20)
 
 
 @pytest.mark.parametrize("duplicate_key", [None, "1"])

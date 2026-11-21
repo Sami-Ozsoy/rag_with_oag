@@ -1,4 +1,4 @@
-"""OAG links the question to ranked entity seeds and walks ontology relations by hop.
+"""OAG walks ontology relations by hop from exact anchors or ranked entity matches.
 
 The walk caps each node's fan-out per relation type and direction. Seed facts
 come first, followed by relations in walk order and each new entity's
@@ -38,7 +38,8 @@ class OAGRetriever:
         self.embedder = embedder
         self.ontology = ontology
         self.config = config
-        self.linker = EntityLinker(repo, config)
+        keyed_types = [(entity.name, entity.key) for entity in ontology.entities if entity.key]
+        self.linker = EntityLinker(repo, config, keyed_types=keyed_types)
 
     async def subgraph(self, seeds: Sequence[EntityHit], *, hops: int | None = None) -> Subgraph:
         cfg = self.config

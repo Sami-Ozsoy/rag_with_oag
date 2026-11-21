@@ -276,6 +276,18 @@ class GraphRepository:
 
     # --- retrieval: entities --------------------------------------------------
 
+    async def find_entities_by_keys(
+        self, label: str, key: str, values: Sequence[str]
+    ) -> list[tuple[str, EntityHit]]:
+        """Exact key matches paired with the stored key's text."""
+        if not values:
+            return []
+        result = await self._graph.ro_query(q.find_by_keys(label, key), {"values": list(values)})
+        return [
+            (value, EntityHit(id=eid, name=name, type=label, score=1.0))
+            for eid, name, value in result.result_set
+        ]
+
     async def search_entities_vector(self, embedding: Sequence[float], k: int) -> list[EntityHit]:
         """Nearest entities; ``score`` is cosine similarity."""
         if self.meta.embed_dim is None:
@@ -297,6 +309,12 @@ class GraphRepository:
             EntityHit(id=eid, name=name, type=_entity_type(labels), score=float(score))
             for eid, name, labels, score in result.result_set
         ]
+
+    async def entity_names_norm(self, ids: Sequence[str]) -> dict[str, str]:
+        if not ids:
+            return {}
+        result = await self._graph.ro_query(q.ENTITY_NAMES_NORM, {"ids": list(ids)})
+        return {eid: name_norm for eid, name_norm in result.result_set if name_norm}
 
     async def entity_details(self, ids: Sequence[str]) -> dict[str, EntityDetails]:
         if not ids:

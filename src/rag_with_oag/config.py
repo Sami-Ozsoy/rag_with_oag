@@ -84,6 +84,10 @@ class RetrievalConfig(BaseModel):
     max_fanout: int = Field(default=8, ge=1)
     max_facts: int = Field(default=120, ge=1)
     link_k: int = Field(default=5, ge=1, description="entities used as graph entry points")
+    link_exact_anchors: bool = Field(
+        default=True,
+        description="use only entities written literally by key or full name as seeds",
+    )
     link_min_similarity: float = Field(
         default=0.5,
         ge=-1,
