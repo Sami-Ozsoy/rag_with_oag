@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from collections.abc import AsyncIterator, Sequence
 from pathlib import Path
 from typing import Any
@@ -114,11 +115,11 @@ async def test_hybrid_connects_documents(
     await graph_kb.ingest(graph_docs)
     question = "Atlas Lojistik'in hizmet aldığı şirketin ana ortağı kimdir?"
 
-    two = await graph_kb.retrieve(question)
-    assert two.mode_used == "hybrid"  # the default with an ontology
+    two = await graph_kb.retrieve(question, hops=2)
+    assert two.mode_used == "hybrid"
     assert not any("Delta" in f.render() for f in two.facts)
 
-    three = await graph_kb.retrieve(question, hops=3)
+    three = await graph_kb.retrieve(question)
     facts = [f.render() for f in three.facts]
     assert any("Delta Holding A.Ş. —ORTAGIDIR→ Bulut Yazılım Ltd. (oran: 60.0)" in f for f in facts)
     sources = {h.source for h in three.chunks}
@@ -127,7 +128,7 @@ async def test_hybrid_connects_documents(
     kinds = {c.kind for c in three.citations}
     assert kinds == {"fact", "chunk"}
 
-    result = await graph_kb.query(question, hops=3)
+    result = await graph_kb.query(question)
     assert result.mode_used == "hybrid"
     assert [c.id for c in result.citations] == ["F1", "C1"]
     system = graph_kb.llm.requests[-1][0]["content"]  # type: ignore[union-attr]
@@ -138,10 +139,115 @@ async def test_hybrid_falls_back_to_rag_without_entities(
     graph_kb: AsyncKnowledgeBase, graph_docs: list[Document]
 ) -> None:
     await graph_kb.ingest(graph_docs)
-    ctx = await graph_kb.retrieve("Yarın hava yağmurlu olacak mı?")
+    question = "Yarın hava yağmurlu olacak mı?"
+    ctx = await graph_kb.retrieve(question)
     assert ctx.mode_used == "rag" and not ctx.facts
-    oag = await graph_kb.retrieve("Yarın hava yağmurlu olacak mı?", mode="oag")
+    assert ctx == await graph_kb.retrieve(question, mode="rag")
+    oag = await graph_kb.retrieve(question, mode="oag")
     assert oag.prompt_context == "" and oag.mode_used == "oag"
+
+
+_CLAUSE_QUESTION = "KS-2024-002 numaralı metne göre yıllık gecikme faizi oranı nedir?"
+
+
+class _ClauseEmbedder(FakeEmbedder):
+    def _vector(self, text: str) -> list[float]:
+        similarity = {
+            _CLAUSE_QUESTION: 1.0,
+            "KS-2024-002": 0.4,
+            "Yıllık gecikme faizi %12'dir.": 0.8,
+            "Ödemeler banka havalesiyle yapılır.": 0.2,
+            "KS-2024-003": 0.6,
+            "Yıllık gecikme faizi %18'dir.": 0.96,
+        }[text]
+        return [similarity, math.sqrt(1 - similarity**2), *([0.0] * (self.dim - 2))]
+
+
+@pytest_asyncio.fixture(loop_scope="session")
+async def contract_clause_corpus(repo: GraphRepository) -> FakeEmbedder:
+    embedder = _ClauseEmbedder()
+    await repo.ensure_embedding_dim(model=embedder.model, dim=embedder.dim)
+    entities = []
+    mentions = []
+    documents = [
+        ("KS-2024-002", "Yıllık gecikme faizi %12'dir.", "Ödemeler banka havalesiyle yapılır."),
+        ("KS-2024-003", "Yıllık gecikme faizi %18'dir."),
+    ]
+    for parts in documents:
+        number = parts[0]
+        doc = Document.from_text("\n\n".join(parts), source=f"{number}.txt")
+        chunks = []
+        for idx, text in enumerate(parts):
+            start = doc.text.index(text)
+            chunks.append(
+                Chunk(
+                    f"{number}-{idx}",
+                    doc.id,
+                    idx,
+                    text,
+                    count_tokens(text),
+                    start,
+                    start + len(text),
+                )
+            )
+        vectors = await embedder.embed(parts)
+        await repo.write_document(doc, chunks, vectors)
+        entities.append(
+            EntityRow(
+                number, "Sozlesme", number, number.lower(), None, {"numara": number}, vectors[0]
+            )
+        )
+        mentions.extend((chunk.id, number) for chunk in chunks if chunk.idx != 1)
+    await repo.write_graph(GraphWrite(entities=entities, mentions=mentions), version="v")
+    return embedder
+
+
+async def test_seed_document_chunks_rank_all_chunks_with_neighbors(
+    repo: GraphRepository, contract_clause_corpus: FakeEmbedder
+) -> None:
+    [vector] = await contract_clause_corpus.embed([_CLAUSE_QUESTION])
+    [rag_hit] = await repo.search_chunks(vector, 1)
+    assert rag_hit.chunk_id == "KS-2024-003-1"
+
+    hits = await repo.seed_document_chunks(["KS-2024-002"], vector, 5)
+
+    assert [hit.chunk_id for hit in hits] == ["KS-2024-002-1", "KS-2024-002-0", "KS-2024-002-2"]
+    clause, previous, following = hits
+    assert [hit.score for hit in hits] == pytest.approx([0.8, 0.4, 0.2])
+    assert clause.score < rag_hit.score
+    assert (clause.prev_id, clause.prev_text) == (previous.chunk_id, previous.text)
+    assert (clause.next_id, clause.next_text) == (following.chunk_id, following.text)
+    assert await repo.seed_document_chunks(["KS-2024-002"], vector, 1) == [clause]
+
+
+@pytest.mark.parametrize("reserve", [2, 0])
+async def test_hybrid_retrieves_clause_from_the_linked_contract(
+    repo: GraphRepository, contract_clause_corpus: FakeEmbedder, reserve: int
+) -> None:
+    ontology = Ontology.from_yaml("""
+name: contracts
+entities:
+  Sozlesme:
+    key: numara
+    properties:
+      numara: string
+""")
+    hybrid = HybridRetriever(
+        repo, contract_clause_corpus, ontology, RetrievalConfig(k=4, hybrid_text_reserve=reserve)
+    )
+
+    context = await hybrid.retrieve(_CLAUSE_QUESTION)
+
+    assert context.mode_used == "hybrid"
+    assert [fact.subject_id for fact in context.facts] == ["KS-2024-002"]
+    citations = {
+        citation.id: citation.ref for citation in context.citations if citation.kind == "chunk"
+    }
+    if reserve:
+        assert citations["C1"] == "KS-2024-002-1"
+        assert citations["C2"] == "KS-2024-003-1"
+    else:
+        assert {"KS-2024-002-1", "KS-2024-003-1"} <= set(citations.values())
 
 
 async def test_changed_ontology_is_refused(
@@ -515,7 +621,9 @@ async def test_subgraph_packs_properties_next_to_the_relation_that_reaches_them(
 async def test_hybrid_keeps_facts_and_gives_texts_the_unused_allowance(
     repo: GraphRepository, fake_embedder: FakeEmbedder, ontology: Ontology
 ) -> None:
-    cfg = RetrievalConfig(context_token_budget=256, link_k=1, expand_neighbors=False)
+    cfg = RetrievalConfig(
+        context_token_budget=256, link_k=1, expand_neighbors=False, hybrid_text_reserve=0
+    )
     await repo.ensure_embedding_dim(model=fake_embedder.model, dim=fake_embedder.dim)
     [vector] = await fake_embedder.embed(["Atlas"])
     entity = EntityRow("seed", "Sirket", "Atlas", "atlas", "abc " * 94, {}, vector)

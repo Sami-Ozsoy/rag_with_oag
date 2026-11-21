@@ -182,3 +182,83 @@ Sonuçları okurken iki şeye dikkat etmek gerekiyor:
 - Gerçek boyutlu ve daha zor bir korpusla eşit bütçe karşılaştırması. Bağlama sığmamalı ve isim varyantları, dolaylı anlatımlar içermeli.
 - PyPI yayını: hesaplar ve trusted publisher tanımı bekleniyor.
 - M3: `Ontology.suggest()`, streaming, değişen dokümanın yeniden ingest'i ve silinmesi, `reembed()`, gözlemlenebilirlik.
+
+---
+
+## 5. Tur: Sentetik Türkçe korpus, zincir isabeti ve retrieval düzeltmeleri
+
+Doymuş golden set'in yerine, bağlama sığmayan ve doğru cevapları kesin olarak bilinen sentetik bir Türkçe korpus kuruldu. Bu korpusta yapılan ölçümler retrieval'da dört yapısal sorunu ve ölçümün kendisinde bir hatayı ortaya çıkardı. Hepsi düzeltildikten sonra, eşit token bütçesinde **hybrid 160 sorunun %98'ini doğru cevaplıyor, rag %32'sini**. Ölçümler `deepseek-v4.1-flash:1017-cloud` (çıkarım ve cevap) ve yerel `nomic-embed-text` (embedding) ile yapıldı.
+
+### Sentetik korpus
+
+`eval/synthetic/generate.py`, LLM kullanmadan ve seed'e bağlı olarak bir "dünya" (şirketler, ortaklık zincirleri, sözleşmeler) üretiyor ve bu dünyadan belgeleri, soruları ve beklenen grafı yazıyor. Varsayılan set (`eval/synthetic/sets/default`, seed 7):
+
+- 596 belge: 150 ticaret sicili kaydı, 86 faaliyet raporu, 300 sözleşme, 60 gürültü belgesi. Toplam 526 bin token.
+- Beklenen graf: 450 entity (150 `Sirket`, 300 `Sozlesme`) ve 749 ilişki (149 `ORTAGIDIR`, 600 `TARAFIDIR`).
+- 160 soru, dört grupta 40'ar: tek adım, çok adım, üç adım ve serbest metin (ontolojide olmayan sözleşme maddeleri).
+- Zorluklar: hukuki eksiz ve kısa isimler, birbirine karıştırılabilen şirket çiftleri ("Meşe Gıda A.Ş." ve "Meşe Gıda Dağıtım"), edilgen ve devrik ortaklık cümleleri, farklı yüzde yazımları, yalnızca faaliyet raporunda geçen ortaklıklar.
+- Her sorunun cevap zinciri (`chain`) ve her halkanın hangi belgede hangi cümleyle geçtiği kayıtlı. Üretici, her halkanın sorunun belgelerinde gerçekten yazdığını kendisi doğruluyor.
+
+Runner'a eklenenler: `--set`, `--limit`, ontoloji değişse de çalışan `--fresh`, beklenen grafla karşılaştırılan graf kalitesi tablosu ve `--seed-cache-from`. Sonuncusu başka bir bilgi tabanının çıkarım önbelleğini kopyalıyor; resolver gibi çıkarım sonrası bir değişiklikten sonra yeniden ingest LLM çağrısı yapmadan bitiyor (596 belge, 82 saniye). LLM'siz ayar taramaları için `eval/sweep_retrieval.py` eklendi.
+
+### Ölçüm hatası ve zincir isabeti
+
+Bağlam isabeti, cevap kelimesinin bağlamda herhangi bir yerde geçmesine bakıyordu. Sentetik sette bu yanıltıcı çıktı: 30 şehir var ve kalabalık bir oag bağlamı bunların 18'ini içeriyor; şirket adları da alakasız yollardan bağlama girebiliyor. Bir örnekte cevap olan "Ayaz Mobilya" bağlamda vardı, ama zincirin son halkası (Ayaz Mobilya → Lodos İnşaat) yoktu.
+
+Yeni ölçüm **zincir isabeti**: zincirin her halkası ya graf olgusu olarak (doğru yön, `rol` ve `oran` ile) ya da bağlama giren pasajda kaynak cümlesi olarak bulunmalı (`eval/chain.py`). Eski ölçüm "gevşek isabet" adıyla tablolarda kalıyor. Rag'in çok adımlı sorulardaki %15'lik gevşek isabeti zincir isabetiyle %0 çıktı. Son koşuda zincir isabeti ile cevap doğruluğu neredeyse birebir örtüşüyor; zincir isabeti ücretsiz ve güvenilir bir ön ölçüm olarak kullanılabiliyor.
+
+### Düzeltilenler
+
+1. **Adım adım graf genişletme.** Tek ve değişken uzunluklu sorgu yerine her adımda bir sorgu çalışıyor. Her düğüm, ilişki tipi ve yön için en fazla `max_fanout=8` kenar alınıyor; 30 sözleşmesi olan bir şirkette ortaklık kenarları sözleşmelerin arasında kaybolmuyor. Olgular yürüyüş sırasında diziliyor ve her yeni entity'nin özellikleri ona ulaşan ilişkinin hemen arkasına geliyor; bütçe dolduğunda en uzak olgular düşüyor. `max_paths` kaldırıldı, `max_facts` 120 oldu.
+2. **Birebir eşleşmeyle linking.** Soruda bir anahtar (`DS-2023-008`, vergi numarası) ya da tam bir şirket adı aynen geçiyorsa yalnızca o entity tohum oluyor. Daha önce tam metin araması numarayı parçalarına ayırıp benzer numaralı beş sözleşmeyi daha getiriyordu ve olgu bütçesinin çoğu yanlış tohumların komşularına gidiyordu. "Lale Cam Yatırım Grubu" yazıldığında adı onun içinde kalan "Lale Cam" ayrıca tohum olmuyor. `link_exact_anchors=False` eski davranışı veriyor.
+3. **Resolver'da isim koruması.** Grafta "eksik" görünen 22 ilişkinin hepsi aslında doğru çıkarılmış, ama benzer isimli başka bir şirkete bağlanmıştı (Kemer Ambalaj → Bahar Ambalaj, Zeytin Yapı → Zeytin Yazılım). Sebep: sözleşmeler tarafları vergi numarasız yazıyor ve alfabetik yüklemede sözleşmeler sicil kayıtlarından önce geliyor. Bu durumda resolver ismi embedding benzerliğiyle en yakın şirkete bağlıyordu; isimlerin ortak sektör kelimesi benzerliği 0,92 eşiğinin üstüne taşıyordu. Embedding ile birleştirme artık yalnızca isimlerin kelime kümeleri birbirini kapsıyorsa yapılıyor: "Zirve" ile "Zirve Gıda A.Ş." birleşiyor, "Kemer Ambalaj" ile "Bahar Ambalaj" birleşmiyor.
+4. **`hops` varsayılanı 3.** Tek tohumla, sözleşme üzerinden giden sorular (şirket → sözleşme → şirket → ortak) üç kenar gerektiriyor. Golden set'te oag'ın çok adımlı isabeti `hops=2` ile %64, `hops=3` ile %100.
+5. **Hybrid'de tohum belgesi pasajları ve rezerv.** Serbest metin soruları için 300 sözleşme aynı madde kalıplarını kullanıyor; korpus genelindeki aramada cevap pasajı 40 sorunun yalnızca 8'inde ilk iki sonuç arasındaydı. Arama tohum entity'nin geçtiği belgelerle sınırlanınca bu 40/40 oluyor. Hybrid artık bu pasajları üçüncü bir sıralama listesi olarak füzyona katıyor. `hybrid_text_reserve=4` ile tohum belgesi ve rag sonuçlarından sırayla ilk dördü, olgulardan önce bağlama giriyor.
+6. **Bütçe muhasebesi.** Bölüm başlıkları ve ayraçlar bütçeye sayılıyor; üç modda da bağlam `context_token_budget`'ı aşmıyor.
+7. **Testler:** 197 test geçiyor. Ruff, format ve `mypy --strict` temiz.
+
+### Sonuçlar: tam sentetik set (160 soru)
+
+Değerler zincir isabeti / cevap doğruluğu. Bütçe 6.000 token; ortalama bağlam hybrid'de 5.739, rag_eq'da 5.746 token.
+
+| Grup | rag | oag | hybrid | rag_eq |
+|---|---|---|---|---|
+| Tek adım | 75 / 75 | 100 / 100 | **100 / 100** | 80 / 80 |
+| Çok adım | 0 / 2 | 100 / 92 | **100 / 100** | 5 / 5 |
+| Üç adım | 0 / 0 | 98 / 92 | **92 / 92** | 0 / 0 |
+| Serbest metin | 50 / 50 | 0 / 0 | **100 / 100** | 45 / 45 |
+| **Genel** | 31 / 32 | 74 / 71 | **98 / 98** | 32 / 32 |
+
+- Rag çok adımlı sorularda bütçe artırılsa da zinciri getiremiyor (rag_eq %0–5).
+- Oag'ın bağlam isabeti %98–100 iken cevap doğruluğu %92'de kalıyor: yalnızca olgu satırlarıyla model bazen yanılıyor, hybrid'deki kaynak metin bu boşluğu kapatıyor.
+- Üç adımda hybrid'in kalan %8'i bütçe sınırından geliyor; 10.000 token bütçede %98.
+- Golden set yeni varsayılanlarla bozulmadı: hybrid her grupta %100.
+
+Hybrid'in zincir isabetinin düzeltmelerle değişimi (6.000 token):
+
+| Aşama | Çok adım | Üç adım | Serbest metin |
+|---|---|---|---|
+| Eski linking, `hops=2` | 90 | 25 | 32 |
+| Birebir eşleşme, `hops=2` | 90 | 60 | 78 |
+| Birebir eşleşme, `hops=3` | 90 | 82 | 48 |
+| Resolver koruması (yeniden ingest) | 100 | 92 | 42 |
+| Tohum belgesi pasajları, rezerv 4 | **100** | **92** | **100** |
+
+### Graf kalitesi
+
+| | Önce | Resolver korumasından sonra |
+|---|---|---|
+| Entity'ler | 450/450, mükerrer yok | 450/450, mükerrer yok |
+| `ORTAGIDIR` hassasiyet / geri çağırma | %95,3 / %96,0 | **%100 / %100** |
+| `TARAFIDIR` hassasiyet / geri çağırma | – / %97,3 | **%99,5 / %99,5** |
+| `oran` doğruluğu | %100 | %100 |
+| `rol` doğruluğu | %93,7 | %93,6 |
+
+### Açık kalanlar
+
+- **Resolver'da yükleme sırası.** Kısa bir ad başka bir şirketin adının içinde kalıyorsa ("Meşe Gıda" ve "Meşe Gıda Dağıtım") ve doğru şirket henüz grafta yoksa yanlış birleşme olabiliyor; kalan 3 `TARAFIDIR` hatası bu. Kalıcı çözüm, yüklemeden sonra çalışan bir yeniden çözümleme adımı.
+- **`rol` doğruluğu %94.** Hangi sözleşme türlerinde ve hangi cümle kalıplarında yanıldığı incelenmedi.
+- **Anahtar araması** bir tipin tüm düğümlerini tarıyor; büyük graflarda indeksli sorguya çevrilmeli.
+- **Sentetik setin sınırları.** Tek bir korpus, tek bir alan ve tek bir model. Sonuçlar gerçek belgelerle doğrulanmalı. Aynı hedefe birden fazla yoldan ulaşılan sorularda üretici yalnızca bir yolu kaydediyor.
+- `eval/synthetic/sets/default/README.md` hâlâ `--hops 3` öneriyor; artık varsayılan bu.
+- PyPI yayını ve M3 (önceki turdan).

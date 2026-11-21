@@ -4,7 +4,7 @@ from collections.abc import Sequence
 
 from rag_with_oag.config import RetrievalConfig
 from rag_with_oag.embed.base import Embedder, embed_queries
-from rag_with_oag.retrieval.context import assemble, pack_chunks
+from rag_with_oag.retrieval.context import pack_context
 from rag_with_oag.store.repository import GraphRepository
 from rag_with_oag.types import RetrievedContext
 
@@ -23,9 +23,10 @@ class RAGRetriever:
         if vector is None:
             [vector] = await embed_queries(self.embedder, [question])
         hits = await self.repo.search_chunks(vector, k or self.config.k)
-        packed = pack_chunks(
-            hits,
+        return pack_context(
+            question,
+            "rag",
             budget=self.config.context_token_budget,
+            hits=hits,
             expand_neighbors=self.config.expand_neighbors,
         )
-        return assemble(question, "rag", chunks=packed)

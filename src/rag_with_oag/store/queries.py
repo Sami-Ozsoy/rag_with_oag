@@ -171,11 +171,7 @@ RETURN c.id, c.doc_id, d.source, c.text, score, c.section_path, c.page_index,
 ORDER BY score ASC
 """
 
-# Chunks that mention any of the given entities, closest to the question first.
-EVIDENCE_CHUNKS = """
-MATCH (c:Chunk)-[:MENTIONS]->(e:Entity) WHERE e.id IN $entity_ids
-WITH DISTINCT c
-MATCH (d:Document)-[:HAS_CHUNK]->(c)
+_RANK_CHUNKS = """
 OPTIONAL MATCH (prev:Chunk)-[:NEXT]->(c)
 OPTIONAL MATCH (c)-[:NEXT]->(next:Chunk)
 WITH c, d, prev, next, vec.cosineDistance(c.embedding, vecf32($q)) AS score
@@ -184,6 +180,25 @@ RETURN c.id, c.doc_id, d.source, c.text, score, c.section_path, c.page_index,
 ORDER BY score ASC
 LIMIT $k
 """
+
+EVIDENCE_CHUNKS = (
+    """
+MATCH (c:Chunk)-[:MENTIONS]->(e:Entity) WHERE e.id IN $entity_ids
+WITH DISTINCT c
+MATCH (d:Document)-[:HAS_CHUNK]->(c)
+"""
+    + _RANK_CHUNKS
+)
+
+SEED_DOCUMENT_CHUNKS = (
+    """
+UNWIND $entity_ids AS eid
+MATCH (e:Entity {id: eid})<-[:MENTIONS]-(:Chunk)<-[:HAS_CHUNK]-(d:Document)
+WITH DISTINCT d
+MATCH (d)-[:HAS_CHUNK]->(c:Chunk)
+"""
+    + _RANK_CHUNKS
+)
 
 # --- retrieval: entities -------------------------------------------------------
 

@@ -274,6 +274,16 @@ class GraphRepository:
         )
         return [_chunk_hit(row) for row in result.result_set]
 
+    async def seed_document_chunks(
+        self, entity_ids: Sequence[str], embedding: Sequence[float], k: int
+    ) -> list[ChunkHit]:
+        if not entity_ids:
+            return []
+        result = await self._graph.ro_query(
+            q.SEED_DOCUMENT_CHUNKS, {"entity_ids": list(entity_ids), "q": list(embedding), "k": k}
+        )
+        return [_chunk_hit(row) for row in result.result_set]
+
     # --- retrieval: entities --------------------------------------------------
 
     async def find_entities_by_keys(

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 from collections import Counter
 from pathlib import Path
 from typing import Never
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, call
 
 import pytest
 import tiktoken
@@ -23,7 +24,10 @@ from eval.graph_quality import (
 from eval.synthetic import generate
 from redis.exceptions import ResponseError
 
-from rag_with_oag import Ontology
+from rag_with_oag import EmbedConfig, Ontology, OntologyMismatchError
+from rag_with_oag.store.repository import GraphRepository
+from rag_with_oag.store.schema import Meta
+from rag_with_oag.types import IngestReport
 
 
 def snapshot(root: Path) -> dict[Path, bytes]:
@@ -218,3 +222,86 @@ async def test_fresh_drops_before_schema_initialization(
     repository.drop.assert_awaited_once()
     repository.init.assert_not_awaited()
     connection.close.assert_awaited_once()
+
+
+@pytest.mark.parametrize("matches", [True, False])
+async def test_read_seed_cache_checks_source_ontology(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, matches: bool
+) -> None:
+    ontology = Ontology.from_yaml(run_golden.GOLDEN / "ontology.yaml")
+    fingerprint = ontology.fingerprint if matches else "different"
+    meta = Meta("source", 1, "source-embedder", None, fingerprint, ontology.name)
+    connection = MagicMock(open=AsyncMock(), close=AsyncMock())
+    entries = [["key1", "data1"], ["key2", "data2"]]
+    query = AsyncMock(return_value=entries)
+    monkeypatch.setattr(run_golden, "GraphConnection", MagicMock(return_value=connection))
+    monkeypatch.setattr(run_golden, "read_meta", AsyncMock(return_value=meta))
+    monkeypatch.setattr(GraphRepository, "query", query)
+    monkeypatch.setattr(
+        "rag_with_oag.store.schema.ensure_base_schema", AsyncMock(return_value=meta)
+    )
+
+    db = tmp_path / "golden.db"
+    if matches:
+        assert await run_golden.read_seed_cache(db, "source", ontology) == dict(entries)
+        query.assert_awaited_once_with("MATCH (x:ExtractionCache) RETURN x.key, x.data")
+    else:
+        with pytest.raises(OntologyMismatchError, match=r"knowledge base 'source'.*different"):
+            await run_golden.read_seed_cache(db, "source", ontology)
+        query.assert_not_awaited()
+    connection.close.assert_awaited_once()
+
+
+async def test_fresh_snapshots_source_and_seeds_target_before_ingest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (tmp_path / "ontology.yaml").write_bytes((run_golden.GOLDEN / "ontology.yaml").read_bytes())
+    (tmp_path / "questions.yaml").write_text("{}", encoding="utf-8")
+    args = argparse.Namespace(
+        set=tmp_path,
+        base_url=None,
+        llm="fake-llm",
+        extractor=None,
+        out=tmp_path,
+        kb="target",
+        seed_cache_from="target",
+        fresh=True,
+        concurrency=2,
+        modes="rag",
+        equal_budget=False,
+    )
+    entries = {"key1": "data1", "key2": "data2"}
+    steps = MagicMock(
+        read_cache=AsyncMock(return_value=entries),
+        drop=AsyncMock(),
+        open=AsyncMock(),
+        seed=AsyncMock(),
+        ingest=AsyncMock(return_value=IngestReport()),
+        stats=AsyncMock(return_value={}),
+        close=AsyncMock(),
+    )
+    kb = MagicMock(
+        open=steps.open,
+        store=MagicMock(cache_extractions=steps.seed),
+        ingest=steps.ingest,
+        stats=steps.stats,
+        close=steps.close,
+    )
+    monkeypatch.setattr(run_golden, "read_seed_cache", steps.read_cache)
+    monkeypatch.setattr(run_golden, "drop_graph", steps.drop)
+    monkeypatch.setattr(run_golden, "AsyncKnowledgeBase", MagicMock(return_value=kb))
+    monkeypatch.setattr(run_golden, "make_embedder", lambda _: EmbedConfig(model="fake"))
+
+    await run_golden.run(args)
+
+    db = tmp_path / "golden.db"
+    assert steps.mock_calls == [
+        call.read_cache(db, "target", Ontology.from_yaml(tmp_path / "ontology.yaml")),
+        call.drop(db, "target"),
+        call.open(),
+        call.seed(entries),
+        call.ingest(tmp_path / "docs", concurrency=2),
+        call.stats(),
+        call.close(),
+    ]
+    assert "Copied 2 extraction cache entries from 'target'" in capsys.readouterr().out

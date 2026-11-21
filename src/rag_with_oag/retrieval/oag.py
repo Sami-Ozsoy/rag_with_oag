@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from rag_with_oag.config import RetrievalConfig
 from rag_with_oag.embed.base import Embedder, embed_queries
 from rag_with_oag.ontology.model import Ontology
-from rag_with_oag.retrieval.context import assemble, pack_facts
+from rag_with_oag.retrieval.context import assemble, pack_context
 from rag_with_oag.retrieval.linking import EntityLinker
 from rag_with_oag.store.repository import EntityDetails, GraphRepository
 from rag_with_oag.types import EntityHit, Fact, RetrievedContext
@@ -95,8 +95,8 @@ class OAGRetriever:
         if not seeds:
             return assemble(question, "oag")
         sub = await self.subgraph(seeds, hops=hops)
-        return assemble(
-            question, "oag", facts=pack_facts(sub.facts, budget=self.config.context_token_budget)
+        return pack_context(
+            question, "oag", budget=self.config.context_token_budget, facts=sub.facts
         )
 
 

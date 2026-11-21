@@ -80,7 +80,7 @@ class RetrievalConfig(BaseModel):
     expand_neighbors: bool = True
     context_token_budget: int = Field(default=6000, ge=256)
     # oag / hybrid
-    hops: int = Field(default=2, ge=1, le=5)
+    hops: int = Field(default=3, ge=1, le=5)
     max_fanout: int = Field(default=8, ge=1)
     max_facts: int = Field(default=120, ge=1)
     link_k: int = Field(default=5, ge=1, description="entities used as graph entry points")
@@ -98,7 +98,15 @@ class RetrievalConfig(BaseModel):
         default=0.6,
         gt=0,
         lt=1,
-        description="maximum share of the context budget for facts in hybrid",
+        description="maximum share of the budget after section overhead for hybrid facts, "
+        "subject to the text reserve",
+    )
+    hybrid_text_reserve: int = Field(
+        default=4,
+        ge=0,
+        le=100,
+        description="hits hybrid always keeps, alternating seed-document and rag hits, "
+        "ahead of facts and fused chunks",
     )
     rrf_k: int = Field(default=60, ge=1)
     chunk_strategies: tuple[str, ...] = DEFAULT_CHUNK_STRATEGIES

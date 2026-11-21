@@ -2,10 +2,11 @@
 
 1. Entity linking (exact anchors or ranked matches) and chunk vector search run in parallel.
 2. The ontology walk produces seed facts, then relation and entity facts by hop.
-3. Chunks that mention the subgraph's entities are ranked by similarity to the question.
-4. RAG hits and these evidence chunks are fused with Reciprocal Rank Fusion.
-5. Facts get up to ``fact_budget_ratio`` of the token budget (60% by default).
-   Texts get the remaining budget, including any unused fact allowance.
+3. Rank chunks from documents that mention seeds and evidence chunks that mention subgraph entities.
+4. Reserve up to ``hybrid_text_reserve`` unique hits, alternating seed-document and RAG hits.
+5. Fuse seed-document, RAG and evidence hits with Reciprocal Rank Fusion.
+6. Pack reserved hits before allocating up to ``fact_budget_ratio`` to facts after section overhead.
+   Pack remaining fused hits and neighbours within the remaining budget.
 
 If no entity can be linked, hybrid runs as rag and says so in ``mode_used``.
 """
@@ -14,15 +15,16 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Sequence
+from itertools import chain, zip_longest
 
 from rag_with_oag.config import RetrievalConfig
 from rag_with_oag.embed.base import Embedder, embed_queries
 from rag_with_oag.ontology.model import Ontology
-from rag_with_oag.retrieval.context import assemble, pack_chunks, pack_facts
+from rag_with_oag.retrieval.context import pack_context
 from rag_with_oag.retrieval.linking import rrf
 from rag_with_oag.retrieval.oag import OAGRetriever
 from rag_with_oag.store.repository import GraphRepository
-from rag_with_oag.types import RetrievedContext
+from rag_with_oag.types import ChunkHit, RetrievedContext
 
 
 class HybridRetriever:
@@ -54,22 +56,36 @@ class HybridRetriever:
             self.oag.linker.link(question, vector), self.repo.search_chunks(vector, k)
         )
         if not seeds:
-            packed = pack_chunks(
-                rag_hits, budget=cfg.context_token_budget, expand_neighbors=cfg.expand_neighbors
+            return pack_context(
+                question,
+                "rag",
+                budget=cfg.context_token_budget,
+                hits=rag_hits,
+                expand_neighbors=cfg.expand_neighbors,
             )
-            return assemble(question, "rag", chunks=packed)
 
         sub = await self.oag.subgraph(seeds, hops=hops)
-        evidence = await self.repo.evidence_chunks(sub.entity_ids, vector, k)
-        fused = [
-            hit for hit, _ in rrf([rag_hits, evidence], key=lambda h: h.chunk_id, k=cfg.rrf_k)
-        ][:k]
+        seed_hits, evidence = await asyncio.gather(
+            self.repo.seed_document_chunks([s.id for s in seeds], vector, k),
+            self.repo.evidence_chunks(sub.entity_ids, vector, k),
+        )
+        prioritized: dict[str, ChunkHit] = {}
+        for hit in chain.from_iterable(zip_longest(seed_hits, rag_hits)):
+            if len(prioritized) == cfg.hybrid_text_reserve:
+                break
+            if hit is not None:
+                prioritized.setdefault(hit.chunk_id, hit)
+        reserve = len(prioritized)
+        for hit, _ in rrf([seed_hits, rag_hits, evidence], key=lambda h: h.chunk_id, k=cfg.rrf_k):
+            prioritized.setdefault(hit.chunk_id, hit)
 
-        fact_budget = int(cfg.context_token_budget * cfg.fact_budget_ratio)
-        facts = pack_facts(sub.facts, budget=fact_budget)
-        chunks = pack_chunks(
-            fused,
-            budget=cfg.context_token_budget - facts.token_count,
+        return pack_context(
+            question,
+            "hybrid",
+            budget=cfg.context_token_budget,
+            hits=list(prioritized.values())[: max(k, reserve)],
+            facts=sub.facts,
+            reserve=reserve,
+            fact_budget_ratio=cfg.fact_budget_ratio,
             expand_neighbors=cfg.expand_neighbors,
         )
-        return assemble(question, "hybrid", facts=facts, chunks=chunks)

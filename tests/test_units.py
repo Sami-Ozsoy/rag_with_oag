@@ -53,6 +53,8 @@ def test_retrieval_config_rejects_unknown_strategy() -> None:
 
 def test_retrieval_config_walk_defaults() -> None:
     config = RetrievalConfig()
+    assert config.hops == 3
+    assert config.hybrid_text_reserve == 4
     assert (config.max_fanout, config.max_facts, config.fact_budget_ratio) == (8, 120, 0.6)
     with pytest.raises(ValidationError, match="max_fanout"):
         RetrievalConfig(max_fanout=0)

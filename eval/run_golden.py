@@ -36,12 +36,14 @@ from rag_with_oag import (
     EmbedConfig,
     LLMConfig,
     Ontology,
+    OntologyMismatchError,
     RagOagError,
     RetrievalConfig,
 )
 from rag_with_oag.store.connection import GraphConnection
 from rag_with_oag.store.queries import safe_identifier
 from rag_with_oag.store.repository import GraphRepository
+from rag_with_oag.store.schema import read_meta
 from rag_with_oag.types import MODES, Mode
 
 if TYPE_CHECKING or __package__:
@@ -121,6 +123,31 @@ async def drop_graph(db: Path, name: str) -> None:
     except ResponseError as exc:
         if "empty key" not in str(exc).lower():
             raise
+    finally:
+        await connection.close()
+
+
+async def read_seed_cache(db: Path, name: str, ontology: Ontology) -> dict[str, str]:
+    connection = GraphConnection(path=db)
+    source = GraphRepository(connection, name)
+    try:
+        await connection.open()
+        try:
+            meta = await read_meta(connection.graph(source.kb))
+        except ResponseError as exc:
+            if "empty key" not in str(exc).lower():
+                raise
+            meta = None
+        if meta is None or meta.ontology_version is None:
+            raise OntologyMismatchError(
+                f"cache source knowledge base {name!r} has no recorded ontology fingerprint "
+                f"(expected {ontology.fingerprint})"
+            )
+        await source.init(embed_model=meta.embed_model or "", ontology=ontology)
+        return {
+            key: data
+            for key, data in await source.query("MATCH (x:ExtractionCache) RETURN x.key, x.data")
+        }
     finally:
         await connection.close()
 
@@ -221,6 +248,11 @@ async def run(args: argparse.Namespace) -> Summary:
     extractor = LLMConfig(model=args.extractor or args.llm, base_url=base_url, timeout=600)
     embedder = make_embedder(args)
     db = args.out / "golden.db"
+    seed_entries = (
+        await read_seed_cache(db, args.seed_cache_from, ontology)
+        if args.seed_cache_from is not None
+        else None
+    )
     if args.fresh:
         await drop_graph(db, args.kb)
     kb = AsyncKnowledgeBase(
@@ -237,6 +269,14 @@ async def run(args: argparse.Namespace) -> Summary:
         groups=list(questions),
     )
     try:
+        if seed_entries is not None:
+            await kb.open()
+            await kb.store.cache_extractions(seed_entries)
+            print(
+                f"Copied {len(seed_entries)} extraction cache entries "
+                f"from {args.seed_cache_from!r}",
+                flush=True,
+            )
         t0 = time.perf_counter()
         report = await kb.ingest(args.set / "docs", concurrency=args.concurrency)
         summary.ingest = {
@@ -253,6 +293,12 @@ async def run(args: argparse.Namespace) -> Summary:
             "tokens": report.token_usage,
         }
         print(f"ingest: {json.dumps(summary.ingest, ensure_ascii=False)}", flush=True)
+        if seed_entries is not None:
+            print(
+                "IngestReport reports chunks written and token usage. "
+                "Fresh and cached extraction counts are unavailable.",
+                flush=True,
+            )
         if expected is not None:
             summary.graph_quality = await read_graph_quality(kb.store, expected, ontology)
 
@@ -519,6 +565,11 @@ def main() -> None:
         help=f"add '{RAG_EQ}': rag at the same context size as hybrid",
     )
     parser.add_argument("--fresh", action="store_true", help="drop the knowledge base first")
+    parser.add_argument(
+        "--seed-cache-from",
+        metavar="KB",
+        help="copy extraction cache entries from KB before ingest",
+    )
     parser.add_argument("--concurrency", type=int, default=2)
     parser.add_argument("--set", type=Path, default=GOLDEN, help="evaluation set directory")
     parser.add_argument("--kb", help="knowledge base name (default: the set directory name)")

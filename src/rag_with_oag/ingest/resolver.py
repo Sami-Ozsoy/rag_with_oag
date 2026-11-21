@@ -11,8 +11,11 @@ forms stripped). On top of that, in order:
    key value, or else a same-named entity still missing its key; a key-less
    mention joins the same-named entity of its type.
 3. A key-less mention that is still new is compared by embedding with entities
-   of its type, in the graph and in the same write, and joins one above the
-   similarity threshold.
+   of its type, in the graph and in the same write. It joins the first that
+   meets the similarity threshold and whose normalized name tokens contain or
+   are contained in the mention's tokens. A partial name can still join the
+   wrong entity ("Meşe Gıda" into "Meşe Gıda Dağıtım") if the right one has
+   yet to enter the graph.
 
 Keys win over names: two entities with different key values never merge.
 """
@@ -110,7 +113,7 @@ class EntityResolver:
         survivors = [e for e in merged.values() if e.id not in remap]
         vectors = await embed_documents(self.embedder, [self._text(e) for e in survivors])
         embedding = {e.id: list(v) for e, v in zip(survivors, vectors, strict=True)}
-        remap.update(await self._similar_merges(survivors, embedding, remap))
+        remap.update(await self._similar_merges(survivors, embedding, self.ontology.match_name))
 
         def final(eid: str) -> str:
             seen = {eid}
@@ -239,7 +242,7 @@ class EntityResolver:
         self,
         survivors: Sequence[_Merged],
         embedding: Mapping[str, Sequence[float]],
-        remap: Mapping[str, str],
+        match_name: Callable[[str], str],
     ) -> dict[str, str]:
         """Map new key-less entities onto existing or earlier near-duplicates."""
         existing = await self.repo.existing_entities(e.id for e in survivors)
@@ -249,14 +252,21 @@ class EntityResolver:
             if entry.key or entry.id in existing:
                 accepted[entry.type].append(entry)
                 continue
+            tokens = set(match_name(entry.name).split())
             target = None
             for hit in await self.repo.search_entities_vector(embedding[entry.id], 5):
-                if hit.type == entry.type and hit.score >= self.similarity and hit.id != entry.id:
+                if (
+                    hit.type == entry.type
+                    and hit.score >= self.similarity
+                    and hit.id != entry.id
+                    and _name_fits(tokens, hit.name, match_name)
+                ):
                     target = hit.id
                     break
             if target is None:
                 for other in accepted[entry.type]:
-                    if _cosine(embedding[entry.id], embedding[other.id]) >= self.similarity:
+                    score = _cosine(embedding[entry.id], embedding[other.id])
+                    if score >= self.similarity and _name_fits(tokens, other.name, match_name):
                         target = other.id
                         break
             if target is None:
@@ -264,6 +274,11 @@ class EntityResolver:
             else:
                 found[entry.id] = target
         return found
+
+
+def _name_fits(tokens: set[str], name: str, match_name: Callable[[str], str]) -> bool:
+    other_tokens = set(match_name(name).split())
+    return tokens <= other_tokens or other_tokens <= tokens
 
 
 def _cosine(a: Sequence[float], b: Sequence[float]) -> float:
