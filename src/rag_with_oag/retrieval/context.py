@@ -1,9 +1,10 @@
 """Pack retrieved material into prompt sections under a token budget.
 
 Chunks get citation ids ``C1, C2…`` and facts ``F1, F2…``; answers cite them.
-Items are packed in the order given (callers rank them). Neighbour chunks
-(``NEXT`` edges) are added only after all primary hits, while budget remains,
-so expansion never pushes out a better hit.
+Items are considered in the order given. OAG facts arrive by hop, with each
+new entity's properties next to the relation that reaches it, so nearby facts
+get first use of the budget. Neighbour chunks (``NEXT`` edges) are added after
+primary hits while budget remains.
 """
 
 from __future__ import annotations

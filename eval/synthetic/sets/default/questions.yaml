@@ -1,0 +1,1165 @@
+single_hop:
+- q: Vergi kimlik numarası aranan şirket “Kervan Holding”. Sicilde hangi numara yazıyor?
+  docs:
+  - sicil_7296376791.md
+  answer:
+  - - '7296376791'
+- q: “Pınar Yapı” için sicilde hangi vergi numarası kayıtlı?
+  docs:
+  - sicil_4791738146.md
+  answer:
+  - - '4791738146'
+- q: Vergi kimlik numarası aranan şirket “Meşe Gıda Dağıtım”. Sicilde hangi numara yazıyor?
+  docs:
+  - sicil_5391578943.md
+  answer:
+  - - '5391578943'
+- q: Vergi kimlik numarası aranan şirket “Bahar Ambalaj Pazarlama A.Ş.”. Sicilde hangi numara yazıyor?
+  docs:
+  - sicil_1999909488.md
+  answer:
+  - - '1999909488'
+- q: “Ada Sağlık” şirketinin merkezi hangi şehirde?
+  docs:
+  - sicil_2914802140.md
+  answer:
+  - - Trabzon
+- q: Vergi kimlik numarası aranan şirket “Toros Makine Ltd. Şti.”. Sicilde hangi numara yazıyor?
+  docs:
+  - sicil_9952794342.md
+  answer:
+  - - '9952794342'
+- q: “Doğa Holding A.Ş.” şirketinin merkezi hangi şehirde?
+  docs:
+  - sicil_6012407366.md
+  answer:
+  - - Diyarbakır
+- q: HS-2025-002 numaralı sözleşmenin iki tarafı kimlerdir?
+  docs:
+  - hs_2025_002.md
+  answer:
+  - - Doğa İnşaat Ltd. Şti.
+    - Doğa İnşaat Ltd Şti
+  - - Ayaz Mobilya A.Ş.
+    - Ayaz Mobilya AŞ
+    - Ayaz Mobilya
+    - Ayaz
+- q: “Mercan Kimya Ltd. Şti.” şirketinin merkezi hangi şehirde?
+  docs:
+  - sicil_3837193785.md
+  answer:
+  - - Balıkesir
+- q: “Ayaz” şirketinin merkezi hangi şehirde?
+  docs:
+  - sicil_6061712255.md
+  answer:
+  - - Denizli
+- q: Sicile göre “Kaya Holding” şirketinin merkez ili neresi?
+  docs:
+  - sicil_7373021323.md
+  answer:
+  - - Manisa
+- q: Vergi kimlik numarası aranan şirket “Hisar Danışmanlık Ltd. Şti.”. Sicilde hangi numara yazıyor?
+  docs:
+  - sicil_3154565813.md
+  answer:
+  - - '3154565813'
+- q: Sicile göre “Hazar Kâğıt” şirketinin merkez ili neresi?
+  docs:
+  - sicil_7471166901.md
+  answer:
+  - - Eskişehir
+- q: Vergi kimlik numarası aranan şirket “Turna İnşaat”. Sicilde hangi numara yazıyor?
+  docs:
+  - sicil_2471905175.md
+  answer:
+  - - '2471905175'
+- q: KS-2021-002 numaralı sözleşmenin iki tarafı kimlerdir?
+  docs:
+  - ks_2021_002.md
+  answer:
+  - - Ufuk Danışmanlık Ltd. Şti.
+    - Ufuk Danışmanlık Ltd Şti
+    - Ufuk Danışmanlık
+  - - Doğu Ambalaj Dış Ticaret A.Ş.
+    - Doğu Ambalaj Dış Ticaret AŞ
+    - Doğu Ambalaj Dış Ticaret
+- q: Vergi kimlik numarası aranan şirket “Irmak”. Sicilde hangi numara yazıyor?
+  docs:
+  - sicil_6172744211.md
+  answer:
+  - - '6172744211'
+- q: DS-2025-010 numaralı sözleşme hangi tarihte imzalandı?
+  docs:
+  - ds_2025_010.md
+  answer:
+  - - 4 Aralık 2025
+    - '2025-12-04'
+    - 04.12.2025
+- q: YS-2024-004 numaralı sözleşmenin iki tarafı kimlerdir?
+  docs:
+  - ys_2024_004.md
+  answer:
+  - - Doğa Tarım A.Ş.
+    - Doğa Tarım AŞ
+    - Doğa Tarım
+  - - Anadolu Metal Ltd. Şti.
+    - Anadolu Metal Ltd Şti
+    - Anadolu Metal
+- q: “Belen Yatırım Ltd. Şti.” şirketinin merkezi hangi şehirde?
+  docs:
+  - sicil_5378645845.md
+  answer:
+  - - Kayseri
+- q: Sicile göre “İnci Sağlık Pazarlama Ltd. Şti.” şirketinin merkez ili neresi?
+  docs:
+  - sicil_1863202764.md
+  answer:
+  - - İzmir
+- q: “İnci Sağlık A.Ş.” için sicilde hangi vergi numarası kayıtlı?
+  docs:
+  - sicil_3724896942.md
+  answer:
+  - - '3724896942'
+- q: KS-2024-006 numaralı sözleşmenin iki tarafı kimlerdir?
+  docs:
+  - ks_2024_006.md
+  answer:
+  - - Ufuk Yatırım Ltd. Şti.
+    - Ufuk Yatırım Ltd Şti
+    - Ufuk Yatırım
+  - - Bahar Ambalaj Pazarlama A.Ş.
+    - Bahar Ambalaj Pazarlama AŞ
+    - Bahar Ambalaj Pazarlama
+- q: “Lale Cam Yatırım Grubu” şirketinin merkezi hangi şehirde?
+  docs:
+  - sicil_5299558249.md
+  answer:
+  - - Denizli
+- q: Sicile göre “Bahar Ambalaj Pazarlama” şirketinin merkez ili neresi?
+  docs:
+  - sicil_1999909488.md
+  answer:
+  - - İzmir
+- q: Vergi kimlik numarası aranan şirket “Çınar Kâğıt Dış Ticaret”. Sicilde hangi numara yazıyor?
+  docs:
+  - sicil_6425587673.md
+  answer:
+  - - '6425587673'
+- q: “Turna Danışmanlık” şirketinin merkezi hangi şehirde?
+  docs:
+  - sicil_4705590276.md
+  answer:
+  - - Hatay
+- q: HS-2022-004 numaralı sözleşme hangi tarihte imzalandı?
+  docs:
+  - hs_2022_004.md
+  answer:
+  - - 26 Nisan 2022
+    - '2022-04-26'
+    - 26.04.2022
+- q: “Bahar Sağlık” için sicilde hangi vergi numarası kayıtlı?
+  docs:
+  - sicil_5051301074.md
+  answer:
+  - - '5051301074'
+- q: ES-2021-002 numaralı sözleşmenin iki tarafı kimlerdir?
+  docs:
+  - es_2021_002.md
+  answer:
+  - - Kervan Mekanik Yatırım Grubu Ltd. Şti.
+    - Kervan Mekanik Yatırım Grubu Ltd Şti
+    - Kervan Mekanik Yatırım Grubu
+  - - Taşkent Elektronik A.Ş.
+    - Taşkent Elektronik AŞ
+    - Taşkent Elektronik
+- q: “Simge Mobilya Ltd. Şti.” şirketinin merkezi hangi şehirde?
+  docs:
+  - sicil_7509474171.md
+  answer:
+  - - Malatya
+- q: “Engin Kimya” şirketinin merkezi hangi şehirde?
+  docs:
+  - sicil_1276126871.md
+  answer:
+  - - Malatya
+- q: Sicile göre “Yakamoz Yazılım” şirketinin merkez ili neresi?
+  docs:
+  - sicil_9893686758.md
+  answer:
+  - - Balıkesir
+- q: Vergi kimlik numarası aranan şirket “Zeytin Makine”. Sicilde hangi numara yazıyor?
+  docs:
+  - sicil_4345768511.md
+  answer:
+  - - '4345768511'
+- q: İmza tarihi aranan sözleşme DS-2024-010. Sözleşme ne zaman imzalanmış?
+  docs:
+  - ds_2024_010.md
+  answer:
+  - - 3 Eylül 2024
+    - '2024-09-03'
+    - 03.09.2024
+- q: “Belen Holding” için sicilde hangi vergi numarası kayıtlı?
+  docs:
+  - sicil_8809680535.md
+  answer:
+  - - '8809680535'
+- q: DS-2025-016 numaralı sözleşme hangi tarihte imzalandı?
+  docs:
+  - ds_2025_016.md
+  answer:
+  - - 11 Mart 2025
+    - '2025-03-11'
+    - 11.03.2025
+- q: İmza tarihi aranan sözleşme ES-2023-009. Sözleşme ne zaman imzalanmış?
+  docs:
+  - es_2023_009.md
+  answer:
+  - - 12 Nisan 2023
+    - '2023-04-12'
+    - 12.04.2023
+- q: İmza tarihi aranan sözleşme DS-2021-001. Sözleşme ne zaman imzalanmış?
+  docs:
+  - ds_2021_001.md
+  answer:
+  - - 4 Ekim 2021
+    - '2021-10-04'
+    - 04.10.2021
+- q: “Doğu Yapı Ltd. Şti.” için sicilde hangi vergi numarası kayıtlı?
+  docs:
+  - sicil_4575322645.md
+  answer:
+  - - '4575322645'
+- q: DS-2025-002 numaralı sözleşmenin iki tarafı kimlerdir?
+  docs:
+  - ds_2025_002.md
+  answer:
+  - - Kemer Ambalaj A.Ş.
+    - Kemer Ambalaj AŞ
+    - Kemer Ambalaj
+  - - Ege Holding A.Ş.
+    - Ege Holding AŞ
+    - Ege Holding
+multi_hop:
+- q: “Ufuk Gıda Ltd. Şti.” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?
+  docs:
+  - sicil_1906419964.md
+  - sicil_7518208696.md
+  answer:
+  - - Sakarya
+- q: “Yakamoz Yazılım Ltd. Şti.” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?
+  docs:
+  - sicil_9893686758.md
+  - sicil_1999909488.md
+  answer:
+  - - İzmir
+- q: “Deren Tarım” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?
+  docs:
+  - faaliyet_1216379241.md
+  - sicil_1216379241.md
+  answer:
+  - - Trabzon
+- q: “Kervan Mekanik Yatırım Grubu” şirketinin en büyük hissedarının vergi numarası nedir?
+  docs:
+  - sicil_2329498206.md
+  - sicil_3406453599.md
+  answer:
+  - - '3406453599'
+- q: “Lale Cam Yatırım Grubu” şirketinin en büyük hissedarının vergi numarası nedir?
+  docs:
+  - sicil_5299558249.md
+  - sicil_1368871838.md
+  answer:
+  - - '1368871838'
+- q: KS-2022-004 sözleşmesinin kiracı tarafında yer alan şirketin en büyük hissedarı kimdir?
+  docs:
+  - ks_2022_004.md
+  - faaliyet_1276126871.md
+  answer:
+  - - Engin Kimya Ltd. Şti.
+    - Engin Kimya Ltd Şti
+    - Engin Kimya
+- q: “Alize” şirketinin en büyük hissedarının vergi numarası nedir?
+  docs:
+  - faaliyet_2639073804.md
+  - sicil_2639073804.md
+  answer:
+  - - '2639073804'
+- q: “Turna Danışmanlık A.Ş.” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?
+  docs:
+  - sicil_4705590276.md
+  - sicil_5066462189.md
+  answer:
+  - - Sakarya
+- q: “Ekin Yapı Pazarlama A.Ş.” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?
+  docs:
+  - sicil_1021262379.md
+  - sicil_1368871838.md
+  answer:
+  - - Van
+- q: DS-2023-004 sözleşmesinde sağlayıcı sıfatıyla imza atan şirketin merkez ili neresi?
+  docs:
+  - ds_2023_004.md
+  - sicil_4662012810.md
+  answer:
+  - - Muğla
+- q: KS-2023-009 numaralı sözleşmedeki kiracı şirketin vergi kimlik numarası nedir?
+  docs:
+  - ks_2023_009.md
+  - sicil_9309227733.md
+  answer:
+  - - '9309227733'
+- q: “Doğu Ambalaj Dış Ticaret” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?
+  docs:
+  - sicil_2639073804.md
+  - sicil_2258676654.md
+  answer:
+  - - Sakarya
+- q: “Karadeniz Lojistik” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?
+  docs:
+  - faaliyet_8809680535.md
+  - sicil_8809680535.md
+  answer:
+  - - Malatya
+- q: “Yakamoz Tarım Ltd. Şti.” şirketinin en büyük hissedarının vergi numarası nedir?
+  docs:
+  - faaliyet_5043716558.md
+  - sicil_5043716558.md
+  answer:
+  - - '5043716558'
+- q: YS-2023-006 sözleşmesinin müşteri tarafında yer alan şirketin en büyük hissedarı kimdir?
+  docs:
+  - ys_2023_006.md
+  - sicil_9893686758.md
+  answer:
+  - - Bahar Ambalaj Pazarlama A.Ş.
+    - Bahar Ambalaj Pazarlama AŞ
+    - Bahar Ambalaj Pazarlama
+- q: YS-2023-009 sözleşmesinin müşteri tarafında yer alan şirketin en büyük hissedarı kimdir?
+  docs:
+  - ys_2023_009.md
+  - sicil_2471905175.md
+  answer:
+  - - Gelincik Ambalaj Ltd. Şti.
+    - Gelincik Ambalaj Ltd Şti
+    - Gelincik Ambalaj
+- q: “Deren Tarım A.Ş.” şirketinin en büyük hissedarının vergi numarası nedir?
+  docs:
+  - faaliyet_1216379241.md
+  - sicil_1216379241.md
+  answer:
+  - - '1216379241'
+- q: HS-2021-009 numaralı sözleşmedeki müşteri şirketin vergi kimlik numarası nedir?
+  docs:
+  - hs_2021_009.md
+  - sicil_4791738146.md
+  answer:
+  - - '4791738146'
+- q: DS-2024-002 sözleşmesinin müşteri tarafında yer alan şirketin en büyük hissedarı kimdir?
+  docs:
+  - ds_2024_002.md
+  - sicil_5030181318.md
+  answer:
+  - - Doğu Ambalaj Dış Ticaret A.Ş.
+    - Doğu Ambalaj Dış Ticaret AŞ
+    - Doğu Ambalaj Dış Ticaret
+- q: “Hazar Yatırım” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?
+  docs:
+  - faaliyet_6328502905.md
+  - sicil_6328502905.md
+  answer:
+  - - Konya
+- q: ES-2021-017 numaralı sözleşmedeki sağlayıcı şirketin vergi kimlik numarası nedir?
+  docs:
+  - es_2021_017.md
+  - sicil_4315448086.md
+  answer:
+  - - '4315448086'
+- q: “İnci Sağlık Pazarlama Ltd. Şti.” şirketinin en büyük hissedarının vergi numarası nedir?
+  docs:
+  - sicil_1863202764.md
+  - sicil_8908190057.md
+  answer:
+  - - '8908190057'
+- q: ES-2022-006 sözleşmesinde sağlayıcı sıfatıyla imza atan şirketin merkez ili neresi?
+  docs:
+  - es_2022_006.md
+  - sicil_2639073804.md
+  answer:
+  - - Konya
+- q: DS-2022-008 numaralı sözleşmedeki sağlayıcı şirketin vergi kimlik numarası nedir?
+  docs:
+  - ds_2022_008.md
+  - sicil_4316836186.md
+  answer:
+  - - '4316836186'
+- q: “Hazar Mekanik” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?
+  docs:
+  - faaliyet_5391578943.md
+  - sicil_5391578943.md
+  answer:
+  - - Sakarya
+- q: “Milas Tekstil Dış Ticaret” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?
+  docs:
+  - sicil_9425809000.md
+  - sicil_9952794342.md
+  answer:
+  - - Diyarbakır
+- q: “Rüzgâr Metal” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?
+  docs:
+  - sicil_7670359601.md
+  - sicil_5372628807.md
+  answer:
+  - - Trabzon
+- q: YS-2022-004 sözleşmesinde müşteri sıfatıyla imza atan şirketin merkez ili neresi?
+  docs:
+  - ys_2022_004.md
+  - sicil_3955820429.md
+  answer:
+  - - Ordu
+- q: “Hazar Elektronik Ltd. Şti.” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?
+  docs:
+  - sicil_3790331461.md
+  - sicil_1545625652.md
+  answer:
+  - - Sakarya
+- q: “Simge Yapı” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?
+  docs:
+  - sicil_1065911072.md
+  - sicil_9181277449.md
+  answer:
+  - - Kayseri
+- q: “Gökçe Danışmanlık Dış Ticaret” şirketinin en büyük hissedarının vergi numarası nedir?
+  docs:
+  - sicil_7333546162.md
+  - sicil_5883955220.md
+  answer:
+  - - '5883955220'
+- q: “Bulut Elektronik Ltd. Şti.” şirketinin en büyük hissedarının vergi numarası nedir?
+  docs:
+  - faaliyet_1276126871.md
+  - sicil_1276126871.md
+  answer:
+  - - '1276126871'
+- q: “Anadolu Tekstil” şirketinin en büyük hissedarının vergi numarası nedir?
+  docs:
+  - faaliyet_2258676654.md
+  - sicil_2258676654.md
+  answer:
+  - - '2258676654'
+- q: “Asya Sağlık” şirketinin en büyük hissedarının vergi numarası nedir?
+  docs:
+  - faaliyet_5299558249.md
+  - sicil_5299558249.md
+  answer:
+  - - '5299558249'
+- q: “Ekin Gıda” şirketinin en büyük hissedarının vergi numarası nedir?
+  docs:
+  - faaliyet_3390044639.md
+  - sicil_3390044639.md
+  answer:
+  - - '3390044639'
+- q: DS-2021-004 sözleşmesinde sağlayıcı sıfatıyla imza atan şirketin merkez ili neresi?
+  docs:
+  - ds_2021_004.md
+  - sicil_6540339609.md
+  answer:
+  - - Balıkesir
+- q: “Zirve Mobilya” şirketinin en büyük hissedarının vergi numarası nedir?
+  docs:
+  - sicil_7674595001.md
+  - sicil_1099195379.md
+  answer:
+  - - '1099195379'
+- q: KS-2021-011 sözleşmesinin kiracı tarafında yer alan şirketin en büyük hissedarı kimdir?
+  docs:
+  - ks_2021_011.md
+  - sicil_7471166901.md
+  answer:
+  - - Lale Cam Ltd. Şti.
+    - Lale Cam Ltd Şti
+- q: “Asya İnşaat Pazarlama” şirketinde en yüksek payı elinde tutan ortağın merkezi nerede?
+  docs:
+  - sicil_5473925505.md
+  - sicil_1314051309.md
+  answer:
+  - - Ordu
+- q: “Kemer Danışmanlık” şirketinin en büyük hissedarının vergi numarası nedir?
+  docs:
+  - sicil_4262020162.md
+  - sicil_2531516257.md
+  answer:
+  - - '2531516257'
+deep_hop:
+- q: “Lale Cam Ltd. Şti.” şirketinin en büyük hissedarına bakın. O hissedarın en büyük ortağının merkezi
+    hangi şehirde?
+  docs:
+  - faaliyet_6059041472.md
+  - sicil_6059041472.md
+  - sicil_4462081170.md
+  answer:
+  - - Trabzon
+- q: “Ada Tekstil Ltd. Şti.” şirketinin en büyük hissedarına bakın. O hissedarın en büyük ortağının merkezi
+    hangi şehirde?
+  docs:
+  - sicil_5030181318.md
+  - sicil_2639073804.md
+  - sicil_2258676654.md
+  answer:
+  - - Sakarya
+- q: “Kuzey Holding A.Ş.” şirketinin tek bir aracı şirket üzerinden dolaylı pay sahibi olduğu şirketlerin
+    merkezleri hangi şehirlerdedir? Her şehri bir kez yazın.
+  docs:
+  - sicil_6392734640.md
+  - faaliyet_6392734640.md
+  - sicil_1946878464.md
+  - sicil_3837193785.md
+  - sicil_9952794342.md
+  - sicil_9425809000.md
+  - sicil_1545625652.md
+  - sicil_7813695757.md
+  - sicil_3790331461.md
+  answer:
+  - - Şanlıurfa
+  - - Balıkesir
+  - - Trabzon
+  - - İzmir
+  - - Denizli
+- q: “Asya İnşaat Pazarlama Ltd. Şti.” şirketinin en büyük hissedarına bakın. O hissedarın en büyük ortağının
+    merkezi hangi şehirde?
+  docs:
+  - sicil_5473925505.md
+  - sicil_1314051309.md
+  - sicil_6061712255.md
+  answer:
+  - - Denizli
+- q: “Çağlayan Gıda” şirketinin en büyük hissedarına bakın. O hissedarın en büyük ortağının merkezi hangi
+    şehirde?
+  docs:
+  - sicil_8737935886.md
+  - faaliyet_5391578943.md
+  - sicil_5391578943.md
+  answer:
+  - - Sakarya
+- q: “Ekin Holding” şirketinin tek bir aracı şirket üzerinden dolaylı pay sahibi olduğu şirketlerin merkezleri
+    hangi şehirlerdedir? Her şehri bir kez yazın.
+  docs:
+  - sicil_1740223519.md
+  - sicil_1999909488.md
+  - sicil_1557566591.md
+  - sicil_2075669243.md
+  answer:
+  - - İzmir
+  - - Tekirdağ
+- q: “Gelincik Ambalaj Ltd. Şti.” şirketindeki en yüksek paylı ortağın en yüksek paylı ortağı sicilde
+    hangi vergi numarasıyla kayıtlı?
+  docs:
+  - faaliyet_2531516257.md
+  - sicil_2531516257.md
+  - sicil_7373021323.md
+  answer:
+  - - '7373021323'
+- q: DS-2024-004 sözleşmesinin sağlayıcı tarafını bulun. Bu tarafın en yüksek paylı ortağında en büyük
+    pay kime aittir?
+  docs:
+  - ds_2024_004.md
+  - sicil_3953828283.md
+  - faaliyet_5988385884.md
+  answer:
+  - - Kanyon Kâğıt Ltd. Şti.
+    - Kanyon Kâğıt Ltd Şti
+- q: KS-2024-012 sözleşmesinin kiracı tarafını bulun. Bu tarafın en yüksek paylı ortağında en büyük pay
+    kime aittir?
+  docs:
+  - ks_2024_012.md
+  - sicil_6269262716.md
+  - faaliyet_8809680535.md
+  answer:
+  - - Belen Holding A.Ş.
+    - Belen Holding AŞ
+    - Belen Holding
+- q: “Bereket Holding” şirketinin tek bir aracı şirket üzerinden dolaylı pay sahibi olduğu şirketlerin
+    merkezleri hangi şehirlerdedir? Her şehri bir kez yazın.
+  docs:
+  - sicil_8908190057.md
+  - sicil_1863202764.md
+  - sicil_9901517701.md
+  - sicil_7193850035.md
+  - faaliyet_4707952786.md
+  - sicil_7813695757.md
+  - sicil_3790331461.md
+  answer:
+  - - İzmir
+  - - Çanakkale
+  - - Ordu
+  - - Denizli
+- q: “İnci Sağlık A.Ş.” şirketinden başlayıp her adımda en büyük hissedara geçin. Üçüncü adımda ulaşılan
+    şirket hangisi?
+  docs:
+  - faaliyet_1946878464.md
+  - faaliyet_6392734640.md
+  - sicil_6392734640.md
+  answer:
+  - - Kuzey Holding A.Ş.
+    - Kuzey Holding AŞ
+    - Kuzey Holding
+- q: “Hazar Yatırım” şirketinden başlayıp her adımda en büyük hissedara geçin. Üçüncü adımda ulaşılan
+    şirket hangisi?
+  docs:
+  - faaliyet_6328502905.md
+  - faaliyet_5391578943.md
+  - sicil_5391578943.md
+  answer:
+  - - Kemer Holding A.Ş.
+    - Kemer Holding AŞ
+    - Kemer Holding
+- q: “Anadolu Holding A.Ş.” şirketinin tek bir aracı şirket üzerinden dolaylı pay sahibi olduğu şirketlerin
+    merkezleri hangi şehirlerdedir? Her şehri bir kez yazın.
+  docs:
+  - sicil_5299558249.md
+  - faaliyet_5299558249.md
+  - sicil_2368056914.md
+  - sicil_1021262379.md
+  - sicil_4609643115.md
+  - sicil_3406453599.md
+  - sicil_7745653836.md
+  answer:
+  - - Çanakkale
+  - - Bursa
+  - - Kocaeli
+  - - Erzurum
+- q: “İnci Sağlık Pazarlama Ltd. Şti.” şirketindeki en yüksek paylı ortağın en yüksek paylı ortağı sicilde
+    hangi vergi numarasıyla kayıtlı?
+  docs:
+  - sicil_1863202764.md
+  - sicil_8908190057.md
+  - sicil_6061712255.md
+  answer:
+  - - '6061712255'
+- q: “Ilgın” şirketinden başlayıp her adımda en büyük hissedara geçin. Üçüncü adımda ulaşılan şirket hangisi?
+  docs:
+  - sicil_4112986562.md
+  - sicil_2075669243.md
+  - sicil_1557566591.md
+  answer:
+  - - Ekin Holding A.Ş.
+    - Ekin Holding AŞ
+    - Ekin Holding
+- q: “Çağlayan Lojistik” şirketindeki en yüksek paylı ortağın en yüksek paylı ortağı sicilde hangi vergi
+    numarasıyla kayıtlı?
+  docs:
+  - sicil_3406453599.md
+  - sicil_1021262379.md
+  - sicil_1368871838.md
+  answer:
+  - - '1368871838'
+- q: “Hazar Mekanik Ltd. Şti.” şirketindeki en yüksek paylı ortağın en yüksek paylı ortağı sicilde hangi
+    vergi numarasıyla kayıtlı?
+  docs:
+  - faaliyet_5391578943.md
+  - sicil_5391578943.md
+  - sicil_7563815544.md
+  answer:
+  - - '7563815544'
+- q: “Simge Yapı A.Ş.” şirketinden başlayıp her adımda en büyük hissedara geçin. Üçüncü adımda ulaşılan
+    şirket hangisi?
+  docs:
+  - sicil_1065911072.md
+  - faaliyet_2258676654.md
+  - sicil_2258676654.md
+  answer:
+  - - Kemer Holding A.Ş.
+    - Kemer Holding AŞ
+    - Kemer Holding
+- q: “Gökçe Danışmanlık Dış Ticaret” şirketindeki en yüksek paylı ortağın en yüksek paylı ortağı sicilde
+    hangi vergi numarasıyla kayıtlı?
+  docs:
+  - sicil_7333546162.md
+  - faaliyet_5043716558.md
+  - sicil_5043716558.md
+  answer:
+  - - '5043716558'
+- q: “Fırat Tekstil A.Ş.” şirketindeki en yüksek paylı ortağın en yüksek paylı ortağı sicilde hangi vergi
+    numarasıyla kayıtlı?
+  docs:
+  - sicil_2081622282.md
+  - sicil_1276126871.md
+  - sicil_5391578943.md
+  answer:
+  - - '5391578943'
+- q: “Doğu Yapı” şirketinin en büyük hissedarına bakın. O hissedarın en büyük ortağının merkezi hangi
+    şehirde?
+  docs:
+  - faaliyet_5988385884.md
+  - sicil_5988385884.md
+  - sicil_4462081170.md
+  answer:
+  - - Trabzon
+- q: “Kaya Holding A.Ş.” şirketinin tek bir aracı şirket üzerinden dolaylı pay sahibi olduğu şirketlerin
+    merkezleri hangi şehirlerdedir? Her şehri bir kez yazın.
+  docs:
+  - sicil_2531516257.md
+  - sicil_4262020162.md
+  - faaliyet_2531516257.md
+  - sicil_4919106286.md
+  - faaliyet_7373021323.md
+  - faaliyet_5043716558.md
+  - sicil_5883955220.md
+  - sicil_1545625652.md
+  answer:
+  - - Kocaeli
+  - - İstanbul
+  - - Samsun
+  - - Sakarya
+- q: “Belen Yatırım” şirketindeki en yüksek paylı ortağın en yüksek paylı ortağı sicilde hangi vergi numarasıyla
+    kayıtlı?
+  docs:
+  - sicil_5378645845.md
+  - sicil_6435557159.md
+  - sicil_5971566116.md
+  answer:
+  - - '5971566116'
+- q: “Atlas” şirketindeki en yüksek paylı ortağın en yüksek paylı ortağı sicilde hangi vergi numarasıyla
+    kayıtlı?
+  docs:
+  - sicil_4221828754.md
+  - faaliyet_2258676654.md
+  - sicil_2258676654.md
+  answer:
+  - - '2258676654'
+- q: “Yonca Metal A.Ş.” şirketinden başlayıp her adımda en büyük hissedara geçin. Üçüncü adımda ulaşılan
+    şirket hangisi?
+  docs:
+  - faaliyet_3837193785.md
+  - sicil_3837193785.md
+  - sicil_6392734640.md
+  answer:
+  - - Kuzey Holding A.Ş.
+    - Kuzey Holding AŞ
+    - Kuzey Holding
+- q: ES-2023-001 sözleşmesinin müşteri tarafını bulun. Bu tarafın en yüksek paylı ortağında en büyük pay
+    kime aittir?
+  docs:
+  - es_2023_001.md
+  - sicil_5378645845.md
+  - sicil_6435557159.md
+  answer:
+  - - Ege Kâğıt Ltd. Şti.
+    - Ege Kâğıt Ltd Şti
+    - Ege Kâğıt
+- q: “İnci Sağlık Pazarlama Ltd. Şti.” şirketinden başlayıp her adımda en büyük hissedara geçin. Üçüncü
+    adımda ulaşılan şirket hangisi?
+  docs:
+  - sicil_1863202764.md
+  - sicil_8908190057.md
+  - sicil_6061712255.md
+  answer:
+  - - Uludağ Holding A.Ş.
+    - Uludağ Holding AŞ
+    - Uludağ Holding
+    - Uludağ
+- q: “Kervan Holding” şirketinin tek bir aracı şirket üzerinden dolaylı pay sahibi olduğu şirketlerin
+    merkezleri hangi şehirlerdedir? Her şehri bir kez yazın.
+  docs:
+  - faaliyet_7296376791.md
+  - sicil_3039081424.md
+  - sicil_7198704650.md
+  answer:
+  - - Manisa
+  - - Eskişehir
+- q: DS-2023-008 sözleşmesindeki müşteri şirketin en büyük hissedarının en büyük hissedarı hangi şirkettir?
+  docs:
+  - ds_2023_008.md
+  - sicil_7193850035.md
+  - sicil_8908190057.md
+  answer:
+  - - Ayaz Mobilya A.Ş.
+    - Ayaz Mobilya AŞ
+    - Ayaz Mobilya
+    - Ayaz
+- q: “Ufuk Danışmanlık” şirketinden başlayıp her adımda en büyük hissedara geçin. Üçüncü adımda ulaşılan
+    şirket hangisi?
+  docs:
+  - faaliyet_6328502905.md
+  - faaliyet_5391578943.md
+  - sicil_5391578943.md
+  answer:
+  - - Kemer Holding A.Ş.
+    - Kemer Holding AŞ
+    - Kemer Holding
+- q: “Irmak” şirketinden başlayıp her adımda en büyük hissedara geçin. Üçüncü adımda ulaşılan şirket hangisi?
+  docs:
+  - faaliyet_6269262716.md
+  - sicil_6269262716.md
+  - faaliyet_8809680535.md
+  answer:
+  - - Belen Holding A.Ş.
+    - Belen Holding AŞ
+    - Belen Holding
+- q: KS-2021-012 sözleşmesinin kiraya veren tarafını bulun. Bu tarafın en yüksek paylı ortağında en büyük
+    pay kime aittir?
+  docs:
+  - ks_2021_012.md
+  - sicil_4221828754.md
+  - faaliyet_2258676654.md
+  answer:
+  - - Kardelen Elektronik A.Ş.
+    - Kardelen Elektronik AŞ
+    - Kardelen Elektronik
+    - Kardelen
+- q: “Yonca Metal A.Ş.” şirketinin en büyük hissedarına bakın. O hissedarın en büyük ortağının merkezi
+    hangi şehirde?
+  docs:
+  - faaliyet_3837193785.md
+  - sicil_3837193785.md
+  - sicil_6392734640.md
+  answer:
+  - - Gaziantep
+- q: “Turna İnşaat A.Ş.” şirketinin en büyük hissedarına bakın. O hissedarın en büyük ortağının merkezi
+    hangi şehirde?
+  docs:
+  - sicil_2471905175.md
+  - faaliyet_2531516257.md
+  - sicil_2531516257.md
+  answer:
+  - - İzmir
+- q: “Yıldız Holding” şirketinin tek bir aracı şirket üzerinden dolaylı pay sahibi olduğu şirketlerin
+    merkezleri hangi şehirlerdedir? Her şehri bir kez yazın.
+  docs:
+  - sicil_1740223519.md
+  - sicil_1999909488.md
+  answer:
+  - - İzmir
+- q: “Deren Tarım” şirketinin en büyük hissedarına bakın. O hissedarın en büyük ortağının merkezi hangi
+    şehirde?
+  docs:
+  - faaliyet_1216379241.md
+  - sicil_1216379241.md
+  - sicil_7563815544.md
+  answer:
+  - - Edirne
+- q: “Uludağ Holding A.Ş.” şirketinin tek bir aracı şirket üzerinden dolaylı pay sahibi olduğu şirketlerin
+    merkezleri hangi şehirlerdedir? Her şehri bir kez yazın.
+  docs:
+  - sicil_6061712255.md
+  - sicil_8908190057.md
+  - sicil_1314051309.md
+  answer:
+  - - Ordu
+- q: “Bahar Ambalaj Pazarlama” şirketinin en büyük hissedarına bakın. O hissedarın en büyük ortağının
+    merkezi hangi şehirde?
+  docs:
+  - sicil_1999909488.md
+  - sicil_1740223519.md
+  - sicil_7518208696.md
+  answer:
+  - - Sakarya
+- q: “Yıldız Danışmanlık” şirketindeki en yüksek paylı ortağın en yüksek paylı ortağı sicilde hangi vergi
+    numarasıyla kayıtlı?
+  docs:
+  - sicil_3039081424.md
+  - faaliyet_7296376791.md
+  - sicil_7296376791.md
+  answer:
+  - - '7296376791'
+- q: “Kemer Holding” şirketinin tek bir aracı şirket üzerinden dolaylı pay sahibi olduğu şirketlerin merkezleri
+    hangi şehirlerdedir? Her şehri bir kez yazın.
+  docs:
+  - sicil_2258676654.md
+  - sicil_2639073804.md
+  - faaliyet_2258676654.md
+  - sicil_9181277449.md
+  - sicil_5391578943.md
+  - sicil_1276126871.md
+  - faaliyet_5391578943.md
+  - sicil_6328502905.md
+  - sicil_6135684246.md
+  - sicil_2973335385.md
+  - sicil_5883955220.md
+  - sicil_1216379241.md
+  - faaliyet_1216379241.md
+  - sicil_9202430345.md
+  - sicil_9505349270.md
+  answer:
+  - - Konya
+  - - Kayseri
+  - - Malatya
+  - - Bursa
+  - - Trabzon
+  - - Samsun
+  - - Tekirdağ
+  - - Van
+free_text:
+- q: DS-2025-016 numaralı metne göre yıllık gecikme faizi oranı nedir?
+  docs:
+  - ds_2025_016.md
+  answer:
+  - - '%18,79'
+    - '% 18,79'
+    - yüzde 18,79
+    - 18,79%
+    - '%18.79'
+- q: DS-2025-003 numaralı metne göre olağan fesih için kaç gün önceden bildirim gerekir?
+  docs:
+  - ds_2025_003.md
+  answer:
+  - - 94 gün
+- q: ES-2022-008 numaralı metne göre sözleşmenin yürürlük süresi kaç gündür?
+  docs:
+  - es_2022_008.md
+  answer:
+  - - 948 gün
+- q: KS-2022-011 numaralı metne göre olağan fesih için kaç gün önceden bildirim gerekir?
+  docs:
+  - ks_2022_011.md
+  answer:
+  - - 71 gün
+- q: KS-2025-007 numaralı metne göre sözleşmenin yürürlük süresi kaç gündür?
+  docs:
+  - ks_2025_007.md
+  answer:
+  - - 1.811 gün
+    - 1811 gün
+    - 1,811 gün
+- q: YS-2023-014 numaralı metne göre lisans aynı anda en fazla kaç kullanıcıya izin verir?
+  docs:
+  - ys_2023_014.md
+  answer:
+  - - 3.878 kullanıcı
+    - 3878 kullanıcı
+    - 3,878 kullanıcı
+- q: HS-2022-010 numaralı metne göre toplam sözleşme bedeli ne kadardır?
+  docs:
+  - hs_2022_010.md
+  answer:
+  - - 6.540.150 TL
+    - 6540150 TL
+    - 6,540,150 TL
+- q: ES-2021-018 numaralı metne göre sözleşme bittikten sonra gizlilik yükümlülüğü kaç gün sürer?
+  docs:
+  - es_2021_018.md
+  answer:
+  - - 2.212 gün
+    - 2212 gün
+    - 2,212 gün
+- q: HS-2021-013 numaralı metne göre toplam sözleşme bedeli ne kadardır?
+  docs:
+  - hs_2021_013.md
+  answer:
+  - - 11.322.900 TL
+    - 11322900 TL
+    - 11,322,900 TL
+- q: YS-2024-009 numaralı metne göre lisans aynı anda en fazla kaç kullanıcıya izin verir?
+  docs:
+  - ys_2024_009.md
+  answer:
+  - - 3.686 kullanıcı
+    - 3686 kullanıcı
+    - 3,686 kullanıcı
+- q: DS-2022-009 numaralı metne göre toplam sözleşme bedeli ne kadardır?
+  docs:
+  - ds_2022_009.md
+  answer:
+  - - 4.266.350 TL
+    - 4266350 TL
+    - 4,266,350 TL
+- q: KS-2022-005 numaralı metne göre depozito ne kadardır?
+  docs:
+  - ks_2022_005.md
+  answer:
+  - - 141.000 TL
+    - 141000 TL
+    - 141,000 TL
+- q: YS-2025-002 numaralı metne göre lisans aynı anda en fazla kaç kullanıcıya izin verir?
+  docs:
+  - ys_2025_002.md
+  answer:
+  - - 1.158 kullanıcı
+    - 1158 kullanıcı
+    - 1,158 kullanıcı
+- q: ES-2025-008 numaralı metne göre yıllık gecikme faizi oranı nedir?
+  docs:
+  - es_2025_008.md
+  answer:
+  - - '%43,25'
+    - '% 43,25'
+    - yüzde 43,25
+    - 43,25%
+    - '%43.25'
+- q: YS-2025-014 numaralı metne göre olağan fesih için kaç gün önceden bildirim gerekir?
+  docs:
+  - ys_2025_014.md
+  answer:
+  - - 121 gün
+- q: KS-2021-001 numaralı metne göre sözleşme bittikten sonra gizlilik yükümlülüğü kaç gün sürer?
+  docs:
+  - ks_2021_001.md
+  answer:
+  - - 2.032 gün
+    - 2032 gün
+    - 2,032 gün
+- q: HS-2021-008 numaralı metne göre yıllık gecikme faizi oranı nedir?
+  docs:
+  - hs_2021_008.md
+  answer:
+  - - '%25,02'
+    - '% 25,02'
+    - yüzde 25,02
+    - 25,02%
+    - '%25.02'
+- q: YS-2025-012 numaralı metne göre lisans aynı anda en fazla kaç kullanıcıya izin verir?
+  docs:
+  - ys_2025_012.md
+  answer:
+  - - 1.654 kullanıcı
+    - 1654 kullanıcı
+    - 1,654 kullanıcı
+- q: KS-2023-006 numaralı metne göre depozito ne kadardır?
+  docs:
+  - ks_2023_006.md
+  answer:
+  - - 102.900 TL
+    - 102900 TL
+    - 102,900 TL
+- q: KS-2021-015 numaralı metne göre sözleşmenin yürürlük süresi kaç gündür?
+  docs:
+  - ks_2021_015.md
+  answer:
+  - - 1.651 gün
+    - 1651 gün
+    - 1,651 gün
+- q: ES-2022-007 numaralı metne göre toplam sözleşme bedeli ne kadardır?
+  docs:
+  - es_2022_007.md
+  answer:
+  - - 12.916.600 TL
+    - 12916600 TL
+    - 12,916,600 TL
+- q: HS-2021-015 numaralı metne göre toplam sözleşme bedeli ne kadardır?
+  docs:
+  - hs_2021_015.md
+  answer:
+  - - 2.699.900 TL
+    - 2699900 TL
+    - 2,699,900 TL
+- q: YS-2021-002 numaralı metne göre olağan fesih için kaç gün önceden bildirim gerekir?
+  docs:
+  - ys_2021_002.md
+  answer:
+  - - 239 gün
+- q: ES-2022-012 numaralı metne göre olağan fesih için kaç gün önceden bildirim gerekir?
+  docs:
+  - es_2022_012.md
+  answer:
+  - - 331 gün
+- q: KS-2025-010 numaralı metne göre yıllık gecikme faizi oranı nedir?
+  docs:
+  - ks_2025_010.md
+  answer:
+  - - '%36,88'
+    - '% 36,88'
+    - yüzde 36,88
+    - 36,88%
+    - '%36.88'
+- q: KS-2025-007 numaralı metne göre depozito ne kadardır?
+  docs:
+  - ks_2025_007.md
+  answer:
+  - - 164.350 TL
+    - 164350 TL
+    - 164,350 TL
+- q: ES-2022-003 numaralı metne göre sözleşme bittikten sonra gizlilik yükümlülüğü kaç gün sürer?
+  docs:
+  - es_2022_003.md
+  answer:
+  - - 3.625 gün
+    - 3625 gün
+    - 3,625 gün
+- q: KS-2022-001 numaralı metne göre olağan fesih için kaç gün önceden bildirim gerekir?
+  docs:
+  - ks_2022_001.md
+  answer:
+  - - 282 gün
+- q: KS-2021-012 numaralı metne göre depozito ne kadardır?
+  docs:
+  - ks_2021_012.md
+  answer:
+  - - 133.350 TL
+    - 133350 TL
+    - 133,350 TL
+- q: YS-2021-007 numaralı metne göre toplam sözleşme bedeli ne kadardır?
+  docs:
+  - ys_2021_007.md
+  answer:
+  - - 11.090.300 TL
+    - 11090300 TL
+    - 11,090,300 TL
+- q: HS-2022-005 numaralı metne göre sözleşme bittikten sonra gizlilik yükümlülüğü kaç gün sürer?
+  docs:
+  - hs_2022_005.md
+  answer:
+  - - 1.507 gün
+    - 1507 gün
+    - 1,507 gün
+- q: YS-2024-007 numaralı metne göre lisans aynı anda en fazla kaç kullanıcıya izin verir?
+  docs:
+  - ys_2024_007.md
+  answer:
+  - - 1.730 kullanıcı
+    - 1730 kullanıcı
+    - 1,730 kullanıcı
+- q: KS-2021-015 numaralı metne göre sözleşme bittikten sonra gizlilik yükümlülüğü kaç gün sürer?
+  docs:
+  - ks_2021_015.md
+  answer:
+  - - 2.496 gün
+    - 2496 gün
+    - 2,496 gün
+- q: KS-2024-002 numaralı metne göre yıllık gecikme faizi oranı nedir?
+  docs:
+  - ks_2024_002.md
+  answer:
+  - - '%29,20'
+    - '% 29,20'
+    - yüzde 29,20
+    - 29,20%
+    - '%29.20'
+- q: KS-2024-006 numaralı metne göre depozito ne kadardır?
+  docs:
+  - ks_2024_006.md
+  answer:
+  - - 112.200 TL
+    - 112200 TL
+    - 112,200 TL
+- q: ES-2023-001 numaralı metne göre sözleşme bittikten sonra gizlilik yükümlülüğü kaç gün sürer?
+  docs:
+  - es_2023_001.md
+  answer:
+  - - 1.689 gün
+    - 1689 gün
+    - 1,689 gün
+- q: ES-2024-004 numaralı metne göre sözleşmenin yürürlük süresi kaç gündür?
+  docs:
+  - es_2024_004.md
+  answer:
+  - - 967 gün
+- q: YS-2022-004 numaralı metne göre lisans aynı anda en fazla kaç kullanıcıya izin verir?
+  docs:
+  - ys_2022_004.md
+  answer:
+  - - 1.426 kullanıcı
+    - 1426 kullanıcı
+    - 1,426 kullanıcı
+- q: ES-2021-006 numaralı metne göre sözleşmenin yürürlük süresi kaç gündür?
+  docs:
+  - es_2021_006.md
+  answer:
+  - - 382 gün
+- q: KS-2024-008 numaralı metne göre depozito ne kadardır?
+  docs:
+  - ks_2024_008.md
+  answer:
+  - - 270.150 TL
+    - 270150 TL
+    - 270,150 TL

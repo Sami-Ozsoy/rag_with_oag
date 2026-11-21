@@ -1,9 +1,7 @@
 """Every Cypher statement the library runs, in one place.
 
-Values always travel as parameters. Labels, relationship types and hop counts
-cannot be parameters in Cypher; the templates that take them are formatted
-only through the helper functions below, which accept validated identifiers
-and integers and nothing else.
+Values travel as parameters. Templates that interpolate labels, relationship
+types or property names use the helper functions below to validate identifiers.
 """
 
 from __future__ import annotations
@@ -198,27 +196,25 @@ MATCH (e:Entity {id: i})
 RETURN e.id, e.name, labels(e), properties(e)
 """
 
-# Shortest paths first, so a hub next to a seed cannot use up max_paths with its
-# own neighbours before the seed's other direct relations are reached.
-_EXPAND = """
-MATCH (s:Entity) WHERE s.id IN $seeds
-MATCH p = (s)-[:{rels}*1..{hops}]-(:Entity)
-WITH p ORDER BY length(p) LIMIT $max_paths
-UNWIND relationships(p) AS r
-WITH DISTINCT r
-RETURN startNode(r).id, type(r), properties(r), endNode(r).id
-LIMIT $max_facts
+_EXPAND_HOP = """
+UNWIND $frontier AS eid
+MATCH (n:Entity {{id: eid}})-[r:{rels}]->(other:Entity)
+RETURN n.id AS node, other.id AS neighbour, id(r) AS edge_id,
+       type(r) AS rel_type, properties(r) AS props, true AS outgoing
+UNION ALL
+UNWIND $frontier AS eid
+MATCH (n:Entity {{id: eid}})<-[r:{rels}]-(other:Entity)
+RETURN n.id AS node, other.id AS neighbour, id(r) AS edge_id,
+       type(r) AS rel_type, properties(r) AS props, false AS outgoing
 """
 
 
-def expand(rel_types: Sequence[str], hops: int) -> str:
-    """Variable-length expansion over the ontology's relation types only."""
+def expand(rel_types: Sequence[str]) -> str:
+    """Get the frontier's incident ontology edges and their stored directions."""
     if not rel_types:
         raise ValueError("expand needs at least one relation type")
-    if not isinstance(hops, int) or isinstance(hops, bool) or not 1 <= hops <= 5:
-        raise ValueError(f"hops must be an integer between 1 and 5, got {hops!r}")
     rels = "|".join(safe_identifier(r) for r in rel_types)
-    return _EXPAND.format(rels=rels, hops=hops)
+    return _EXPAND_HOP.format(rels=rels)
 
 
 # --- stats ------------------------------------------------------------------

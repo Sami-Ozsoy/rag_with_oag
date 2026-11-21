@@ -1,4 +1,9 @@
-"""OAG: link the question to entities, walk the ontology's relations, state facts."""
+"""OAG links the question to ranked entity seeds and walks ontology relations by hop.
+
+The walk caps each node's fan-out per relation type and direction. Seed facts
+come first, followed by relations in walk order and each new entity's
+properties beside the relation that first reaches it.
+"""
 
 from __future__ import annotations
 
@@ -42,14 +47,14 @@ class OAGRetriever:
             seed_ids,
             rel_types=self.ontology.relation_names,
             hops=hops or cfg.hops,
-            max_paths=cfg.max_paths,
+            max_fanout=cfg.max_fanout,
             max_facts=cfg.max_facts,
         )
         entity_ids = list(
             dict.fromkeys([*seed_ids, *(i for e in edges for i in (e.source, e.target))])
         )
         details = await self.repo.entity_details(entity_ids)
-        seed_set = set(seed_ids)
+        seen = set(seed_ids)
 
         def name(eid: str) -> str:
             return details[eid].name if eid in details else eid
@@ -59,27 +64,25 @@ class OAGRetriever:
         for eid in seed_ids:
             if eid in details:
                 facts.append(_entity_fact(details[eid]))
-        relation_facts = [
-            Fact(
-                subject=name(e.source),
-                predicate=e.type,
-                object=name(e.target),
-                properties=e.props,
-                evidence=e.evidence,
-                kind="relation",
-                subject_id=e.source,
-                object_id=e.target,
+        for edge in edges:
+            facts.append(
+                Fact(
+                    subject=name(edge.source),
+                    predicate=edge.type,
+                    object=name(edge.target),
+                    properties=edge.props,
+                    evidence=edge.evidence,
+                    kind="relation",
+                    subject_id=edge.source,
+                    object_id=edge.target,
+                )
             )
-            for e in edges
-        ]
-        # Relations touching a seed before those further out.
-        relation_facts.sort(key=lambda f: not ({f.subject_id, f.object_id} & seed_set))
-        facts.extend(relation_facts)
-        facts.extend(
-            _entity_fact(details[eid])
-            for eid in entity_ids
-            if eid not in seed_set and eid in details and details[eid].props
-        )
+            for eid in (edge.source, edge.target):
+                if eid in seen:
+                    continue
+                seen.add(eid)
+                if eid in details and details[eid].props:
+                    facts.append(_entity_fact(details[eid]))
         return Subgraph(seeds=list(seeds), facts=facts, entity_ids=entity_ids)
 
     async def retrieve(

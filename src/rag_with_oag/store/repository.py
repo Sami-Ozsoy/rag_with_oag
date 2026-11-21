@@ -78,6 +78,7 @@ class RelationEdge:
     target: str
     props: dict[str, Any]
     evidence: tuple[str, ...]
+    hop: int
 
 
 class GraphRepository:
@@ -320,22 +321,59 @@ class GraphRepository:
         *,
         rel_types: Sequence[str],
         hops: int,
-        max_paths: int,
+        max_fanout: int,
         max_facts: int,
     ) -> list[RelationEdge]:
-        if not seeds or not rel_types:
+        """Walk ontology edges in both directions, querying one frontier per hop.
+
+        At each hop, visit edges by originating seed rank, with seed neighbours
+        first and neighbour IDs breaking ties. Cap each frontier node's
+        fan-out per relation type and direction. Visit nodes and return edges
+        once, up to ``hops`` and ``max_facts``.
+        """
+        if not seeds or not rel_types or max_facts == 0:
             return []
-        result = await self._graph.ro_query(
-            q.expand(rel_types, hops),
-            {"seeds": list(seeds), "max_paths": max_paths, "max_facts": max_facts},
-        )
-        edges = []
-        for source, rel_type, props, target in result.result_set:
-            props = dict(props)
-            evidence = tuple(props.pop("evidence", None) or ())
-            for internal in ("confidence", "ontology_version"):
-                props.pop(internal, None)
-            edges.append(RelationEdge(source, rel_type, target, props, evidence))
+        if not isinstance(hops, int) or isinstance(hops, bool) or not 1 <= hops <= 5:
+            raise ValueError(f"hops must be an integer between 1 and 5, got {hops!r}")
+
+        cypher = q.expand(rel_types)
+        graph = self._graph
+        frontier = {seed: rank for rank, seed in enumerate(dict.fromkeys(seeds))}
+        seed_ids = set(frontier)
+        visited_nodes = seed_ids.copy()
+        visited_edges: set[int] = set()
+        edges: list[RelationEdge] = []
+        for hop in range(1, hops + 1):
+            if not frontier:
+                break
+            result = await graph.ro_query(cypher, {"frontier": list(frontier)})
+            # Rows start with the frontier node, its neighbour, and the relationship ID.
+            rows = sorted(
+                result.result_set,
+                key=lambda row: (frontier[row[0]], row[1] not in seed_ids, row[1], row[2]),
+            )
+            next_frontier: dict[str, int] = {}
+            fanout: dict[tuple[str, str, bool], int] = defaultdict(int)
+            for node, neighbour, edge_id, rel_type, raw_props, outgoing in rows:
+                if edge_id in visited_edges:
+                    continue
+                group = (node, rel_type, outgoing)
+                if fanout[group] >= max_fanout:
+                    continue
+                fanout[group] += 1
+                visited_edges.add(edge_id)
+                if neighbour not in visited_nodes:
+                    visited_nodes.add(neighbour)
+                    next_frontier[neighbour] = frontier[node]
+                props = dict(raw_props)
+                evidence = tuple(props.pop("evidence", None) or ())
+                for internal in ("confidence", "ontology_version"):
+                    props.pop(internal, None)
+                source, target = (node, neighbour) if outgoing else (neighbour, node)
+                edges.append(RelationEdge(source, rel_type, target, props, evidence, hop))
+                if len(edges) == max_facts:
+                    return edges
+            frontier = next_frontier
         return edges
 
     # --- misc -----------------------------------------------------------------

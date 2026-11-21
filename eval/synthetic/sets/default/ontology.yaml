@@ -1,0 +1,32 @@
+name: sozlesmeler
+version: "1"
+entities:
+  Sirket:
+    description: Bir şirket (A.Ş., Ltd., Holding). Sözleşmelerin tarafı veya başka şirketlerin ortağı olabilir.
+    key: vergi_no
+    properties:
+      vergi_no: {type: string, description: 10 haneli vergi numarası}
+      sehir: {type: string, description: Merkezinin bulunduğu şehir}
+  Sozlesme:
+    description: İki şirket arasındaki sözleşme; HS-2024-01 gibi bir numarası vardır.
+    key: numara
+    properties:
+      numara: {type: string, description: "Sözleşme numarası, ör. HS-2024-01"}
+      tur: {type: enum, values: [hizmet, kira, enerji, danismanlik, lisans]}
+      imza_tarihi: date
+relations:
+  TARAFIDIR:
+    source: Sirket
+    target: Sozlesme
+    description: Şirket bu sözleşmenin tarafıdır.
+    properties:
+      rol:
+        type: enum
+        values: [musteri, saglayici, kiraci, kiraya_veren]
+        description: Şirketin sözleşmedeki rolü (tedarikçi ve lisans veren = saglayici)
+  ORTAGIDIR:
+    source: Sirket
+    target: Sirket
+    description: Kaynak şirket, hedef şirketin ortağıdır (pay sahibidir).
+    properties:
+      oran: {type: number, description: Pay oranı, yüzde olarak}

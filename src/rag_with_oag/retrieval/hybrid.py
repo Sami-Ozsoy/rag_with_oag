@@ -1,10 +1,11 @@
 """Hybrid: ontology facts and the source text behind them, in one context.
 
 1. Entity linking (OAG seeds) and chunk vector search (RAG seeds) run in parallel.
-2. The ontology subgraph around the seeds becomes facts.
+2. The ontology walk produces seed facts, then relation and entity facts by hop.
 3. Chunks that mention the subgraph's entities are ranked by similarity to the question.
 4. RAG hits and these evidence chunks are fused with Reciprocal Rank Fusion.
-5. The token budget is split between facts and texts.
+5. Facts get up to ``fact_budget_ratio`` of the token budget (60% by default).
+   Texts get the remaining budget, including any unused fact allowance.
 
 If no entity can be linked, hybrid runs as rag and says so in ``mode_used``.
 """

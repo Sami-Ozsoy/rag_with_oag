@@ -143,3 +143,42 @@ Beklenen graf 13 entity ve 14 ilişki; çıkan graf 15 entity ve 15 ilişki.
 - PyPI yayını: hesaplar ve trusted publisher tanımı bekleniyor; sürüm `0.2.0` olmalı.
 - Ollama ile çalışırken bağlam penceresini artırmak (`OLLAMA_CONTEXT_LENGTH` veya `num_ctx`); README'de belirtilmeli.
 - M3: `Ontology.suggest()`, streaming, değişen dokümanın yeniden ingest'i, çok değerli ilişkiler.
+
+---
+
+## 4. Tur: Graf kalitesi düzeltmeleri ve DeepSeek ile ölçüm
+
+3. turda bulunan üç graf kalitesi hatası düzeltildi. Golden set artık `gemma4:e4b` yerine Ollama cloud üzerindeki `deepseek-v4.1-flash:1017-cloud` ile ölçülüyor; embedding modeli yine yerel `nomic-embed-text`. Bu modelle hybrid, çok adımlı sorularda eşit bütçeli rag'i de geçiyor. Ama bu sonuç düzeltmelerden değil, modelden geliyor: eski kod da DeepSeek ile aynı sonucu veriyor.
+
+### Düzeltilenler
+
+1. **Hukuki ekler artık ayrı düğüm oluşturmuyor.** İsim eşleştirmesinde sondaki hukuki ekler (A.Ş., Ltd. Şti., Inc., GmbH vb.) yok sayılıyor: "Zirve Gıda A.Ş." ile "Zirve Gıda" aynı şirket sayılıyor. Kimlik, `name_norm` ve iki birleştirme adımı (aynı yazım içinde ve grafa karşı) bu eşleştirmeyi kullanıyor. Ek listesi ontolojideki `name_suffixes` alanıyla genişletilebiliyor. Farklı vergi numaralı iki şirket, isimleri yalnızca ekte farklı olsa da ayrı kalıyor.
+2. **Eski bilgi tabanları sessizce bozulmuyor.** Geçerli ek listesi ontoloji fingerprint'ine dahil. Normalizasyonun değiştiği eski bir bilgi tabanı açılırken `OntologyMismatchError` veriliyor; iki farklı normalizasyon aynı grafta karışmıyor.
+3. **İlişki yönü:** Çıkarım prompt'u ilişkiyi "<kaynak> <İLİŞKİ> <hedef>" cümlesi olarak okumayı, ters kurulmuş cümlelerde (edilgen yapı, iyelik) bile kaynağı açıklamaya göre seçmeyi ve metin söylemedikçe ters ilişki eklememeyi istiyor. Nötr isimli bir örnek de eklendi. JSON Schema'daki `source` ve `target` alanlarının açıklamaları ilişkinin açıklamasını içeriyor.
+4. **Birim:** Prompt, sayıları özellik açıklamasının istediği birimde yazmayı istiyor; yüzdeler 0,4 değil 40 olarak yazılıyor.
+5. **Testler:** 136 test geçiyor. Ruff, format ve `mypy --strict` temiz.
+
+### Golden set: DeepSeek ile eski ve yeni kod
+
+| Grup | rag | oag | hybrid | rag_eq |
+|---|---|---|---|---|
+| Tek adım | 91% | 73% | 100% | 100% |
+| **Çok adım** | 73% | 100% | **100%** | 91% |
+| Serbest metin | 100% | 0% | 100% | 100% |
+| **Toplam** | 88% | 58% | **100%** | 97% |
+
+- Değerler cevap doğruluğu. Eski kodda (`9213f62`) ve yeni kodda **aynı**.
+- Graf iki koşuda da beklenenle birebir: 13 entity ve 14 ilişki, ORTAGIDIR yönlerinin dördü de doğru, oranlar 60, 35, 51 ve 100.
+- Çok adımlı sorularda M2 kapısı ilk kez eşit bütçeli rag'e karşı da geçiyor: hybrid %100, rag_eq %91.
+- Ingest 14 doküman için yaklaşık 35–48 saniye sürüyor (gemma ile 8 dakikaydı).
+
+Sonuçları okurken iki şeye dikkat etmek gerekiyor:
+
+- **Düzeltmelerin etkisi bu sette ölçülemiyor.** Düzeltilen üç hata zayıf modelin hatalarıydı; DeepSeek bunları yapmıyor ve faaliyet raporunda bile isimleri ekleriyle tam yazıyor. Düzeltmelerin doğruluğu birim ve entegrasyon testleriyle gösterildi.
+- **Golden set bu model için doydu.** Hybrid %100 aldığından sonraki iyileştirmeler bu sette görünmeyecek. Gerçek boyutlu ve daha zor bir korpus artık daha da gerekli.
+
+### Açık kalanlar
+
+- Gerçek boyutlu ve daha zor bir korpusla eşit bütçe karşılaştırması. Bağlama sığmamalı ve isim varyantları, dolaylı anlatımlar içermeli.
+- PyPI yayını: hesaplar ve trusted publisher tanımı bekleniyor.
+- M3: `Ontology.suggest()`, streaming, değişen dokümanın yeniden ingest'i ve silinmesi, `reembed()`, gözlemlenebilirlik.

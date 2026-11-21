@@ -33,6 +33,8 @@ from rag_with_oag.ontology.schema_gen import RawExtraction, extraction_schema
 from rag_with_oag.ontology.validator import coerce_properties
 from rag_with_oag.retrieval.linking import rrf
 from rag_with_oag.store import queries as q
+from rag_with_oag.store.connection import GraphConnection
+from rag_with_oag.store.repository import GraphRepository
 
 from .conftest import CONTRACTS_ONTOLOGY, FakeGraphLLM, fake_extraction
 
@@ -511,7 +513,7 @@ def test_rrf_rewards_agreement() -> None:
 @pytest.mark.parametrize("bad", ["TARAFIDIR]->(x) DETACH DELETE x //", "A|B", "1X"])
 def test_query_builders_reject_unsafe_identifiers(bad: str) -> None:
     with pytest.raises(ValueError, match="unsafe"):
-        q.expand([bad], 2)
+        q.expand([bad])
     with pytest.raises(ValueError, match="unsafe"):
         q.upsert_entities(bad)
     with pytest.raises(ValueError, match="unsafe"):
@@ -519,6 +521,7 @@ def test_query_builders_reject_unsafe_identifiers(bad: str) -> None:
 
 
 @pytest.mark.parametrize("hops", [0, 6, "2; MATCH (n) DELETE n", True, 2.5])
-def test_expand_rejects_bad_hops(hops: Any) -> None:
+async def test_expand_rejects_bad_hops(hops: Any) -> None:
+    repo = GraphRepository(GraphConnection(path="unused.db"), "test")
     with pytest.raises(ValueError, match="hops"):
-        q.expand(["TARAFIDIR"], hops)
+        await repo.expand(["seed"], rel_types=["TARAFIDIR"], hops=hops, max_fanout=8, max_facts=120)

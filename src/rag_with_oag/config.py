@@ -81,8 +81,8 @@ class RetrievalConfig(BaseModel):
     context_token_budget: int = Field(default=6000, ge=256)
     # oag / hybrid
     hops: int = Field(default=2, ge=1, le=5)
-    max_paths: int = Field(default=50, ge=1)
-    max_facts: int = Field(default=40, ge=1)
+    max_fanout: int = Field(default=8, ge=1)
+    max_facts: int = Field(default=120, ge=1)
     link_k: int = Field(default=5, ge=1, description="entities used as graph entry points")
     link_min_similarity: float = Field(
         default=0.5,
@@ -91,7 +91,10 @@ class RetrievalConfig(BaseModel):
         description="vector matches below this cosine similarity are not linked",
     )
     fact_budget_ratio: float = Field(
-        default=0.35, gt=0, lt=1, description="share of the context budget for facts in hybrid"
+        default=0.6,
+        gt=0,
+        lt=1,
+        description="maximum share of the context budget for facts in hybrid",
     )
     rrf_k: int = Field(default=60, ge=1)
     chunk_strategies: tuple[str, ...] = DEFAULT_CHUNK_STRATEGIES

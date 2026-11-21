@@ -1,11 +1,11 @@
-"""Golden set: compare rag, oag and hybrid on the same corpus and questions.
+"""Evaluation sets: compare rag, oag and hybrid on the same corpus and questions.
 
-Metrics per question group (single_hop, multi_hop, free_text) and mode:
+Metrics per question group and mode:
   context hit   the expected answer is present in the context handed to the LLM
                 (facts and/or passages). Needs no answer model, so it is cheap.
   answer acc.   with --answers: the LLM's answer contains the expected keywords.
 
-The M2 gate from the plan: on multi_hop questions hybrid must beat rag.
+The M2 gate compares hybrid with rag on multi_hop and deep_hop questions.
 
 Models come from flags or the RAG_OAG_* environment variables, e.g. local Ollama:
 
@@ -18,35 +18,84 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import re
 import statistics
 import time
-import unicodedata
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import yaml
+from redis.exceptions import ResponseError
 
 from rag_with_oag import AsyncKnowledgeBase, EmbedConfig, LLMConfig, Ontology, RagOagError
-from rag_with_oag.types import MODES
+from rag_with_oag.store.connection import GraphConnection
+from rag_with_oag.store.queries import safe_identifier
+from rag_with_oag.store.repository import GraphRepository
+from rag_with_oag.types import MODES, Mode
+
+if TYPE_CHECKING or __package__:
+    from .graph_quality import (
+        ExpectedGraph,
+        FoundEntity,
+        FoundRelation,
+        GraphQuality,
+        score_graph_quality,
+    )
+    from .synthetic.text import matches as matches
+    from .synthetic.text import norm as norm
+else:
+    from graph_quality import (
+        ExpectedGraph,
+        FoundEntity,
+        FoundRelation,
+        GraphQuality,
+        score_graph_quality,
+    )
+    from synthetic.text import matches as matches
+    from synthetic.text import norm as norm
 
 HERE = Path(__file__).parent
 GOLDEN = HERE / "golden"
-GROUPS = ("single_hop", "multi_hop", "free_text")
 
 
-def norm(text: str) -> str:
-    """Case- and Turkish-insensitive, punctuation kept: '%2' must not match any '2'."""
-    text = text.replace("ı", "i").replace("İ", "I")
-    text = "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
-    return re.sub(r"\s+", " ", text.casefold())
+async def drop_graph(db: Path, name: str) -> None:
+    connection = GraphConnection(path=db)
+    repository = GraphRepository(connection, name)
+    try:
+        await connection.open()
+        await repository.drop()
+    except ResponseError as exc:
+        if "empty key" not in str(exc).lower():
+            raise
+    finally:
+        await connection.close()
 
 
-def matches(text: str, groups: list[list[str]]) -> bool:
-    haystack = norm(text)
-    return all(any(norm(alt) in haystack for alt in group) for group in groups)
+async def read_graph_quality(
+    store: GraphRepository, expected: ExpectedGraph, ontology: Ontology
+) -> GraphQuality:
+    type_keys = {entity.name: entity.key for entity in ontology.entities}
+    keys = list(dict.fromkeys(key for key in type_keys.values() if key is not None))
+    projection = "".join(f", e.{safe_identifier(key)}" for key in keys)
+    nodes = await store.query(f"MATCH (e:Entity) RETURN id(e), labels(e), e.name{projection}")
+    entities = []
+    for node_id, labels, name, *values in nodes:
+        entity_type = next((label for label in labels if label in type_keys), None)
+        if entity_type is None:
+            entity_type = next((label for label in labels if label != "Entity"), "Entity")
+        props = dict(zip(keys, values, strict=True))
+        key_property = type_keys.get(entity_type)
+        key = props.get(key_property) if key_property else None
+        entities.append(FoundEntity(node_id, entity_type, key, name or ""))
+    edges = await store.query(
+        "MATCH (s:Entity)-[r]->(t:Entity) RETURN type(r), id(s), id(t), r.rol, r.oran"
+    )
+    relations = [
+        FoundRelation(relation_type, source, target, {"rol": rol, "oran": oran})
+        for relation_type, source, target, rol, oran in edges
+    ]
+    return score_graph_quality(expected, entities, relations, ontology)
 
 
 @dataclass
@@ -67,22 +116,30 @@ class Summary:
     model: dict[str, str]
     ingest: dict[str, Any]
     rows: list[Row] = field(default_factory=list)
+    groups: list[str] = field(default_factory=list)
+    graph_quality: GraphQuality | None = None
 
     def cell(self, group: str | None, mode: str) -> dict[str, float | None]:
         rows = [r for r in self.rows if r.mode == mode and (group is None or r.group == group)]
         answered = [r for r in rows if r.answer_ok is not None]
         return {
-            "context_hit": 100 * sum(r.context_hit for r in rows) / len(rows),
+            "context_hit": 100 * sum(r.context_hit for r in rows) / len(rows) if rows else None,
             "answer_acc": (100 * sum(bool(r.answer_ok) for r in answered) / len(answered))
             if answered
             else None,
-            "tokens": statistics.fmean(r.context_tokens for r in rows),
-            "ms": statistics.median(r.retrieve_ms for r in rows),
+            "tokens": statistics.fmean(r.context_tokens for r in rows) if rows else None,
+            "ms": statistics.median(r.retrieve_ms for r in rows) if rows else None,
             "fallbacks": sum(r.mode_used != r.mode for r in rows),
         }
 
 
 async def run(args: argparse.Namespace) -> Summary:
+    questions = yaml.safe_load((args.set / "questions.yaml").read_text(encoding="utf-8"))
+    ontology = Ontology.from_yaml(args.set / "ontology.yaml")
+    expected_path = args.set / "expected_graph.json"
+    expected = (
+        json.loads(expected_path.read_text(encoding="utf-8")) if expected_path.exists() else None
+    )
     llm = LLMConfig(model=args.llm, base_url=args.base_url, timeout=600, max_tokens=None)
     extractor = LLMConfig(model=args.extractor or args.llm, base_url=args.base_url, timeout=600)
     embedder = EmbedConfig(
@@ -92,33 +149,24 @@ async def run(args: argparse.Namespace) -> Summary:
         document_prefix=args.document_prefix,
     )
     db = args.out / "golden.db"
+    if args.fresh:
+        await drop_graph(db, args.kb)
     kb = AsyncKnowledgeBase(
         args.kb,
         path=db,
         llm=llm,
         extractor_llm=extractor,
         embedder=embedder,
-        ontology=Ontology.from_yaml(GOLDEN / "ontology.yaml"),
+        ontology=ontology,
     )
     summary = Summary(
         model={"llm": args.llm, "extractor": args.extractor or args.llm, "embed": args.embed},
         ingest={},
+        groups=list(questions),
     )
     try:
-        if args.fresh:
-            await kb.open()
-            await kb.store.drop()
-            await kb.close()
-            kb = AsyncKnowledgeBase(
-                args.kb,
-                path=db,
-                llm=llm,
-                extractor_llm=extractor,
-                embedder=embedder,
-                ontology=Ontology.from_yaml(GOLDEN / "ontology.yaml"),
-            )
         t0 = time.perf_counter()
-        report = await kb.ingest(GOLDEN / "docs", concurrency=args.concurrency)
+        report = await kb.ingest(args.set / "docs", concurrency=args.concurrency)
         summary.ingest = {
             "seconds": round(time.perf_counter() - t0, 1),
             "processed": report.documents_processed,
@@ -133,12 +181,13 @@ async def run(args: argparse.Namespace) -> Summary:
             "tokens": report.token_usage,
         }
         print(f"ingest: {json.dumps(summary.ingest, ensure_ascii=False)}", flush=True)
+        if expected is not None:
+            summary.graph_quality = await read_graph_quality(kb.store, expected, ontology)
 
-        questions = yaml.safe_load((GOLDEN / "questions.yaml").read_text(encoding="utf-8"))
-        modes = args.modes.split(",")
-        for group in GROUPS:
-            for item in questions[group]:
-                rows = {}
+        modes = cast(list[Mode], args.modes.split(","))
+        for group, items in questions.items():
+            for item in items[: args.limit]:
+                rows: dict[str, Row] = {}
                 for mode in modes:
                     rows[mode] = await evaluate(kb, args, group, item, mode, args.k)
                 if args.equal_budget and "hybrid" in rows:
@@ -162,7 +211,7 @@ async def evaluate(
     args: argparse.Namespace,
     group: str,
     item: dict[str, Any],
-    mode: str,
+    mode: Mode,
     k: int,
     *,
     label: str | None = None,
@@ -223,26 +272,32 @@ def render(s: Summary, modes: list[str]) -> str:
         "| Group | Mode | Context hit | Answer acc. | Context tokens | Retrieval p50 | Fallbacks |",
         "|---|---|---|---|---|---|---|",
     ]
-    for group in [*GROUPS, None]:
+    for group in [*s.groups, None]:
         for mode in modes:
             c = s.cell(group, mode)
             name = group or "**all**"
+            tokens = "–" if c["tokens"] is None else f"{c['tokens']:.0f}"
+            latency = "–" if c["ms"] is None else f"{c['ms']:.0f} ms"
             lines.append(
                 f"| {name} | {mode} | {pct(c['context_hit'])} | {pct(c['answer_acc'])} "
-                f"| {c['tokens']:.0f} | {c['ms']:.0f} ms | {c['fallbacks']} |"
+                f"| {tokens} | {latency} | {c['fallbacks']} |"
             )
-    if "hybrid" in modes:
-        hyb = s.cell("multi_hop", "hybrid")
+    for group in ("multi_hop", "deep_hop"):
+        if group not in s.groups or "hybrid" not in modes:
+            continue
+        hyb = s.cell(group, "hybrid")
+        if hyb["context_hit"] is None:
+            continue
         metric = "answer_acc" if hyb["answer_acc"] is not None else "context_hit"
         for baseline in ("rag", RAG_EQ):
             if baseline not in modes:
                 continue
-            rag = s.cell("multi_hop", baseline)
+            rag = s.cell(group, baseline)
             delta = (hyb[metric] or 0) - (rag[metric] or 0)
             verdict = "PASSED" if delta > 0 else "NOT PASSED"
             lines += [
                 "",
-                f"**M2 gate ({metric.replace('_', ' ')}, multi_hop): hybrid "
+                f"**M2 gate ({metric.replace('_', ' ')}, {group}): hybrid "
                 f"{pct(hyb[metric])} vs {baseline} {pct(rag[metric])} → {delta:+.0f} points, "
                 f"{verdict}.**",
             ]
@@ -252,6 +307,8 @@ def render(s: Summary, modes: list[str]) -> str:
             f"`{RAG_EQ}`: rag with k raised per question until its context is as "
             "large as hybrid's, so the comparison is at an equal token budget.",
         ]
+    if s.graph_quality is not None:
+        lines.extend(render_graph_quality(s.graph_quality))
     errors = [r for r in s.rows if (r.answer or "").startswith(ANSWER_ERROR)]
     if errors:
         lines += ["", f"**{len(errors)} answers failed with an error** (counted as wrong):"]
@@ -261,6 +318,46 @@ def render(s: Summary, modes: list[str]) -> str:
         lines += ["", "Hybrid context misses:"]
         lines += [f"- [{r.group}] {r.question}" for r in misses]
     return "\n".join(lines)
+
+
+def render_graph_quality(quality: GraphQuality) -> list[str]:
+    def pct(value: float | None) -> str:
+        return "–" if value is None else f"{value:.1%}"
+
+    lines = [
+        "",
+        "## Graph quality",
+        "",
+        "| Entity type | Expected | Found | Missing | Extra nodes | Duplicates |",
+        "|---|---|---|---|---|---|",
+    ]
+    for name, score in quality["entities"].items():
+        lines.append(
+            f"| {name} | {score['expected']} | {score['found']} | {score['missing']} "
+            f"| {score['extra']} | {score['duplicates']} |"
+        )
+    lines += [
+        "",
+        "| Relation type | Expected | Found | Matched | Precision | Recall | Reversed |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for name, relation in quality["relations"].items():
+        lines.append(
+            f"| {name} | {relation['expected']} | {relation['found']} | {relation['matched']} "
+            f"| {pct(relation['precision'])} | {pct(relation['recall'])} | {relation['reversed']} |"
+        )
+    lines += [
+        "",
+        "| Relation type | Property | Correct / matched | Accuracy |",
+        "|---|---|---|---|",
+    ]
+    for name, relation in quality["relations"].items():
+        for prop, prop_score in relation["properties"].items():
+            lines.append(
+                f"| {name} | {prop} | {prop_score['correct']} / {prop_score['matched']} "
+                f"| {pct(prop_score['accuracy'])} |"
+            )
+    return lines
 
 
 def main() -> None:
@@ -283,9 +380,15 @@ def main() -> None:
     parser.add_argument("--document-prefix", default="", help="embedder document prefix")
     parser.add_argument("--fresh", action="store_true", help="drop the knowledge base first")
     parser.add_argument("--concurrency", type=int, default=2)
-    parser.add_argument("--kb", default="golden")
+    parser.add_argument("--set", type=Path, default=GOLDEN, help="evaluation set directory")
+    parser.add_argument("--kb", help="knowledge base name (default: the set directory name)")
+    parser.add_argument("--limit", type=int, help="maximum questions per group")
     parser.add_argument("--out", type=Path, default=HERE / "out")
     args = parser.parse_args()
+    if args.limit is not None and args.limit < 0:
+        parser.error("--limit must be non-negative")
+    if args.kb is None:
+        args.kb = args.set.name or args.set.resolve().name
     args.out.mkdir(parents=True, exist_ok=True)
 
     summary = asyncio.run(run(args))
@@ -295,8 +398,12 @@ def main() -> None:
     text = render(summary, modes)
     stamp = f"{datetime.now():%Y%m%d_%H%M}"
     (args.out / f"golden_{stamp}.md").write_text(text + "\n", encoding="utf-8")
+    data = asdict(summary)
+    data.pop("groups")
+    if summary.graph_quality is None:
+        data.pop("graph_quality")
     (args.out / f"golden_{stamp}.json").write_text(
-        json.dumps(asdict(summary), ensure_ascii=False, indent=2, default=str), encoding="utf-8"
+        json.dumps(data, ensure_ascii=False, indent=2, default=str), encoding="utf-8"
     )
     print("\n" + text)
 

@@ -16,15 +16,20 @@ from rag_with_oag import (
     Document,
     Ontology,
     OntologyMismatchError,
+    RetrievalConfig,
 )
+from rag_with_oag._tokens import count_tokens
 from rag_with_oag.config import ExtractionConfig
 from rag_with_oag.generation import prompts
 from rag_with_oag.ingest.extractor import ChunkGraph, EntityMention
 from rag_with_oag.ingest.graph_builder import GraphBuilder
 from rag_with_oag.ingest.resolver import EntityResolver, entity_id
+from rag_with_oag.retrieval.context import pack_facts
+from rag_with_oag.retrieval.hybrid import HybridRetriever
+from rag_with_oag.retrieval.oag import OAGRetriever
 from rag_with_oag.store.connection import GraphConnection
 from rag_with_oag.store.repository import EntityRow, GraphRepository, GraphWrite, RelationRow
-from rag_with_oag.types import Chunk
+from rag_with_oag.types import Chunk, EntityHit
 
 from .conftest import CONTRACTS_ONTOLOGY, ENTITY_RULES, FakeEmbedder, FakeGraphLLM
 
@@ -353,8 +358,9 @@ async def test_two_keys_do_not_take_the_same_keyless_entity(
     assert rows == [["1111111111"], ["2222222222"]]
 
 
-async def test_expansion_keeps_near_facts_when_paths_run_out(repo: GraphRepository) -> None:
-    """A hub one hop away must not spend the path budget before the seed's other neighbours."""
+async def test_expansion_keeps_near_facts_when_relation_budget_runs_out(
+    repo: GraphRepository,
+) -> None:
     embedder = FakeEmbedder()
     await repo.ensure_embedding_dim(model=embedder.model, dim=embedder.dim)
     names = ["seed", "hub", *(f"far{i}" for i in range(30)), "near"]
@@ -365,9 +371,179 @@ async def test_expansion_keeps_near_facts_when_paths_run_out(repo: GraphReposito
     relations = [RelationRow("ORTAGIDIR", s, t, {}, None, []) for s, t in edges]
     await repo.write_graph(GraphWrite(entities=entities, relations=relations), version="v")
 
-    found = await repo.expand(["seed"], rel_types=["ORTAGIDIR"], hops=2, max_paths=5, max_facts=40)
-    pairs = {(e.source, e.target) for e in found}
-    assert {("seed", "hub"), ("seed", "near")} <= pairs
+    found = await repo.expand(["seed"], rel_types=["ORTAGIDIR"], hops=2, max_fanout=8, max_facts=2)
+    assert [(e.source, e.target, e.hop) for e in found] == [
+        ("seed", "hub", 1),
+        ("seed", "near", 1),
+    ]
+
+
+async def test_expansion_reaches_three_hops_past_contract_fanout(
+    repo: GraphRepository, fake_embedder: FakeEmbedder, ontology: Ontology
+) -> None:
+    cfg = RetrievalConfig()
+    await repo.ensure_embedding_dim(model=fake_embedder.model, dim=fake_embedder.dim)
+    contracts = [f"contract{i:02}" for i in range(30)]
+    parties = [f"party{i:02}" for i in range(30)]
+    companies = ["seed", "A", "B", "C", *parties]
+    vectors = await fake_embedder.embed(companies + contracts)
+    entities = [
+        EntityRow(eid, "Sozlesme" if eid in contracts else "Sirket", eid, eid, None, {}, vector)
+        for eid, vector in zip(companies + contracts, vectors, strict=True)
+    ]
+    ownership = [("A", "seed"), ("B", "A"), ("C", "B")]
+    relations = [RelationRow("ORTAGIDIR", s, t, {}, None, []) for s, t in ownership]
+    for contract, party in reversed(list(zip(contracts, parties, strict=True))):
+        relations.extend(
+            [
+                RelationRow("TARAFIDIR", "seed", contract, {}, None, []),
+                RelationRow("TARAFIDIR", party, contract, {}, None, []),
+            ]
+        )
+    await repo.write_graph(GraphWrite(entities=entities, relations=relations), version="v")
+
+    found = await repo.expand(
+        ["seed"],
+        rel_types=ontology.relation_names,
+        hops=3,
+        max_fanout=cfg.max_fanout,
+        max_facts=cfg.max_facts,
+    )
+    assert [(e.source, e.target, e.hop) for e in found if e.type == "ORTAGIDIR"] == [
+        (s, t, hop) for hop, (s, t) in enumerate(ownership, start=1)
+    ]
+    seed_contracts = [e.target for e in found if e.type == "TARAFIDIR" and e.source == "seed"]
+    assert seed_contracts == contracts[: cfg.max_fanout]
+    assert [(e.source, e.target) for e in found if e.type == "TARAFIDIR" and e.hop == 2] == list(
+        zip(parties[:8], contracts[:8], strict=True)
+    )
+    assert [e.hop for e in found] == sorted(e.hop for e in found)
+    assert len(found) == len({(e.source, e.type, e.target) for e in found}) == 19
+
+
+async def test_expansion_ranks_seeds_and_prefers_seed_neighbours(
+    repo: GraphRepository, fake_embedder: FakeEmbedder
+) -> None:
+    await repo.ensure_embedding_dim(model=fake_embedder.model, dim=fake_embedder.dim)
+    first, second = "seed-z", "seed-a"
+    pairs = [
+        (first, "dropped"),
+        (first, "branch-z"),
+        (first, second),
+        ("branch-a", first),
+        (second, "branch-b"),
+        ("branch-z", "leaf-z"),
+        ("branch-b", "leaf-a"),
+    ]
+    ids = sorted({eid for pair in pairs for eid in pair})
+    entities = [
+        EntityRow(eid, "Sirket", eid, eid, None, {}, vector)
+        for eid, vector in zip(ids, await fake_embedder.embed(ids), strict=True)
+    ]
+    relations = [RelationRow("ORTAGIDIR", s, t, {}, None, []) for s, t in pairs]
+    await repo.write_graph(GraphWrite(entities=entities, relations=relations), version="v")
+
+    found = await repo.expand(
+        [first, second], rel_types=["ORTAGIDIR"], hops=2, max_fanout=2, max_facts=120
+    )
+    assert [(e.source, e.target, e.hop) for e in found] == [
+        (first, second, 1),
+        ("branch-a", first, 1),
+        (first, "branch-z", 1),
+        (second, "branch-b", 1),
+        ("branch-z", "leaf-z", 2),
+        ("branch-b", "leaf-a", 2),
+    ]
+
+
+async def test_expansion_skips_visited_edges_before_counting_fanout(
+    repo: GraphRepository, fake_embedder: FakeEmbedder
+) -> None:
+    await repo.ensure_embedding_dim(model=fake_embedder.model, dim=fake_embedder.dim)
+    max_fanout = 2
+    leaves = [f"leaf-{i}" for i in range(max_fanout)]
+    ids = ["seed", "A", *leaves]
+    entities = [
+        EntityRow(eid, "Sirket", eid, eid, None, {}, vector)
+        for eid, vector in zip(ids, await fake_embedder.embed(ids), strict=True)
+    ]
+    # At A, the seed edge and all leaf edges are incoming.
+    relations = [RelationRow("ORTAGIDIR", eid, "A", {}, None, []) for eid in ["seed", *leaves]]
+    await repo.write_graph(GraphWrite(entities=entities, relations=relations), version="v")
+
+    found = await repo.expand(
+        ["seed"], rel_types=["ORTAGIDIR"], hops=2, max_fanout=max_fanout, max_facts=120
+    )
+    assert [(e.source, e.target, e.hop) for e in found] == [
+        ("seed", "A", 1),
+        *((leaf, "A", 2) for leaf in leaves),
+    ]
+
+
+async def test_subgraph_packs_properties_next_to_the_relation_that_reaches_them(
+    repo: GraphRepository, fake_embedder: FakeEmbedder, ontology: Ontology
+) -> None:
+    await repo.ensure_embedding_dim(model=fake_embedder.model, dim=fake_embedder.dim)
+    ids = ["seed", "near", "far"]
+    properties = [{}, {"sehir": "Izmir"}, {"sehir": "Ankara"}]
+    entities = [
+        EntityRow(eid, "Sirket", eid, eid, None, props, vector)
+        for eid, props, vector in zip(ids, properties, await fake_embedder.embed(ids), strict=True)
+    ]
+    relations = [
+        RelationRow("ORTAGIDIR", "near", "seed", {}, None, []),
+        RelationRow("ORTAGIDIR", "far", "near", {}, None, []),
+    ]
+    await repo.write_graph(GraphWrite(entities=entities, relations=relations), version="v")
+    oag = OAGRetriever(repo, fake_embedder, ontology, RetrievalConfig())
+
+    subgraph = await oag.subgraph([EntityHit("seed", "seed", "Sirket", 1.0)])
+    assert [(f.kind, f.subject_id, f.object_id) for f in subgraph.facts] == [
+        ("entity", "seed", ""),
+        ("relation", "near", "seed"),
+        ("entity", "near", ""),
+        ("relation", "far", "near"),
+        ("entity", "far", ""),
+    ]
+    assert subgraph.entity_ids == ids
+    near_facts = subgraph.facts[:3]
+    budget = sum(count_tokens(f"[F{i}] {f.render()}") + 1 for i, f in enumerate(near_facts, 1))
+    packed = pack_facts(subgraph.facts, budget=budget)
+    assert packed.facts == near_facts
+    assert "Izmir" in packed.text and "Ankara" not in packed.text
+
+
+async def test_hybrid_keeps_facts_and_gives_texts_the_unused_allowance(
+    repo: GraphRepository, fake_embedder: FakeEmbedder, ontology: Ontology
+) -> None:
+    cfg = RetrievalConfig(context_token_budget=256, link_k=1, expand_neighbors=False)
+    await repo.ensure_embedding_dim(model=fake_embedder.model, dim=fake_embedder.dim)
+    [vector] = await fake_embedder.embed(["Atlas"])
+    entity = EntityRow("seed", "Sirket", "Atlas", "atlas", "abc " * 94, {}, vector)
+    await repo.write_graph(GraphWrite(entities=[entity]), version="v")
+    hybrid = HybridRetriever(repo, fake_embedder, ontology, cfg)
+    subgraph = await hybrid.oag.subgraph([EntityHit("seed", "Atlas", "Sirket", 1.0)])
+    fact_budget = int(cfg.context_token_budget * cfg.fact_budget_ratio)
+    facts = pack_facts(subgraph.facts, budget=fact_budget)
+    assert len(facts.facts) == 1
+    assert 0.35 * cfg.context_token_budget < facts.token_count < fact_budget
+
+    # The chunk needs more than 40% of the total budget and fits the remainder.
+    source = "source.txt"
+    text = "Atlas"
+    while count_tokens(f"[C1] {source}\n{text}") + 2 <= cfg.context_token_budget - fact_budget:
+        text += " abc"
+    chunk_cost = count_tokens(f"[C1] {source}\n{text}") + 2
+    assert chunk_cost <= cfg.context_token_budget - facts.token_count
+    doc = Document.from_text(text, source=source)
+    chunk = Chunk("source", doc.id, 0, text, count_tokens(text), 0, len(text))
+    await repo.write_document(doc, [chunk], await fake_embedder.embed([text]))
+    await repo.write_graph(GraphWrite(mentions=[(chunk.id, entity.id)]), version="v")
+
+    ctx = await hybrid.retrieve("Atlas", vector=vector)
+    assert ctx.mode_used == "hybrid"
+    assert ctx.facts == subgraph.facts
+    assert [hit.text for hit in ctx.chunks] == [text]
 
 
 def test_extraction_cache_key_follows_the_prompt(
