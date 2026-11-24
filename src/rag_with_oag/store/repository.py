@@ -14,7 +14,8 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
-from rag_with_oag._text import fold
+from rag_with_oag._bm25 import BM25Index
+from rag_with_oag._text import bm25_tokens, fold
 from rag_with_oag.store import queries as q
 from rag_with_oag.store import schema
 from rag_with_oag.store.connection import GraphConnection
@@ -88,6 +89,8 @@ class GraphRepository:
         self._connection = connection
         self._meta: schema.Meta | None = None
         self._meta_lock = asyncio.Lock()
+        self._bm25: BM25Index | None = None
+        self._bm25_lock = asyncio.Lock()
 
     @property
     def _graph(self) -> Any:
@@ -148,24 +151,26 @@ class GraphRepository:
     ) -> None:
         if len(chunks) != len(embeddings):
             raise ValueError("chunks and embeddings differ in length")
-        graph = self._graph
-        await graph.query(
-            q.UPSERT_DOCUMENT,
-            {
-                "id": doc.id,
-                "source": doc.source,
-                "title": doc.title,
-                "content_hash": doc.content_hash,
-                "metadata": json.dumps(doc.metadata, ensure_ascii=False, default=str),
-            },
-        )
-        rows = [_chunk_row(c, e) for c, e in zip(chunks, embeddings, strict=True)]
-        for batch in _batches(rows, WRITE_BATCH):
-            await graph.query(q.UPSERT_CHUNKS, {"rows": batch})
-        pairs = [[a.id, b.id] for a, b in itertools.pairwise(chunks)]
-        for pair_batch in _batches(pairs, WRITE_BATCH * 4):
-            await graph.query(q.LINK_NEXT, {"pairs": pair_batch})
-        await graph.query(q.MARK_DOCUMENT_COMPLETE, {"id": doc.id, "chunk_count": len(chunks)})
+        async with self._bm25_lock:
+            self._bm25 = None
+            graph = self._graph
+            await graph.query(
+                q.UPSERT_DOCUMENT,
+                {
+                    "id": doc.id,
+                    "source": doc.source,
+                    "title": doc.title,
+                    "content_hash": doc.content_hash,
+                    "metadata": json.dumps(doc.metadata, ensure_ascii=False, default=str),
+                },
+            )
+            rows = [_chunk_row(c, e) for c, e in zip(chunks, embeddings, strict=True)]
+            for batch in _batches(rows, WRITE_BATCH):
+                await graph.query(q.UPSERT_CHUNKS, {"rows": batch})
+            pairs = [[a.id, b.id] for a, b in itertools.pairwise(chunks)]
+            for pair_batch in _batches(pairs, WRITE_BATCH * 4):
+                await graph.query(q.LINK_NEXT, {"pairs": pair_batch})
+            await graph.query(q.MARK_DOCUMENT_COMPLETE, {"id": doc.id, "chunk_count": len(chunks)})
 
     async def document_chunks(self, doc_id: str) -> list[Chunk]:
         result = await self._graph.ro_query(q.DOCUMENT_CHUNKS, {"id": doc_id})
@@ -274,14 +279,35 @@ class GraphRepository:
         result = await self._graph.ro_query(q.SEARCH_CHUNKS, {"k": k, "q": list(embedding)})
         return [_chunk_hit(row) for row in result.result_set]
 
-    async def search_chunks_text(self, query: str, k: int) -> list[ChunkHit]:
-        """Search folded chunk text using ``_text.fulltext_query`` output."""
-        if not query:
+    async def search_chunks_text(self, question: str, k: int) -> list[ChunkHit]:
+        """Rank chunks by BM25 and fetch their text and neighbours."""
+        terms = bm25_tokens(question)
+        if not terms or k <= 0:
             return []
-        result = await self._graph.ro_query(
-            q.SEARCH_CHUNKS_TEXT, {"q": f"@text_norm:({query})", "k": k}
-        )
-        return [_chunk_hit(row, is_distance=False) for row in result.result_set]
+        async with self._bm25_lock:
+            if self._bm25 is None:
+                self._bm25 = await self._build_bm25()
+            ranked = self._bm25.rank(terms, k)
+            if not ranked:
+                return []
+            rows = [{"id": cid, "score": score} for cid, score in ranked]
+            result = await self._graph.ro_query(q.CHUNKS_BY_IDS, {"rows": rows})
+            hits = {row[0]: _chunk_hit(row, is_distance=False) for row in result.result_set}
+            return [hits[cid] for cid, _ in ranked if cid in hits]
+
+    async def _build_bm25(self) -> BM25Index:
+        graph = self._graph
+        chunks: dict[str, list[str]] = {}
+        after: str | None = None
+        while True:
+            result = await graph.ro_query(
+                q.CHUNK_TEXT_BATCH, {"after": after, "limit": WRITE_BATCH}
+            )
+            batch: list[tuple[str, str]] = result.result_set
+            chunks.update((cid, bm25_tokens(value)) for cid, value in batch)
+            if len(batch) < WRITE_BATCH:
+                return BM25Index(chunks)
+            after = batch[-1][0]
 
     async def evidence_chunks(
         self, entity_ids: Sequence[str], embedding: Sequence[float], k: int
@@ -437,13 +463,18 @@ class GraphRepository:
 
     async def query(self, cypher: str, params: dict[str, Any] | None = None) -> list[list[Any]]:
         """Escape hatch: raw Cypher. Documented, but outside the API stability promise."""
-        result = await self._graph.query(cypher, params or {})
-        return list(result.result_set)
+        async with self._bm25_lock:
+            # Arbitrary Cypher can delete or replace chunks.
+            self._bm25 = None
+            result = await self._graph.query(cypher, params or {})
+            return list(result.result_set)
 
     async def drop(self) -> None:
         """Delete this knowledge base's graph entirely."""
-        await self._graph.delete()
-        self._meta = None
+        async with self._bm25_lock:
+            self._bm25 = None
+            await self._graph.delete()
+            self._meta = None
 
 
 def _batches[T](items: Sequence[T], size: int) -> Iterable[Sequence[T]]:

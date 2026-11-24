@@ -184,15 +184,23 @@ RETURN c.id, c.doc_id, d.source, c.text, score, c.section_path, c.page_index,
 ORDER BY score ASC
 """
 
-SEARCH_CHUNKS_TEXT = """
-CALL db.idx.fulltext.queryNodes('Chunk', $q) YIELD node AS c, score
+CHUNK_TEXT_BATCH = """
+MATCH (c:Chunk)
+WHERE $after IS NULL OR c.id > $after
+RETURN c.id, c.text
+ORDER BY c.id
+LIMIT $limit
+"""
+
+CHUNKS_BY_IDS = """
+UNWIND $rows AS r
+MATCH (c:Chunk {id: r.id})
+WITH c, r.score AS score
 MATCH (d:Document)-[:HAS_CHUNK]->(c)
 OPTIONAL MATCH (prev:Chunk)-[:NEXT]->(c)
 OPTIONAL MATCH (c)-[:NEXT]->(next:Chunk)
 RETURN c.id, c.doc_id, d.source, c.text, score, c.section_path, c.page_index,
        prev.id, prev.text, next.id, next.text
-ORDER BY score DESC, c.id ASC
-LIMIT $k
 """
 
 _RANK_CHUNKS = """

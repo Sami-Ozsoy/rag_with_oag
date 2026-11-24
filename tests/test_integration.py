@@ -18,7 +18,6 @@ from rag_with_oag import (
     ModeNotAvailableError,
     RetrievalConfig,
 )
-from rag_with_oag._text import fulltext_query
 from rag_with_oag.ingest.chunker import AdaptiveChunker
 from rag_with_oag.ingest.pipeline import IngestPipeline, build_chunks
 from rag_with_oag.store import queries as q
@@ -84,7 +83,7 @@ async def test_search_returns_similarity_best_first_with_neighbors(
 
 async def test_search_before_any_ingest_is_empty(repo: GraphRepository) -> None:
     assert await repo.search_chunks([0.1] * 8, 5) == []
-    assert await repo.search_chunks_text("sozles*", 5) == []
+    assert await repo.search_chunks_text("sözleşme", 5) == []
 
 
 class _MisleadingEmbedder(FakeEmbedder):
@@ -118,12 +117,35 @@ async def test_lexical_chunk_search_recovers_id_and_suffix_matches(
             assert [hit.source for hit in (await lexical.retrieve(question, k=1)).chunks] == [
                 "correct.txt"
             ]
-            hits = await lexical.store.search_chunks_text(fulltext_query(question), 3)
+            hits = await lexical.store.search_chunks_text(question, 1)
             assert [hit.source for hit in hits] == ["correct.txt"]
     finally:
         await plain.store.drop()
         await lexical.close()
         await plain.close()
+
+
+async def test_lexical_index_rebuilds_after_ingest_and_chunk_deletion(
+    repo: GraphRepository, fake_embedder: FakeEmbedder
+) -> None:
+    pipeline = IngestPipeline(repo, fake_embedder, AdaptiveChunker())
+    initial = Document.from_text("Vergi kimlik numarası sicilde yer alır.", source="sicil.txt")
+    added = Document.from_text("Kervan Holding vergi kimlik numarası 123.", source="kervan.txt")
+    question = "Kervan Holding vergi kimlik numarası"
+
+    report = await pipeline.run([initial])
+    assert report.ok, report.failures
+    assert [hit.source for hit in await repo.search_chunks_text(question, 1)] == [initial.source]
+
+    report = await pipeline.run([added])
+    assert report.ok, report.failures
+    assert [hit.source for hit in await repo.search_chunks_text(question, 1)] == [added.source]
+
+    await repo.query(
+        "MATCH (d:Document {id: $id})-[:HAS_CHUNK]->(c:Chunk) DETACH DELETE c, d",
+        {"id": added.id},
+    )
+    assert [hit.source for hit in await repo.search_chunks_text(question, 1)] == [initial.source]
 
 
 async def test_open_backfills_legacy_chunk_text_in_batches(
@@ -146,10 +168,10 @@ async def test_open_backfills_legacy_chunk_text_in_batches(
         await schema.create_vector_indexes(graph, 2)
         await graph.query(
             "CREATE (d:Document {id: 'd', source: 'legacy.txt'})"
-            "-[:HAS_CHUNK]->(:Chunk {id: 'first', doc_id: 'd', text: 'KS-2024-002', "
+            "-[:HAS_CHUNK]->(first:Chunk {id: 'first', doc_id: 'd', text: 'KS-2024-002', "
             "embedding: vecf32([1.0, 0.0])}), "
-            "(d)-[:HAS_CHUNK]->(:Chunk {id: 'second', doc_id: 'd', text: 'Sözleşme', "
-            "embedding: vecf32([0.0, 1.0])})"
+            "(d)-[:HAS_CHUNK]->(second:Chunk {id: 'second', doc_id: 'd', text: 'Sözleşme', "
+            "embedding: vecf32([0.0, 1.0])}), (first)-[:NEXT]->(second)"
         )
         saved_vectors = (await graph.ro_query(vectors)).result_set
         saved_meta = (await graph.ro_query(meta)).result_set
@@ -169,8 +191,10 @@ async def test_open_backfills_legacy_chunk_text_in_batches(
                 ["ks 2024 002"],
                 ["sozlesme"],
             ]
-            hits = await kb.store.search_chunks_text(fulltext_query("KS-2024-002’nin"), 1)
-            assert [hit.chunk_id for hit in hits] == ["first"]
+            [hit] = await kb.store.search_chunks_text("KS-2024-002’nin", 1)
+            assert (hit.chunk_id, hit.next_id, hit.next_text) == ("first", "second", "Sözleşme")
+            [hit] = await kb.store.search_chunks_text("SÖZLEŞMESİNDEKİ", 1)
+            assert (hit.chunk_id, hit.prev_id, hit.prev_text) == ("second", "first", "KS-2024-002")
             assert (await graph.ro_query(vectors)).result_set == saved_vectors
             assert (await graph.ro_query(meta)).result_set == saved_meta
         writes = [

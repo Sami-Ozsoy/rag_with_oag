@@ -85,3 +85,14 @@ def fulltext_query(question: str, *, prefix_len: int = 6) -> str:
             continue
         terms.append(word[:prefix_len] + "*")
     return "|".join(dict.fromkeys(terms))
+
+
+def bm25_tokens(text: str) -> list[str]:
+    """Tokenize chunks and questions for BM25."""
+    tokens = [fold(key).replace(" ", "") for key in _HYPHENATED_KEY.findall(text)]
+    tokens.extend(
+        word if word.isdigit() else word[:6]
+        for word in fold(text).split()
+        if len(word) >= 2 and word not in STOPWORDS
+    )
+    return tokens

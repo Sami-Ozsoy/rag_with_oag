@@ -78,8 +78,9 @@ class RetrievalConfig(BaseModel):
 
     k: int = Field(default=6, ge=1, le=100)
     rag_lexical: bool = Field(
-        default=False, description="fuse full-text chunk matches with vector matches by RRF"
+        default=False, description="fuse BM25 chunk matches with vector matches by RRF"
     )
+    rag_text_weight: float = Field(default=1.0, description="RRF weight of BM25 chunk ranks")
     rerank_candidates: int = Field(default=30, ge=1, description="RAG candidates to rerank")
     expand_neighbors: bool = True
     context_token_budget: int = Field(default=6000, ge=256)

@@ -13,7 +13,7 @@ from rag_with_oag.rerank import Reranker
 from rag_with_oag.retrieval.context import CHUNKS_HEADER, FACTS_HEADER, pack_facts
 from rag_with_oag.retrieval.hybrid import HybridRetriever
 from rag_with_oag.retrieval.oag import Subgraph
-from rag_with_oag.retrieval.rag import RAGRetriever
+from rag_with_oag.retrieval.rag import RAGRetriever, search_rag_hits
 from rag_with_oag.store.repository import GraphRepository
 from rag_with_oag.types import ChunkHit, Citation, EntityHit, Fact
 
@@ -219,7 +219,7 @@ async def test_hybrid_no_seeds_matches_rag(hybrid: HybridRetriever) -> None:
     [
         (False, 1, ["a", "b"], ["b", "a"]),
         (False, 3, ["a", "b", "c"], ["c", "b"]),
-        (True, 3, ["b", "lexical", "a"], ["lexical", "b"]),
+        (True, 3, ["b", "a", "lexical"], ["lexical", "b"]),
     ],
 )
 async def test_rag_and_hybrid_rerank_the_same_candidates(
@@ -261,7 +261,7 @@ async def test_rag_and_hybrid_rerank_the_same_candidates(
     fetch_k = max(k, rerank_candidates) * (3 if lexical else 1)
     assert [call.args for call in vector_search.await_args_list] == [(vector, fetch_k)] * 2
     assert [call.args for call in text_search.await_args_list] == (
-        [("atlas*", fetch_k)] * 2 if lexical else []
+        [("Atlas", fetch_k)] * 2 if lexical else []
     )
     hybrid.repo.seed_document_chunks.assert_awaited_once_with(["atlas"], vector, k)
     hybrid.repo.evidence_chunks.assert_awaited_once_with(["atlas", "related"], vector, k)
@@ -275,3 +275,23 @@ async def test_rag_default_keeps_original_vector_hits(hybrid: HybridRetriever) -
     assert (await rag.retrieve("Atlas", k=1, vector=[1.0])).chunks == [hit]
     hybrid.repo.search_chunks.assert_awaited_once_with([1.0], 1)
     hybrid.repo.search_chunks_text.assert_not_awaited()
+
+
+async def test_rag_text_weight_controls_fusion(hybrid: HybridRetriever) -> None:
+    text_hit = ChunkHit("text", "text-doc", "text.txt", "Kervan Holding", 4.0)
+    vector_hit = ChunkHit("vector", "vector-doc", "vector.txt", "Atlas", 0.8)
+    hybrid.repo.search_chunks_text = AsyncMock(return_value=[text_hit])
+    hybrid.repo.search_chunks = AsyncMock(return_value=[vector_hit])
+    config = RetrievalConfig(rag_lexical=True)
+    question = "Kervan Holding"
+    vector = [1.0]
+
+    equal = await search_rag_hits(hybrid.repo, question, vector, 2, config, None)
+    assert [hit.chunk_id for hit in equal] == ["text", "vector"]
+    assert [hit.score for hit in equal] == pytest.approx([1 / 61, 1 / 61])
+
+    weighted = await search_rag_hits(
+        hybrid.repo, question, vector, 2, config.model_copy(update={"rag_text_weight": 0.25}), None
+    )
+    assert [hit.chunk_id for hit in weighted] == ["vector", "text"]
+    assert [hit.score for hit in weighted] == pytest.approx([1 / 61, 0.25 / 61])
