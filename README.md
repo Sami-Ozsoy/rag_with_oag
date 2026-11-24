@@ -369,7 +369,7 @@ python spikes/m0_falkordb.py     # M0 backend spike: recall, latency, memory
 |---|---|
 | M0 | FalkorDB spike: ANN recall, hybrid latency, memory |
 | M1 (v0.1) | Skeleton and RAG |
-| **M2 (v0.2)** | Ontology, extraction, OAG and hybrid modes, evaluation sets ← *you are here* |
-| M3 (v0.3) | `Ontology.suggest()`, streaming, ~~re-ingest and delete~~ (done), `reembed()`, observability |
+| M2 (v0.2) | Ontology, extraction, OAG and hybrid modes, evaluation sets |
+| **M3 (v0.3)** | `Ontology.suggest()`, streaming, ~~re-ingest and delete~~ (done), `reembed()`, observability ← *you are here* |
 
 MIT licensed.
