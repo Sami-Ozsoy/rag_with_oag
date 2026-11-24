@@ -262,3 +262,69 @@ Hybrid'in zincir isabetinin düzeltmelerle değişimi (6.000 token):
 - **Sentetik setin sınırları.** Tek bir korpus, tek bir alan ve tek bir model. Sonuçlar gerçek belgelerle doğrulanmalı. Aynı hedefe birden fazla yoldan ulaşılan sorularda üretici yalnızca bir yolu kaydediyor.
 - `eval/synthetic/sets/default/README.md` hâlâ `--hops 3` öneriyor; artık varsayılan bu.
 - PyPI yayını ve M3 (önceki turdan).
+
+## 6. Tur: Görülmemiş set ve güçlü RAG ile karşılaştırma
+
+5. turdaki sonuç (hybrid %98, RAG %32) iki açıdan itiraza açıktı. Ayarlar aynı 160 soruya bakılarak yapılmıştı ve karşılaştırılan RAG zayıftı: yalnızca vektör araması vardı, İngilizce ağırlıklı bir embedder kullanıyordu, anahtar sözcük araması ve reranker yoktu. Bu tur ikisini de kapattı.
+
+### Görülmemiş (held-out) set
+
+Üreticiye `--variant b` eklendi. Bu varyantta olgu cümleleri, belge iskeletleri, standart maddeler ve soruların hepsi ayrı kalıp havuzlarından geliyor. Ontoloji, dünya modeli ve soru aileleri aynı kaldı. `eval/synthetic/sets/heldout` seed 101 ile üretildi: 593 belge, 450 entity, 749 ilişki, 160 soru. Varsayılan setle ortak cümle sayısı 13.243'te 0. Varsayılan set bayt bayt aynı kaldı.
+
+### Güçlü RAG
+
+- **Çok dilli embedder:** `bge-m3`.
+- **BM25.** İlk denemede FalkorDB'nin tam metin indeksi kullanıldı ve RAG'i iyileştireceğine kötüleştirdi (tek adımlı sorularda %65 → %15). Bu indeksin puanı OR sorgularında terimleri nadirliğe göre toplamıyor. Soruda "vergi kimlik numarası sicil" gibi yaygın sözcükler olunca 150 sicil kaydının hepsi aynı puanı alıyordu ve şirket adı hiçbir fark yaratmıyordu. Yerine süreç içinde çalışan bir BM25 (Okapi) indeksi yazıldı. Türkçe sözcükler katlanıp 6 harfe kırpılıyor, `KS-2024-002` gibi anahtarlar tek parça terim oluyor. RRF'de metin ve vektör tarafına eşit ağırlık veriliyor. Tek başına BM25, tek adımlı sorularda doğru belgeyi 40 sorunun 37'sinde 1. sıraya koyuyor.
+- **Reranker:** `jinaai/jina-reranker-v2-base-multilingual` (isteğe bağlı).
+
+### Sonuçlar
+
+Bağlam taraması (zincir isabeti; tek adım / çok adım / derin / serbest metin). "En iyi RAG" sütununda her grupta rag ile rag_eq'den yüksek olanı yazıyor.
+
+| Set | RAG ayarı | En iyi RAG | Hybrid |
+|---|---|---|---|
+| Varsayılan | `nomic`, yalnız vektör | 65 / 0 / 0 / 48 | 100 / 100 / 92 / 100 |
+| Varsayılan | `bge-m3`, yalnız vektör | 100 / 5 / 3 / 28 | 100 / 98 / 82 / 100 |
+| Varsayılan | `bge-m3` + BM25 | 100 / 2 / 0 / 85 | 100 / 98 / 82 / 100 |
+| Varsayılan | `bge-m3` + BM25 + reranker | 100 / 2 / 0 / 62 | 100 / 98 / 82 / 100 |
+| Held-out | `nomic` + BM25 | 98 / 12 / 2 / 68 | 100 / 100 / 80 / 100 |
+| Held-out | `bge-m3` + BM25 | 100 / 18 / 0 / 57 | 100 / 98 / 85 / 100 |
+
+Held-out set, cevap doğruluğu (`bge-m3` + BM25, DeepSeek v4.1 flash):
+
+| Grup | rag | rag_eq | hybrid |
+|---|---|---|---|
+| Tek adım | 100 | 100 | 100 |
+| Çok adım | 8 | 18 | 98 |
+| Derin | 0 | 0 | 78 |
+| Serbest metin | 58 | 40 | 100 |
+| **Tümü** | **41** | **39** | **94** |
+
+Golden sette (14 belge, 33 soru) BM25 ile RAG'in bağlam isabeti tek adımlı sorularda 91'den 100'e, çok adımlı sorularda 55'ten 82'ye çıktı. Hybrid her grupta %100'de kaldı.
+
+### Çıkarımlar
+
+- **Ezberleme yok.** Hybrid görülmemiş sette de %94–96.
+- **RAG'i güçlendirmek farkı kapatmıyor.** BM25 serbest metin sorularında belirgin artış sağlıyor. Çok ve derin adımlı sorular ise ~%0–18'de kalıyor, çünkü cevap birden çok belgeye dağılmış bir zincir.
+- **BM25 artık varsayılan** (`rag_lexical=True`). Reranker bu veride serbest metni 85'ten 62'ye düşürdü ve CPU'da çok yavaş; isteğe bağlı kaldı.
+- **Derin sorularda cevap kaybı.** Bağlam %85 doğru, cevap %78. Aradaki fark modelin üç halkalı zinciri izlerken yaptığı hata.
+
+### Açık kalanlar
+
+- **rag_eq, serbest metinde rag'den düşük** (58'e karşı 40). Büyük olasılıkla `k` arttıkça fazladan gelen pasajlar, en iyi pasajın cevabı taşıyan komşularını bütçeden itiyor. Bu doğrulanmadı.
+- **`bge-m3` ile resolver eşiği.** 0,92 eşiği `nomic`'e göre ayarlanmıştı. `bge-m3` ile `ORTAGIDIR` hassasiyeti %92,4'e düştü.
+- **BM25 bellekte tutuluyor** (parça başına bir token listesi). Büyük korpuslarda ölçülmeli.
+
+### Belge güncelleme ve silme
+
+- **`kb.delete(kaynak | belge id)`**, CLI'da `rag-with-oag delete`:
+  - Belgenin parçaları ve kendisi silinir.
+  - İlişkilerin kanıt listesinden bu belgenin parçaları çıkarılır; kanıtı kalmayan ilişki silinir.
+  - Artık hiçbir yerde geçmeyen ve ilişkisi kalmayan entity'ler silinir.
+  - BM25 indeksi yenilenir.
+  - Sonuç bir `DeleteReport` olarak döner.
+- **Değiştirme:** aynı kaynak yolu yeni içerikle gelirse önce yeni sürüm yazılıp çıkarılır, eski sürüm bütün çalıştırma bittikten sonra silinir. Yeni sürüm başarısız olursa eski sürüm kalır. `replace=False` (CLI'da `--no-replace`) eski davranışı korur.
+- **Yazma kilidi:** ingest ve delete birbirini bekler; sorgular etkilenmez.
+- **Sınır:** entity özellikleri geri alınmıyor, çünkü hangi özelliğin hangi belgeden geldiği kaydedilmiyor.
+- **Ölçeklenme:** silme sırasında ilişki taraması bütün ilişkileri geziyor; büyük graflarda ölçülmeli.
+- **Doğrulama:** 223 test geçti. Gerçek embedder ile CLI denemesinde düzenlenen dosyanın eski değeri bilgi tabanından çıktı, silinen belge aramadan kayboldu.

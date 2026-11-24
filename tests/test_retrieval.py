@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, create_autospec
 
 import pytest
 
-from rag_with_oag import Ontology, RetrievalConfig
+from rag_with_oag import AsyncKnowledgeBase, Ontology, RetrievalConfig
 from rag_with_oag._tokens import count_tokens
 from rag_with_oag.rerank import Reranker
 from rag_with_oag.retrieval.context import CHUNKS_HEADER, FACTS_HEADER, pack_facts
@@ -39,7 +39,7 @@ def _fact(id_: str, tokens: int) -> Fact:
 @pytest.fixture
 def hybrid(ontology: Ontology, fake_embedder: FakeEmbedder) -> HybridRetriever:
     repo = create_autospec(GraphRepository, instance=True)
-    config = RetrievalConfig(context_token_budget=256)
+    config = RetrievalConfig(context_token_budget=256, rag_lexical=False)
     return HybridRetriever(repo, fake_embedder, ontology, config)
 
 
@@ -62,7 +62,9 @@ def _search(
 async def test_hybrid_reserves_seed_and_rag_hits_ahead_of_higher_rrf_evidence(
     hybrid: HybridRetriever,
 ) -> None:
-    hybrid.config = RetrievalConfig(context_token_budget=256, hybrid_text_reserve=2)
+    hybrid.config = RetrievalConfig(
+        context_token_budget=256, hybrid_text_reserve=2, rag_lexical=False
+    )
     overhead = sum(map(count_tokens, (f"{FACTS_HEADER}\n", f"{CHUNKS_HEADER}\n\n", "\n\n")))
     fact_budget = int((256 - overhead) * hybrid.config.fact_budget_ratio)
     fact = _fact("full", fact_budget - 1)
@@ -86,7 +88,7 @@ async def test_hybrid_reserves_seed_and_rag_hits_ahead_of_higher_rrf_evidence(
     assert kept.facts == [fact]
     assert kept.token_count <= 256
 
-    hybrid.config = RetrievalConfig(context_token_budget=256, hybrid_text_reserve=0)
+    hybrid.config = hybrid.config.model_copy(update={"hybrid_text_reserve": 0})
     fused_order = await hybrid.retrieve("Atlas")
     assert fused_order.chunks == evidence[:1]
     assert fused_order.citations[-1] == Citation("C1", "chunk", "evidence-1")
@@ -107,7 +109,7 @@ async def test_hybrid_interleaves_unique_reserved_hits(
     hybrid: HybridRetriever, reserve: int, expected: list[str]
 ) -> None:
     first, shared, last = (_hit(id_, 15) for id_ in ("seed-first", "shared", "seed-last"))
-    hybrid.config = RetrievalConfig(context_token_budget=256, hybrid_text_reserve=reserve)
+    hybrid.config = hybrid.config.model_copy(update={"hybrid_text_reserve": reserve})
     _search(
         hybrid,
         hits=[shared, _hit("rag-second", 15), _hit("rag-last", 15)],
@@ -267,14 +269,31 @@ async def test_rag_and_hybrid_rerank_the_same_candidates(
     hybrid.repo.evidence_chunks.assert_awaited_once_with(["atlas", "related"], vector, k)
 
 
-async def test_rag_default_keeps_original_vector_hits(hybrid: HybridRetriever) -> None:
+async def test_rag_vector_only_keeps_original_vector_hits(hybrid: HybridRetriever) -> None:
     hit = ChunkHit("vector", "doc", "source.txt", "Atlas", 0.8)
     _search(hybrid, hits=[hit], facts=[])
-    rag = RAGRetriever(hybrid.repo, hybrid.embedder, RetrievalConfig())
+    rag = RAGRetriever(hybrid.repo, hybrid.embedder, RetrievalConfig(rag_lexical=False))
 
     assert (await rag.retrieve("Atlas", k=1, vector=[1.0])).chunks == [hit]
     hybrid.repo.search_chunks.assert_awaited_once_with([1.0], 1)
     hybrid.repo.search_chunks_text.assert_not_awaited()
+
+
+async def test_rag_default_uses_bm25(
+    fake_embedder: FakeEmbedder, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    kb = AsyncKnowledgeBase("default_rag", embedder=fake_embedder)
+    hit = ChunkHit("lexical", "doc", "source.txt", "Atlas", 1.0)
+    text_search = AsyncMock(return_value=[hit])
+    monkeypatch.setattr(kb, "open", AsyncMock(return_value=kb))
+    monkeypatch.setattr(kb.store, "search_chunks_text", text_search)
+    monkeypatch.setattr(kb.store, "search_chunks", AsyncMock(return_value=[]))
+
+    assert kb.retrieval_config.rag_lexical is True
+    context = await kb.retrieve("Atlas", mode="rag", k=1)
+
+    text_search.assert_awaited_once_with("Atlas", 3)
+    assert [chunk.chunk_id for chunk in context.chunks] == [hit.chunk_id]
 
 
 async def test_rag_text_weight_controls_fusion(hybrid: HybridRetriever) -> None:

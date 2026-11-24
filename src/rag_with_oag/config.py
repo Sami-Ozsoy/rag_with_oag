@@ -72,13 +72,13 @@ class EmbedConfig(BaseSettings):
 
 
 class RetrievalConfig(BaseModel):
-    """Chunking and retrieval knobs. The defaults suit most prototypes."""
+    """Chunking and retrieval knobs. Chunk retrieval fuses BM25 and vector ranks by default."""
 
     model_config = {"frozen": True, "extra": "forbid"}
 
     k: int = Field(default=6, ge=1, le=100)
     rag_lexical: bool = Field(
-        default=False, description="fuse BM25 chunk matches with vector matches by RRF"
+        default=True, description="fuse BM25 and vector chunk ranks by RRF in RAG and hybrid"
     )
     rag_text_weight: float = Field(default=1.0, description="RRF weight of BM25 chunk ranks")
     rerank_candidates: int = Field(default=30, ge=1, description="RAG candidates to rerank")

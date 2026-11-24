@@ -11,7 +11,9 @@ import itertools
 import json
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
+from contextlib import suppress
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from rag_with_oag._bm25 import BM25Index
@@ -19,7 +21,7 @@ from rag_with_oag._text import bm25_tokens, fold
 from rag_with_oag.store import queries as q
 from rag_with_oag.store import schema
 from rag_with_oag.store.connection import GraphConnection
-from rag_with_oag.types import Chunk, ChunkHit, Document, EntityHit
+from rag_with_oag.types import Chunk, ChunkHit, DeleteReport, Document, EntityHit
 
 if TYPE_CHECKING:
     from rag_with_oag.ontology.model import Ontology
@@ -34,6 +36,7 @@ _INTERNAL_PROPS = frozenset({"id", "name", "name_norm", "embedding", "ontology_v
 class DocumentState:
     complete: bool
     extracted_version: str | None
+    source: str | None
 
 
 @dataclass(slots=True)
@@ -142,9 +145,20 @@ class GraphRepository:
     async def document_state(self, doc_id: str) -> DocumentState:
         result = await self._graph.ro_query(q.DOCUMENT_STATE, {"id": doc_id})
         if not result.result_set:
-            return DocumentState(complete=False, extracted_version=None)
-        status, extracted = result.result_set[0]
-        return DocumentState(complete=status == "complete", extracted_version=extracted)
+            return DocumentState(complete=False, extracted_version=None, source=None)
+        status, extracted, source = result.result_set[0]
+        return DocumentState(
+            complete=status == "complete", extracted_version=extracted, source=source
+        )
+
+    async def set_document_source(self, doc_id: str, source: str) -> None:
+        await self._graph.query(q.SET_DOCUMENT_SOURCE, {"id": doc_id, "source": source})
+
+    async def replacement_ids(self, source: str, doc_id: str) -> list[str]:
+        result = await self._graph.ro_query(
+            q.REPLACEMENT_IDS, {"id": doc_id, "source": source, "status": "complete"}
+        )
+        return [old_id for (old_id,) in result.result_set]
 
     async def write_document(
         self, doc: Document, chunks: Sequence[Chunk], embeddings: Sequence[Sequence[float]]
@@ -203,6 +217,76 @@ class GraphRepository:
 
     async def mark_extracted(self, doc_id: str, version: str) -> None:
         await self._graph.query(q.MARK_DOCUMENT_EXTRACTED, {"id": doc_id, "version": version})
+
+    # --- delete: documents, evidence and orphans -------------------------------
+
+    async def delete(self, *targets: str | Path) -> DeleteReport:
+        doc_ids: dict[str, None] = {}
+        not_found: list[str] = []
+        graph = self._graph
+        for target in targets:
+            value = str(target)
+            path = Path(target)
+            normalized = str(path)
+            sources = [value, normalized]
+            if normalized.startswith("~"):
+                with suppress(RuntimeError):
+                    sources.append(str(await asyncio.to_thread(path.expanduser)))
+            result = await graph.ro_query(
+                q.DOCUMENT_TARGET_IDS, {"target": value, "sources": list(dict.fromkeys(sources))}
+            )
+            if not result.result_set:
+                not_found.append(value)
+                continue
+            for source in (None, *sources):
+                matches = [doc_id for doc_id, stored in result.result_set if stored == source]
+                if matches:
+                    doc_ids.update(dict.fromkeys(matches))
+                    break
+        if not doc_ids:
+            return DeleteReport(not_found=not_found)
+        return await self.delete_documents(doc_ids, not_found=not_found)
+
+    async def delete_documents(
+        self, doc_ids: Iterable[str], *, not_found: list[str] | None = None
+    ) -> DeleteReport:
+        documents = chunks = relations_deleted = entities_deleted = 0
+        trimmed: set[int] = set()
+        async with self._bm25_lock:
+            graph = self._graph
+            try:
+                for doc_id in doc_ids:
+                    params = {"id": doc_id}
+                    result = await graph.ro_query(q.DOCUMENT_CHUNK_IDS, params)
+                    chunk_ids = [cid for (cid,) in result.result_set]
+                    entities: set[str] = set()
+                    for batch in _batches(chunk_ids, WRITE_BATCH):
+                        chunk_params = {"ids": batch}
+                        result = await graph.ro_query(q.MENTIONED_ENTITY_IDS, chunk_params)
+                        entities.update(eid for (eid,) in result.result_set)
+                        result = await graph.query(q.DELETE_UNSUPPORTED_RELATIONS, chunk_params)
+                        relations_deleted += int(result.relationships_deleted)
+                        trimmed.difference_update(rid for (rid,) in result.result_set)
+                        result = await graph.query(q.TRIM_RELATION_EVIDENCE, chunk_params)
+                        trimmed.update(rid for (rid,) in result.result_set)
+                    for batch in _batches(chunk_ids, WRITE_BATCH):
+                        result = await graph.query(q.DELETE_CHUNKS, {"ids": batch})
+                        chunks += int(result.nodes_deleted)
+                    result = await graph.query(q.DELETE_DOCUMENT, params)
+                    documents += int(result.nodes_deleted)
+                    for batch in _batches(sorted(entities), WRITE_BATCH):
+                        result = await graph.query(q.DELETE_ORPHAN_ENTITIES, {"ids": batch})
+                        entities_deleted += int(result.nodes_deleted)
+            finally:
+                self._bm25 = None
+        return DeleteReport(
+            documents=documents,
+            chunks=chunks,
+            relations_deleted=relations_deleted,
+            relations_trimmed=len(trimmed),
+            entities_deleted=entities_deleted,
+            not_found=not_found or [],
+        )
 
     # --- ingest: extraction cache and graph -------------------------------------
 

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120" width="520" height="120" role="img" aria-label="rag_with_oag">
+  <title>rag_with_oag</title>
+  <rect width="120" height="120" rx="28" fill="#1a1a19"/>
+  <g stroke="#c3c2b7" stroke-width="8" stroke-linecap="round">
+    <line x1="24" y1="36" x2="50" y2="36"/><line x1="24" y1="60" x2="42" y2="60"/><line x1="24" y1="84" x2="50" y2="84"/>
+  </g>
+  <g stroke="#6f6e68" stroke-width="4.5" stroke-linecap="round" fill="none">
+    <path d="M64 36 L94 60 L64 84"/><line x1="56" y1="60" x2="94" y2="60"/>
+  </g>
+  <circle cx="64" cy="36" r="7" fill="#c3c2b7"/><circle cx="56" cy="60" r="7" fill="#c3c2b7"/><circle cx="64" cy="84" r="7" fill="#c3c2b7"/>
+  <circle cx="94" cy="60" r="16" fill="#3987e5" fill-opacity="0.22"/><circle cx="94" cy="60" r="10" fill="#3987e5"/>
+  <text x="146" y="74" font-family="SF Mono, Menlo, Consolas, monospace" font-size="40" font-weight="600" fill="#1a1a19">rag_with_<tspan fill="#2a78d6">oag</tspan></text>
+</svg>

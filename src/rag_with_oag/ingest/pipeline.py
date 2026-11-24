@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
@@ -49,7 +49,9 @@ class IngestPipeline:
         self.chunker = chunker
         self.graph_builder = graph_builder
 
-    async def run(self, sources: Iterable[Source], *, concurrency: int = 4) -> IngestReport:
+    async def run(
+        self, sources: Iterable[Source], *, concurrency: int = 4, replace: bool = True
+    ) -> IngestReport:
         if concurrency < 1:
             raise ValueError("concurrency must be >= 1")
         report = IngestReport()
@@ -62,6 +64,9 @@ class IngestPipeline:
         usage_before = [Counter(m) for m in meters]
         unmapped: Counter[str] = Counter()
         semaphore = asyncio.Semaphore(concurrency)
+        source_locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+        document_locks: defaultdict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
+        replacements: dict[str, tuple[str, list[str]]] = {}
 
         async def handle(source: Source) -> None:
             async with semaphore:
@@ -75,14 +80,18 @@ class IngestPipeline:
                             source,  # type: ignore[arg-type]
                         )
                     )
-                    outcome = await self._ingest_document(doc)
+                    async with source_locks[doc.source], document_locks[doc.id]:
+                        outcome = await self._ingest_document(doc)
+                        if replace and (outcome.graph is None or outcome.graph.complete):
+                            old_ids = await self.repo.replacement_ids(doc.source, doc.id)
+                            replacements[doc.source] = (doc.id, old_ids)
                 except EmbeddingMismatchError:
                     raise  # every later document would fail the same way
                 except Exception as exc:
                     logger.warning("ingest failed for %s: %s", label, exc, exc_info=True)
                     report.failures.append((label, f"{type(exc).__name__}: {exc}"))
                     return
-                if outcome is None:
+                if outcome.chunks_written == 0 and outcome.graph is None:
                     report.documents_skipped += 1
                     return
                 report.documents_processed += 1
@@ -100,6 +109,21 @@ class IngestPipeline:
             first = mismatch.exceptions[0] if mismatch else group.exceptions[0]
             raise first from None
 
+        # Keep old documents available until all concurrent entity resolution is done.
+        for source, (doc_id, old_ids) in replacements.items():
+            if not old_ids:
+                continue
+            try:
+                current_ids = await self.repo.replacement_ids(source, doc_id)
+                old_id_set = set(old_ids)
+                deleted = await self.repo.delete_documents(
+                    old_id for old_id in current_ids if old_id in old_id_set
+                )
+                report.documents_replaced += deleted.documents
+            except Exception as exc:
+                logger.warning("replacement failed for %s: %s", source, exc, exc_info=True)
+                report.failures.append((source, f"replacement: {type(exc).__name__}: {exc}"))
+
         usage: Counter[str] = Counter()
         for meter, before in zip(meters, usage_before, strict=True):
             usage.update(Counter(meter) - before)
@@ -107,17 +131,12 @@ class IngestPipeline:
         report.unmapped_concepts = unmapped.most_common()
         return report
 
-    async def _ingest_document(self, doc: Document) -> _DocOutcome | None:
-        """Bring one document up to date; None if there was nothing to do."""
+    async def _ingest_document(self, doc: Document) -> _DocOutcome:
         state = await self.repo.document_state(doc.id)
         builder = self.graph_builder
-        needs_graph = builder is not None and state.extracted_version != builder.version
-        if state.complete and not needs_graph:
-            return None
-        if state.complete:
-            chunks = await self.repo.document_chunks(doc.id)
-            written = 0
-        else:
+        graph = None
+        chunks: list[Chunk] = []
+        if not state.complete:
             chunks = await asyncio.to_thread(build_chunks, doc, self.chunker)
             if not chunks:
                 raise ValueError("document has no text to index")
@@ -126,8 +145,12 @@ class IngestPipeline:
                 model=embedder_identity(self.embedder), dim=len(vectors[0])
             )
             await self.repo.write_document(doc, chunks, vectors)
-            written = len(chunks)
-        graph = await builder.build(doc, chunks) if builder is not None and needs_graph else None
+        written = len(chunks)
+        if builder is not None and state.extracted_version != builder.version:
+            chunks = await self.repo.document_chunks(doc.id) if state.complete else chunks
+            graph = await builder.build(doc, chunks)
+        if state.complete and state.source != doc.source and (graph is None or graph.complete):
+            await self.repo.set_document_source(doc.id, doc.source)
         return _DocOutcome(chunks_written=written, graph=graph)
 
 

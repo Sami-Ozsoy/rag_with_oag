@@ -18,6 +18,7 @@ VECTOR_EF_RUNTIME = 200
 # is created later, once the first embedding call reveals the dimension.
 RANGE_INDEXES = (
     ("Document", "id"),
+    ("Document", "source"),
     ("Chunk", "id"),
     ("Meta", "kb"),
     ("Entity", "id"),

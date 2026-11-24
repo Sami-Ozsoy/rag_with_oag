@@ -20,6 +20,7 @@ from rag_with_oag.ontology import EntityType, Ontology, Property, RelationType
 from rag_with_oag.types import (
     ChunkHit,
     Citation,
+    DeleteReport,
     Document,
     EntityHit,
     Fact,
@@ -39,6 +40,7 @@ __all__ = [
     "ChunkHit",
     "Citation",
     "ConfigError",
+    "DeleteReport",
     "Document",
     "EmbedConfig",
     "EmbeddingMismatchError",

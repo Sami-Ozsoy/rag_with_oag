@@ -31,7 +31,7 @@ def chunk_id(doc_id: str, idx: int) -> str:
 
 @dataclass(frozen=True, slots=True)
 class Document:
-    """A loaded source. ``id`` is the content hash, which makes ingest idempotent."""
+    """A loaded source. Identical content at different sources shares one document ID."""
 
     text: str
     source: str
@@ -171,7 +171,20 @@ class IngestReport:
     validation_errors: list[tuple[str, str]] = field(default_factory=list)
     unmapped_concepts: list[tuple[str, int]] = field(default_factory=list)
     token_usage: dict[str, int] = field(default_factory=dict)
+    documents_replaced: int = 0
 
     @property
     def ok(self) -> bool:
         return not self.failures
+
+
+@dataclass(frozen=True, slots=True)
+class DeleteReport:
+    """Deletion counts and unmatched targets."""
+
+    documents: int = 0
+    chunks: int = 0
+    relations_deleted: int = 0
+    relations_trimmed: int = 0
+    entities_deleted: int = 0
+    not_found: list[str] = field(default_factory=list)

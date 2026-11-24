@@ -233,7 +233,10 @@ entities:
       numara: string
 """)
     hybrid = HybridRetriever(
-        repo, contract_clause_corpus, ontology, RetrievalConfig(k=4, hybrid_text_reserve=reserve)
+        repo,
+        contract_clause_corpus,
+        ontology,
+        RetrievalConfig(k=4, hybrid_text_reserve=reserve, rag_lexical=False),
     )
 
     context = await hybrid.retrieve(_CLAUSE_QUESTION)

@@ -214,7 +214,7 @@ class Summary:
     rows: list[Row] = field(default_factory=list)
     groups: list[str] = field(default_factory=list)
     graph_quality: GraphQuality | None = None
-    rag_lexical: bool = False
+    rag_lexical: bool = field(default_factory=lambda: RetrievalConfig().rag_lexical)
 
     @property
     def has_chains(self) -> bool:
@@ -251,7 +251,8 @@ async def run(args: argparse.Namespace) -> Summary:
     embedder = make_embedder(args)
     rerank_model = getattr(args, "rerank", None)
     reranker = FastEmbedReranker(rerank_model) if rerank_model is not None else None
-    retrieval = RetrievalConfig(rag_lexical=getattr(args, "lexical", False))
+    lexical = getattr(args, "lexical", None)
+    retrieval = RetrievalConfig() if lexical is None else RetrievalConfig(rag_lexical=lexical)
     db = args.out / "golden.db"
     seed_entries = (
         await read_seed_cache(db, args.seed_cache_from, ontology)
@@ -571,7 +572,12 @@ def main() -> None:
     parser.add_argument("--llm", required=True, help="answer model")
     parser.add_argument("--extractor", help="extraction model (default: --llm)")
     parser.add_argument("--rerank", metavar="MODEL", help="FastEmbed cross-encoder model")
-    parser.add_argument("--lexical", action="store_true", help="fuse lexical and vector chunk hits")
+    parser.add_argument(
+        "--lexical",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="fuse BM25 and vector chunk hits (default: use RetrievalConfig)",
+    )
     parser.add_argument("--modes", default=",".join(MODES))
     parser.add_argument("-k", type=int, default=RetrievalConfig().k)
     parser.add_argument("--hops", type=int)

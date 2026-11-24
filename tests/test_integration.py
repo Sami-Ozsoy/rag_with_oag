@@ -95,13 +95,13 @@ async def test_lexical_chunk_search_recovers_id_and_suffix_matches(
     connection: GraphConnection, kb_name: str
 ) -> None:
     embedder = _MisleadingEmbedder()
-    plain = AsyncKnowledgeBase(kb_name, connection=connection, embedder=embedder)
-    lexical = AsyncKnowledgeBase(
+    plain = AsyncKnowledgeBase(
         kb_name,
         connection=connection,
         embedder=embedder,
-        retrieval=RetrievalConfig(rag_lexical=True),
+        retrieval=RetrievalConfig(rag_lexical=False),
     )
+    lexical = AsyncKnowledgeBase(kb_name, connection=connection, embedder=embedder)
     try:
         report = await plain.ingest(
             [

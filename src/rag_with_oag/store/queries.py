@@ -48,7 +48,14 @@ SET m.ontology_version = $version, m.ontology_name = $name, m.ontology_yaml = $y
 
 # --- ingest: documents and chunks -------------------------------------------
 
-DOCUMENT_STATE = "MATCH (d:Document {id: $id}) RETURN d.status, d.extracted_version"
+DOCUMENT_STATE = "MATCH (d:Document {id: $id}) RETURN d.status, d.extracted_version, d.source"
+SET_DOCUMENT_SOURCE = "MATCH (d:Document {id: $id}) SET d.source = $source"
+REPLACEMENT_IDS = """
+MATCH (:Document {id: $id, source: $source}), (old:Document {source: $source})
+WHERE old.id <> $id AND old.status = $status
+RETURN old.id
+ORDER BY old.id
+"""
 
 # A document is written as 'pending' first and flipped to 'complete' last, so an
 # interrupted ingest is retried instead of being skipped as already present.
@@ -98,6 +105,59 @@ SET_CHUNK_TEXT_NORM = """
 UNWIND $rows AS r
 MATCH (c:Chunk {id: r.id}) WHERE c.text_norm IS NULL
 SET c.text_norm = r.text_norm
+"""
+
+# --- delete: documents, evidence and orphans ---------------------------------
+
+DOCUMENT_TARGET_IDS = """
+MATCH (d:Document {id: $target}) RETURN d.id AS doc_id, null AS source
+UNION ALL
+MATCH (d:Document) WHERE d.source IN $sources RETURN d.id AS doc_id, d.source AS source
+"""
+
+DOCUMENT_CHUNK_IDS = "MATCH (:Document {id: $id})-[:HAS_CHUNK]->(c:Chunk) RETURN c.id"
+
+MENTIONED_ENTITY_IDS = """
+UNWIND $ids AS cid
+MATCH (:Chunk {id: cid})-[:MENTIONS]->(e:Entity)
+RETURN DISTINCT e.id
+"""
+
+_FILTER_EVIDENCE = """
+MATCH (:Entity)-[r]->(:Entity)
+WHERE any(cid IN coalesce(r.evidence, []) WHERE cid IN $ids)
+WITH r, [cid IN r.evidence WHERE NOT cid IN $ids] AS remaining
+"""
+
+DELETE_UNSUPPORTED_RELATIONS = (
+    _FILTER_EVIDENCE
+    + """
+WHERE size(remaining) = 0
+WITH r, id(r) AS edge_id
+DELETE r
+RETURN edge_id
+"""
+)
+
+TRIM_RELATION_EVIDENCE = (
+    _FILTER_EVIDENCE
+    + """
+WHERE size(remaining) > 0
+SET r.evidence = remaining
+RETURN id(r)
+"""
+)
+
+DELETE_CHUNKS = "UNWIND $ids AS cid MATCH (c:Chunk {id: cid}) DETACH DELETE c"
+DELETE_DOCUMENT = "MATCH (d:Document {id: $id}) DETACH DELETE d"
+
+DELETE_ORPHAN_ENTITIES = """
+UNWIND $ids AS eid
+MATCH (e:Entity {id: eid})
+OPTIONAL MATCH (e)-[r]-()
+WITH e, count(r) AS relationships
+WHERE relationships = 0
+DELETE e
 """
 
 # --- ingest: extraction cache and graph --------------------------------------

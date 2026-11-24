@@ -1,4 +1,4 @@
-"""Command line: ``rag-with-oag ingest`` and ``rag-with-oag query``.
+"""Command line for ingesting, deleting and querying documents.
 
 Models come from the environment, e.g.::
 
@@ -42,6 +42,10 @@ def build_parser() -> argparse.ArgumentParser:
     ingest = sub.add_parser("ingest", parents=[common], help="ingest files or directories")
     ingest.add_argument("sources", nargs="+")
     ingest.add_argument("--concurrency", type=int, default=4)
+    ingest.add_argument("--no-replace", action="store_true", help="keep older document versions")
+
+    delete = sub.add_parser("delete", parents=[common], help="delete documents by ID or source")
+    delete.add_argument("targets", nargs="+")
 
     query = sub.add_parser("query", parents=[common], help="ask a question")
     query.add_argument("question")
@@ -73,6 +77,8 @@ def main(argv: list[str] | None = None) -> int:
         with kb:
             if args.command == "ingest":
                 return _ingest(kb, args)
+            if args.command == "delete":
+                return _delete(kb, args)
             return _query(kb, args)
     except (RagOagError, ValueError, FileNotFoundError) as exc:
         print(f"error: {exc}", file=sys.stderr)
@@ -95,13 +101,14 @@ def _open(args: argparse.Namespace) -> KnowledgeBase:
 
 
 def _ingest(kb: KnowledgeBase, args: argparse.Namespace) -> int:
-    report = kb.ingest(args.sources, concurrency=args.concurrency)
+    report = kb.ingest(args.sources, concurrency=args.concurrency, replace=not args.no_replace)
     if args.json:
         _print_json(asdict(report))
     else:
         print(
             f"processed {report.documents_processed}, skipped {report.documents_skipped} "
-            f"(unchanged), chunks {report.chunks_written}, entities {report.entities_written}, "
+            f"(unchanged), replaced {report.documents_replaced}, chunks {report.chunks_written}, "
+            f"entities {report.entities_written}, "
             f"relations {report.relations_written}"
         )
         if report.validation_errors:
@@ -114,6 +121,21 @@ def _ingest(kb: KnowledgeBase, args: argparse.Namespace) -> int:
         for source, error in report.failures:
             print(f"  failed: {source}: {error}", file=sys.stderr)
     return 0 if report.ok else 1
+
+
+def _delete(kb: KnowledgeBase, args: argparse.Namespace) -> int:
+    report = kb.delete(*args.targets)
+    if args.json:
+        _print_json(asdict(report))
+    else:
+        print(
+            f"deleted documents {report.documents}, chunks {report.chunks}, "
+            f"relations {report.relations_deleted}, entities {report.entities_deleted}, "
+            f"trimmed relations {report.relations_trimmed}"
+        )
+        for target in report.not_found:
+            print(f"  not found: {target}")
+    return 0
 
 
 def _query(kb: KnowledgeBase, args: argparse.Namespace) -> int:

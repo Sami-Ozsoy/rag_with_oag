@@ -33,7 +33,14 @@ from rag_with_oag.retrieval.rag import RAGRetriever
 from rag_with_oag.store.connection import GraphConnection
 from rag_with_oag.store.queries import safe_identifier
 from rag_with_oag.store.repository import GraphRepository
-from rag_with_oag.types import MODES, IngestReport, Mode, QueryResult, RetrievedContext
+from rag_with_oag.types import (
+    MODES,
+    DeleteReport,
+    IngestReport,
+    Mode,
+    QueryResult,
+    RetrievedContext,
+)
 
 T = TypeVar("T")
 
@@ -116,6 +123,7 @@ class AsyncKnowledgeBase:
             self._oag = OAGRetriever(*args)
             self._hybrid = HybridRetriever(*args, reranker=reranker)
         self._open_lock = asyncio.Lock()
+        self._write_lock = asyncio.Lock()
         self._opened = False
         self._closed = False
 
@@ -157,28 +165,37 @@ class AsyncKnowledgeBase:
     # --- operations -----------------------------------------------------------
 
     async def ingest(
-        self, sources: Iterable[Source] | Source, *, concurrency: int = 4
+        self, sources: Iterable[Source] | Source, *, concurrency: int = 4, replace: bool = True
     ) -> IngestReport:
-        """Load, chunk, embed and store documents, and extract their graph if there
-        is an ontology. Content that is already up to date is skipped."""
-        await self.open()
-        if isinstance(sources, str | Path) or not isinstance(sources, Iterable):
-            sources = [sources]
-        builder = None
-        if self.ontology is not None:
-            if self.extractor_llm is None:
-                raise ConfigError(
-                    "extraction needs a model; pass llm=... or extractor_llm=LLMConfig(...)"
+        """Ingest documents, replacing older versions at each source by default.
+
+        Identical content shares one document ID and adopts the latest source.
+        """
+        async with self._write_lock:
+            await self.open()
+            if isinstance(sources, str | Path) or not isinstance(sources, Iterable):
+                sources = [sources]
+            builder = None
+            if self.ontology is not None:
+                if self.extractor_llm is None:
+                    raise ConfigError(
+                        "extraction needs a model; pass llm=... or extractor_llm=LLMConfig(...)"
+                    )
+                builder = GraphBuilder(
+                    self.store,
+                    self.extractor_llm,
+                    self.embedder,
+                    self.ontology,
+                    self.extraction_config,
                 )
-            builder = GraphBuilder(
-                self.store,
-                self.extractor_llm,
-                self.embedder,
-                self.ontology,
-                self.extraction_config,
-            )
-        pipeline = IngestPipeline(self.store, self.embedder, self._chunker, builder)
-        return await pipeline.run(sources, concurrency=concurrency)
+            pipeline = IngestPipeline(self.store, self.embedder, self._chunker, builder)
+            return await pipeline.run(sources, concurrency=concurrency, replace=replace)
+
+    async def delete(self, *targets: str | Path) -> DeleteReport:
+        """Delete documents by ID or source. Merged entity properties lack rollback provenance."""
+        async with self._write_lock:
+            await self.open()
+            return await self.store.delete(*targets)
 
     @property
     def default_mode(self) -> Mode:
@@ -264,8 +281,15 @@ class KnowledgeBase:
     def llm(self) -> ChatModel | None:
         return self._async.llm
 
-    def ingest(self, sources: Iterable[Source] | Source, *, concurrency: int = 4) -> IngestReport:
-        return self._run(self._async.ingest(sources, concurrency=concurrency))
+    def ingest(
+        self, sources: Iterable[Source] | Source, *, concurrency: int = 4, replace: bool = True
+    ) -> IngestReport:
+        """Ingest documents. Identical content shares one ID and adopts the latest source."""
+        return self._run(self._async.ingest(sources, concurrency=concurrency, replace=replace))
+
+    def delete(self, *targets: str | Path) -> DeleteReport:
+        """Delete documents by ID or source. Merged entity properties lack rollback provenance."""
+        return self._run(self._async.delete(*targets))
 
     def retrieve(
         self,

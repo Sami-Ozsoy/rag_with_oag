@@ -1,4 +1,9 @@
-# rag_with_oag
+<h1 align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-wordmark-dark.png">
+    <img src="docs/brand/logo-wordmark-light.png" width="420" alt="rag_with_oag">
+  </picture>
+</h1>
 
 Ask questions about your documents, including questions whose answer is spread
 over several documents.
@@ -28,31 +33,36 @@ two shareholder records). No single passage looks like the question, so plain
 RAG retrieves the wrong text. A graph answers it by following
 `contract → customer → shareholder → shareholder`.
 
-On a synthetic Turkish corpus of 596 documents and 160 questions
-([details](#evaluation)), at the same 6,000-token context budget:
+On a held-out synthetic Turkish corpus of 593 documents and 160 questions
+([details](#evaluation)), generated with sentence patterns that were never seen
+while the retrieval settings were tuned:
 
 <p align="center">
   <img src="docs/images/rag_vs_hybrid.png" width="600"
-       alt="Share of questions answered correctly at the same token budget: plain RAG 32%, hybrid 98%. Single fact: RAG 80%, hybrid 100%. Two hops: RAG 5%, hybrid 100%. Three hops: RAG 0%, hybrid 92%. Free-text clause: RAG 45%, hybrid 100%.">
+       alt="Share of held-out questions answered correctly: strong RAG (vector plus BM25) 41%, hybrid 94%. Single fact: RAG 100%, hybrid 100%. Two hops: RAG 8%, hybrid 98%. Three hops: RAG 0%, hybrid 78%. Free-text clause: RAG 58%, hybrid 100%.">
 </p>
 
 <details>
 <summary>The same numbers as a table</summary>
 
-| Question type | RAG | Hybrid |
-|---|---|---|
-| Single fact (a tax number, a date) | 80% | 100% |
-| Two hops | 5% | 100% |
-| Three hops | 0% | 92% |
-| Free-text clause (not in the ontology) | 45% | 100% |
-| **All** | **32%** | **98%** |
+| Question type | RAG | RAG at hybrid's budget | Hybrid |
+|---|---|---|---|
+| Single fact (a tax number, a date) | 100% | 100% | 100% |
+| Two hops | 8% | 18% | 98% |
+| Three hops | 0% | 0% | 78% |
+| Free-text clause (not in the ontology) | 58% | 40% | 100% |
+| **All** | **41%** | **39%** | **94%** |
 
 </details>
 
 Answer accuracy with `deepseek-v4.1-flash` for answers and extraction and
-`nomic-embed-text` for embeddings. The RAG column is RAG with `k` raised until
-its context is as large as hybrid's. This is one synthetic corpus, one domain
-and one model; results on real documents still need to be confirmed.
+`bge-m3` for embeddings, with a 6,000-token context budget. RAG is the strongest
+baseline we measured: vector search fused with BM25 keyword search. A
+multilingual cross-encoder reranker did not improve it on this data. "RAG at
+hybrid's budget" raises `k` until its context is as large as hybrid's; the extra
+passages push out the neighbours of the best hit, so it scores slightly lower.
+On the default set used for tuning, hybrid scores 98%. This is one synthetic
+domain and one model; results on real documents still need to be confirmed.
 
 ## Install
 
@@ -162,7 +172,7 @@ relations:
 
 | Mode | Finds its starting point by | Gives the model |
 |---|---|---|
-| `rag` | vector search over passages | the most similar passages and their neighbours |
+| `rag` | vector and BM25 keyword search over passages | the best passages and their neighbours |
 | `oag` | matching names and keys in the question to graph entities | facts from walking the graph up to `hops` relations away |
 | `hybrid` (default) | both | graph facts, passages from the documents the matched entities appear in, and the best RAG passages |
 
@@ -182,6 +192,12 @@ cases; the ones worth knowing:
 | `fact_budget_ratio` | 0.6 | Maximum share of the budget for graph facts in hybrid |
 | `hybrid_text_reserve` | 4 | Passages hybrid always keeps ahead of facts |
 | `link_exact_anchors` | `True` | A key or full name written in the question makes that entity the only starting point |
+| `rag_lexical` | `True` | Fuse BM25 keyword ranks with vector ranks for RAG passages (in `rag` and `hybrid`) |
+| `rerank_candidates` | 30 | Passages a reranker rescores, when one is passed |
+
+A cross-encoder reranker is optional: `KnowledgeBase(..., reranker=FastEmbedReranker())`
+from `rag_with_oag.rerank.local` (the `local` extra). It runs on CPU and did not
+help on our evaluation sets, so it is off by default.
 
 ## CLI
 
@@ -197,13 +213,26 @@ rag-with-oag query "..." --kb contracts --mode rag --retrieve-only --json
 
 ### Ingest
 
+```mermaid
+flowchart LR
+    D["Documents"] --> L["Load<br/>id = content hash"]
+    L --> C["Chunk"]
+    C --> E["Embed"]
+    E -->|"Document, Chunk"| G[("FalkorDB<br/>one embedded graph")]
+    C --> X["Extract<br/>LLM + JSON Schema"]
+    O[/"Ontology"/] --> X
+    X --> V["Validate"]
+    V --> R["Resolve entities"]
+    R -->|"Entity, MENTIONS, relations"| G
+```
+
 For each document:
 
 1. **Load.** A document's id is its content hash, so ingesting unchanged content
-   again does nothing. **An edited file counts as a new document:** until v0.3
-   the old version stays in the graph. After editing documents, rebuild under a
-   new knowledge base name (or `await kb.store.drop()` with
-   `AsyncKnowledgeBase`).
+   again does nothing. When a source (a file path) comes back with new content,
+   the new version is written and extracted first, then the old version is
+   removed (`replace=False` keeps both). Identical content under two sources is
+   one document.
 2. **Chunk.** [adaptive-oci-chunking](https://pypi.org/project/adaptive-oci-chunking/)
    picks a strategy per document. Each chunk keeps its section path and page.
 3. **Embed** the chunks. The embedding model and dimension are recorded; opening
@@ -230,14 +259,52 @@ document whose extraction failed is retried on the next ingest.
 
 ### Retrieval
 
+```mermaid
+flowchart LR
+    Q["Question"] --> LK["Link<br/>keys and names to entities"]
+    Q --> RS["RAG search<br/>vector + BM25, RRF"]
+    LK --> W["Walk graph<br/>up to hops"]
+    RS --> RR["Rerank<br/>optional"]
+    W -->|"facts"| P["Pack context<br/>token budget"]
+    RR -->|"passages"| P
+    P --> A["LLM answer"]
+```
+
+`oag` uses the upper path, `rag` the lower one, and `hybrid` both; hybrid falls back to the
+lower path when nothing in the question matches the graph.
+
 1. **Link.** Keys and full names written in the question are matched exactly.
    Otherwise full-text and vector matches on entity names are fused.
 2. **Walk.** From the matched entities, the graph is expanded one hop at a time,
    both directions, up to `hops`. Facts are ordered by distance, so when the
    budget runs out the farthest ones are dropped first.
-3. **Pack** (hybrid). Passages from the documents the matched entities appear in
+3. **Search passages.** Vector search and an in-memory BM25 index (built on
+   first use, rebuilt after writes) are fused with Reciprocal Rank Fusion.
+   Turkish words are folded and cut to six letters, so "sözleşmesindeki" matches
+   "sözleşme"; keys like `KS-2024-002` are single tokens, so `DS-2024-002` does
+   not match.
+4. **Pack** (hybrid). Passages from the documents the matched entities appear in
    and the top RAG passages are reserved first. Graph facts come next, then the
    remaining passages, fused with Reciprocal Rank Fusion.
+
+### Delete
+
+`kb.delete("docs/contract.md")` (or a document id) removes a document and
+returns a `DeleteReport`:
+
+- Its chunks go, and their ids are removed from each relation's evidence.
+- A relation with no evidence left is deleted. One that another document also
+  states stays.
+- Entities that are no longer mentioned anywhere and have no relations are
+  deleted.
+
+Entity properties are not rolled back: a property only the deleted document
+stated keeps its last value until another document sets it. Ingest and delete
+take a write lock, so they never interleave; queries do not wait.
+
+```bash
+rag-with-oag delete docs/contract.md --kb contracts
+```
 
 ### Raw Cypher
 
@@ -256,14 +323,20 @@ Two evaluation sets ship with the repository:
   relations and 160 questions in four groups. It includes confusable company
   names, passive and reversed phrasing, and facts spread over documents. Each
   question records its answer chain and the sentence that states each hop.
+  `--variant b` uses separate sentence, document and question templates;
+  `eval/synthetic/sets/heldout` (seed 101) is built with it and shares no
+  sentence with the default set, so it checks that tuning did not overfit.
 
 ```bash
 python eval/run_golden.py --base-url http://localhost:11434/v1 \
     --llm qwen2.5:7b-instruct --embed nomic-embed-text --answers --equal-budget
 
-python eval/run_golden.py --set eval/synthetic/sets/default --kb synth \
-    --llm <model> --embed nomic-embed-text --answers --equal-budget
+python eval/run_golden.py --set eval/synthetic/sets/heldout --kb heldout \
+    --llm <model> --embed bge-m3 --answers --equal-budget
 ```
+
+`--no-lexical` turns BM25 fusion off and `--rerank MODEL` adds a FastEmbed
+cross-encoder, to compare RAG baselines.
 
 What the runner reports per mode and question group:
 
@@ -297,6 +370,6 @@ python spikes/m0_falkordb.py     # M0 backend spike: recall, latency, memory
 | M0 | FalkorDB spike: ANN recall, hybrid latency, memory |
 | M1 (v0.1) | Skeleton and RAG |
 | **M2 (v0.2)** | Ontology, extraction, OAG and hybrid modes, evaluation sets ← *you are here* |
-| M3 (v0.3) | `Ontology.suggest()`, streaming, re-ingest and delete, `reembed()`, observability |
+| M3 (v0.3) | `Ontology.suggest()`, streaming, ~~re-ingest and delete~~ (done), `reembed()`, observability |
 
 MIT licensed.

@@ -116,7 +116,7 @@ async def run_config(
         retrieval=config,
         reranker=reranker,
     )
-    summary = Summary(model={}, ingest={})
+    summary = Summary(model={}, ingest={}, rag_lexical=config.rag_lexical)
     try:
         if (await kb.stats())["chunks"] == 0:
             raise ValueError(f"KB {args.kb!r} in {args.db} is empty; use an already ingested KB")

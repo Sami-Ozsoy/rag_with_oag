@@ -1,4 +1,4 @@
-"""Rank chunks by vector search with optional BM25 fusion and reranking.
+"""Rank chunks with BM25 and vector fusion by default, with opt-in reranking.
 
 BM25 keeps one token list per chunk in memory, rebuilt lazily after writes.
 """
