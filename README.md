@@ -183,9 +183,7 @@ To extend an existing ontology, pass it with the unmapped concepts from an
 ingest report:
 
 ```python
-extended = Ontology.suggest(
-    ["docs/"], llm=llm, base=ontology, unmapped=report.unmapped_concepts
-)
+extended = Ontology.suggest(["docs/"], llm=llm, base=ontology, unmapped=report.unmapped_concepts)
 ```
 
 ```bash
