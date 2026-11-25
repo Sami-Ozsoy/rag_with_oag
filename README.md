@@ -35,15 +35,19 @@ RAG retrieves the wrong text. A graph answers it by following
 
 On a held-out synthetic Turkish corpus of 593 documents and 160 questions
 ([details](#evaluation)), generated with sentence patterns that were never seen
-while the retrieval settings were tuned:
+while the retrieval settings were tuned, and on 500 real Wikipedia questions
+([below](#on-real-documents)):
 
 <p align="center">
-  <img src="docs/images/rag_vs_hybrid.png" width="600"
-       alt="Share of held-out questions answered correctly: strong RAG (vector plus BM25) 41%, hybrid 94%. Single fact: RAG 100%, hybrid 100%. Two hops: RAG 8%, hybrid 98%. Three hops: RAG 0%, hybrid 78%. Free-text clause: RAG 58%, hybrid 100%.">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/rag_vs_hybrid-dark.png">
+    <img src="docs/images/rag_vs_hybrid.png" width="800"
+         alt="Share of questions answered correctly, hybrid versus RAG (vector plus BM25) at the same token budget. Synthetic Turkish contracts, 160 held-out questions: hybrid 94%, RAG 39%; single fact 100% vs 100%, two hops 98% vs 18%, three hops 78% vs 0%, free-text clause 100% vs 40%. Real Wikipedia, 2WikiMultiHopQA, 500 questions: hybrid 60%, RAG 50%; two hops 50% vs 34%, family relations 70% vs 62%, comparison 98% vs 99%, bridge comparison 22% vs 4%.">
+  </picture>
 </p>
 
 <details>
-<summary>The same numbers as a table</summary>
+<summary>The synthetic numbers as a table</summary>
 
 | Question type | RAG | RAG at hybrid's budget | Hybrid |
 |---|---|---|---|
