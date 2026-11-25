@@ -9,8 +9,10 @@ Metrics per question group and mode:
   doc hit       all gold documents have a chunk citation in the packed context
   doc recall    mean fraction of gold documents with a packed chunk citation per question
   answer acc.   with --answers: the LLM's answer contains the expected keywords.
-                With distractors, a competing option before the first expected
-                mention makes the answer incorrect.
+                Choice questions count refusals as incorrect. A competing option
+                before the first expected mention also makes a choice answer incorrect.
+  refusals      with --answers: percentage of answers with a refusal verdict anywhere or a
+                missing-evidence phrase in the first sentence
 
 The M2 gate compares hybrid with rag on multi_hop and deep_hop questions.
 
@@ -66,7 +68,7 @@ if TYPE_CHECKING or __package__:
         GraphQuality,
         score_graph_quality,
     )
-    from .synthetic.text import answer_first
+    from .synthetic.text import answer_first, is_refusal
     from .synthetic.text import matches as matches
     from .synthetic.text import norm as norm
 else:
@@ -78,7 +80,7 @@ else:
         GraphQuality,
         score_graph_quality,
     )
-    from synthetic.text import answer_first
+    from synthetic.text import answer_first, is_refusal
     from synthetic.text import matches as matches
     from synthetic.text import norm as norm
 
@@ -230,6 +232,7 @@ class Row:
     evidence_cov: float | None = None
     doc_hit: bool | None = None
     doc_recall: float | None = None
+    refused: bool | None = None
 
 
 @dataclass
@@ -266,6 +269,7 @@ class Summary:
             "answer_acc": (100 * sum(bool(r.answer_ok) for r in answered) / len(answered))
             if answered
             else None,
+            "refusals": mean_pct(r.refused for r in answered),
             "tokens": statistics.fmean(r.context_tokens for r in rows) if rows else None,
             "ms": statistics.median(r.retrieve_ms for r in rows) if rows else None,
             "fallbacks": sum(r.mode_used != r.mode for r in rows),
@@ -499,11 +503,15 @@ async def evaluate(
             result = await kb.query(item["q"], mode=mode, k=k, hops=hops)
         except RagOagError as exc:  # e.g. the answer model ran out of context
             row.answer, row.answer_ok = f"{ANSWER_ERROR}{type(exc).__name__}: {exc}", False
+            row.refused = False
         else:
             row.answer = result.answer
-            distractors = item.get("distractors")
+            distractors = item.get("distractors") or []
+            ignore = [alt for group in item["answer"] for alt in group]
+            ignore.extend(distractors)
+            row.refused = is_refusal(result.answer, ignore=ignore)
             row.answer_ok = (
-                answer_first(result.answer, item["answer"], distractors)
+                answer_first(result.answer, item["answer"], distractors) and not row.refused
                 if distractors
                 else matches(result.answer, item["answer"])
             )
@@ -538,6 +546,9 @@ def render(s: Summary, modes: Sequence[EvalMode]) -> str:
         for metric, label in RETRIEVAL_METRICS.items()
         if any(getattr(row, metric) is not None for row in s.rows)
     )
+    columns.append(("answer_acc", "Answer acc."))
+    if any(row.answer_ok is not None for row in s.rows):
+        columns.append(("refusals", "Refusals"))
     metric_headers = "".join(f"{label} | " for _, label in columns)
     metric_dividers = "---|" * len(columns)
     answer_model = f"answer `{s.model['llm']}`"
@@ -560,9 +571,9 @@ def render(s: Summary, modes: Sequence[EvalMode]) -> str:
         f"relations; {s.ingest['validation_errors']} extraction items rejected; "
         f"{len(s.ingest['failures'])} failures.",
         "",
-        f"| Group | Mode | {loose_label} | {metric_headers}Answer acc. | "
+        f"| Group | Mode | {loose_label} | {metric_headers}"
         "Context tokens | Retrieval p50 | Fallbacks |",
-        f"|---|---|---|{metric_dividers}---|---|---|---|",
+        f"|---|---|---|{metric_dividers}---|---|---|",
     ]
     for group in [*s.groups, None]:
         for mode in modes:
@@ -573,7 +584,7 @@ def render(s: Summary, modes: Sequence[EvalMode]) -> str:
             metric_cells = "".join(f"{pct(c[metric])} | " for metric, _ in columns)
             lines.append(
                 f"| {name} | {mode} | {pct(c['context_hit'])} | {metric_cells}"
-                f"{pct(c['answer_acc'])} | {tokens} | {latency} | {c['fallbacks']} |"
+                f"{tokens} | {latency} | {c['fallbacks']} |"
             )
     for group in ("multi_hop", "deep_hop"):
         if group not in s.groups or "hybrid" not in modes:
@@ -666,6 +677,14 @@ def summary_data(summary: Summary, modes: Sequence[EvalMode]) -> dict[str, Any]:
         if row["chain_hit"] is None:
             row.pop("chain_hit")
             row.pop("chain_cov")
+    answer_metrics = {}
+    for group in [*summary.groups, None]:
+        cells = {mode: summary.cell(group, mode) for mode in modes}
+        answer_metrics[group or "all"] = {
+            mode: {metric: cell[metric] for metric in ("answer_acc", "refusals")}
+            for mode, cell in cells.items()
+        }
+    data["answer_metrics"] = answer_metrics
     if summary.has_chains:
         chain_metrics = {}
         for group in [*summary.groups, None]:

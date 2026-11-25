@@ -19,5 +19,7 @@ python eval/run_golden.py --set eval/external/twowiki/sets/dev500 --kb twowiki -
 ```
 
 The runner skips chain metrics for this set because the evidence entities lack keys that can
-be matched to graph facts. An answer must contain an expected alternative. If the response mentions
-a `distractors` entry before its first expected alternative, the runner marks the answer incorrect.
+be matched to graph facts. An answer must contain an expected alternative. On choice questions,
+the runner marks refusals as incorrect. It also marks responses incorrect if a `distractors` entry
+appears before the first expected alternative. The report includes the refusal rate for each
+question group and retrieval mode.
