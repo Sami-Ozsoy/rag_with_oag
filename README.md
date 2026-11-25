@@ -62,7 +62,30 @@ multilingual cross-encoder reranker did not improve it on this data. "RAG at
 hybrid's budget" raises `k` until its context is as large as hybrid's; the extra
 passages push out the neighbours of the best hit, so it scores slightly lower.
 On the default set used for tuning, hybrid scores 98%. This is one synthetic
-domain and one model; results on real documents still need to be confirmed.
+domain; see below for real documents.
+
+### On real documents
+
+On 500 questions from the [2WikiMultiHopQA](https://github.com/Alab-NII/2wikimultihop) dev set,
+over 3,267 English Wikipedia paragraphs, with an ontology drafted by `Ontology.suggest()` and
+then reviewed, the gap is smaller but holds:
+
+| Question type | RAG | RAG at hybrid's budget | Graph only (`oag`) | Hybrid |
+|---|---|---|---|---|
+| Compositional ("Where was the director of film X born?") | 26% | 34% | 36% | 50% |
+| Inference ("Who is X's maternal grandmother?") | 47% | 62% | 62% | 70% |
+| Comparison ("Which film came out first, X or Y?") | 100% | 99% | 55% | 98% |
+| Bridge comparison ("Which film has the director born first?") | 0% | 4% | 22% | 22% |
+| **All** | **43%** | **50%** | **44%** | **60%** |
+
+Same models and budget as above; extraction ran with `reasoning_effort="none"`. Hybrid answered
+79 questions that RAG at the same budget missed and missed 26 that it answered (McNemar test,
+p < 0.001). An answer that says the evidence is insufficient counts as wrong: hybrid gave one to
+30% of the questions, RAG at the same budget to 42%. Comparison questions name both entities, so
+plain search finds both passages and the graph adds nothing. Bridge comparisons need four facts
+from four documents and remain mostly unsolved. On its own the graph is weak here, because
+extraction from real prose misses facts; it works best next to the passages. Wikipedia is likely
+in the model's training data, which affects all modes alike.
 
 ## Install
 
@@ -343,7 +366,7 @@ reach Cypher only from the validated ontology; every other value is a parameter.
 
 ## Evaluation
 
-Two evaluation sets ship with the repository:
+Two evaluation sets ship with the repository, and a third is built from public data:
 
 - **`eval/golden`**: 14 contract documents and 33 questions. Small and readable;
   strong models answer all of it.
@@ -355,6 +378,9 @@ Two evaluation sets ship with the repository:
   `--variant b` uses separate sentence, document and question templates;
   `eval/synthetic/sets/heldout` (seed 101) is built with it and shares no
   sentence with the default set, so it checks that tuning did not overfit.
+- **`eval/external/twowiki`**: builds a sample of the 2WikiMultiHopQA dev set (questions, their
+  Wikipedia paragraphs and gold evidence). The data is downloaded, not committed; see
+  [its README](eval/external/twowiki/README.md).
 
 ```bash
 python eval/run_golden.py --base-url http://localhost:11434/v1 \
@@ -374,6 +400,10 @@ What the runner reports per mode and question group:
   accuracy closely. A plain "answer string appears somewhere" check is also
   printed, but it overrates crowded contexts.
 - **Answer accuracy** with `--answers`.
+- **Evidence hit** and **document recall** for sets with gold evidence: whether every gold fact
+  value, and every gold document, reached the context. No LLM is needed.
+- **Refusals** with `--answers`: the share of answers that say the evidence is insufficient.
+  On choice questions a refusal counts as wrong.
 - **`rag_eq`** with `--equal-budget`: RAG with `k` raised until its context is as
   large as hybrid's, so modes are compared at the same token budget.
 - **Graph quality** for the synthetic set: missing, extra and duplicate entities;
