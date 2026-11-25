@@ -1,9 +1,9 @@
 """Question -> entities that serve as entry points into the graph.
 
 By default, literal keys and whole-token matches of stored normalized names
-are the only seeds when present. A question that writes one entity in full
-and another only by a short name links only the first if the short name
-does not match the second entity's stored normalized name.
+are the only seeds when present. Name candidates come from the full-text
+pool and exact lookups of question spans starting with an uppercase letter
+or a digit. The outermost matching names are chosen in question order.
 
 Without anchors, or with anchors disabled, weighted Reciprocal Rank Fusion
 combines prefix full-text matches and vector similarity. Text ranks weigh
@@ -17,7 +17,7 @@ import re
 from collections.abc import Callable, Hashable, Mapping, Sequence
 from dataclasses import replace
 
-from rag_with_oag._text import fold, fulltext_query
+from rag_with_oag._text import STOPWORDS, fold, fulltext_query
 from rag_with_oag.config import RetrievalConfig
 from rag_with_oag.store.repository import GraphRepository
 from rag_with_oag.types import EntityHit
@@ -25,6 +25,7 @@ from rag_with_oag.types import EntityHit
 TEXT_WEIGHT = 1.0
 VECTOR_WEIGHT = 0.5
 TEXT_MIN_RATIO = 0.5
+MAX_ANCHOR_TOKENS = 12
 _KEY_PUNCTUATION = "“”\"'‘’()[]{},;:?!."
 _APOSTROPHE = re.compile(r"['‘’]")
 
@@ -107,11 +108,37 @@ class EntityLinker:
         keyed.sort(key=lambda match: (positions[match[0]], match[1].id))
 
         names = await self.repo.entity_names_norm([hit.id for hit in by_text])
-        named = _name_anchors(question, by_text, names)
+        candidates = {hit.id: hit for hit in by_text}
+        if spans := _anchor_spans(question):
+            for name, hit in await self.repo.find_entities_by_name_norms(spans):
+                names[hit.id] = name
+                candidates.setdefault(hit.id, hit)
+        named = _name_anchors(question, list(candidates.values()), names)
         unique = {hit.id: hit for _, hit in keyed}
         for hit in named:
             unique.setdefault(hit.id, replace(hit, score=1.0))
         return list(unique.values())
+
+
+def _anchor_spans(question: str) -> list[str]:
+    tokens: list[str] = []
+    starts: list[tuple[int, int]] = []
+    for position, original in enumerate(question.split()):
+        folded = fold(original).split()
+        first = next((char for char in original if char.isalnum()), "")
+        if first.isupper() or first.isdigit():
+            min_length = 2 if position == 0 else 1
+            offset = len(tokens)
+            starts.extend((offset + i, min_length) for i in range(len(folded)))
+        tokens.extend(folded)
+
+    spans: dict[str, None] = {}
+    for start, min_length in starts:
+        for end in range(start + min_length, min(start + MAX_ANCHOR_TOKENS, len(tokens)) + 1):
+            span = tokens[start:end]
+            if not STOPWORDS.issuperset(span):
+                spans[" ".join(span)] = None
+    return list(spans)
 
 
 def _name_anchors(

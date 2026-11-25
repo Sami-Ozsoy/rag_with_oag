@@ -122,3 +122,17 @@ async def test_contract_phrase_ranks_first_without_anchors(retriever: OAGRetriev
     hits = await _link(retriever, question, config)
     assert hits[0].name == expected
     assert all(hit.score < 1.0 for hit in hits)
+
+
+async def test_entity_search_by_name_norm(retriever: OAGRetriever) -> None:
+    repo = retriever.repo
+    assert await repo.find_entities_by_name_norms([]) == []
+
+    matches = await repo.find_entities_by_name_norms(
+        ["lale cam", "ticaret sicil kaydi", "lale", "lale cam"]
+    )
+
+    assert sorted((name, hit.name, hit.type, hit.score) for name, hit in matches) == [
+        ("lale cam", LALE, "Sirket", 1.0),
+        ("ticaret sicil kaydi", "Ticaret Sicil Kaydı", "Kayit", 1.0),
+    ]

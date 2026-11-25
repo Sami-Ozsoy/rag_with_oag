@@ -5,6 +5,7 @@ Metrics per question group and mode:
   chain hit     every hop is supported by the context (for sets with chains)
   chain cov     mean fraction of supported hops per question
   evidence hit  all evidence object literals occur in the packed context
+                Dates match as D Month YYYY, Month D, YYYY, or YYYY-MM-DD.
   evidence cov  mean fraction of distinct evidence object literals found per question
   doc hit       all gold documents have a chunk citation in the packed context
   doc recall    mean fraction of gold documents with a packed chunk citation per question
@@ -68,7 +69,7 @@ if TYPE_CHECKING or __package__:
         GraphQuality,
         score_graph_quality,
     )
-    from .synthetic.text import answer_first, is_refusal
+    from .synthetic.text import answer_first, date_forms, is_refusal
     from .synthetic.text import matches as matches
     from .synthetic.text import norm as norm
 else:
@@ -80,7 +81,7 @@ else:
         GraphQuality,
         score_graph_quality,
     )
-    from synthetic.text import answer_first, is_refusal
+    from synthetic.text import answer_first, date_forms, is_refusal
     from synthetic.text import matches as matches
     from synthetic.text import norm as norm
 
@@ -490,7 +491,10 @@ async def evaluate(
     if "evidences" in item:
         literals = {obj for _, _, obj in item["evidences"]}
         text = norm(ctx.prompt_context)
-        found = sum(norm(literal) in text for literal in literals)
+        found = sum(
+            norm(literal) in text or any(norm(form) in text for form in date_forms(literal))
+            for literal in literals
+        )
         row.evidence_hit = found == len(literals)
         row.evidence_cov = found / len(literals) if literals else 1.0
     if docs := item.get("docs"):

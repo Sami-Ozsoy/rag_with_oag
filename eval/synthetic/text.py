@@ -3,6 +3,12 @@
 import re
 import unicodedata
 from collections.abc import Iterable
+from datetime import date
+
+_APOSTROPHES = str.maketrans(dict.fromkeys("’‘ʼ´`", "'"))
+_MONTHS = (
+    "January February March April May June July August September October November December"
+).split()
 
 _VERDICT_PATTERNS = (
     r"(?:cannot|can['’]t|can\s+not|unable\s+to)\s+"
@@ -41,10 +47,28 @@ def is_refusal(text: str, ignore: Iterable[str] = ()) -> bool:
 
 
 def norm(text: str) -> str:
-    """Case- and Turkish-insensitive, punctuation kept: '%2' must not match any '2'."""
-    text = text.replace("ı", "i").replace("İ", "I")
+    """Fold case, diacritics and apostrophes while retaining punctuation."""
+    text = text.translate(_APOSTROPHES).replace("ı", "i").replace("İ", "I")
     text = "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
     return re.sub(r"\s+", " ", text.casefold())
+
+
+def date_forms(text: str) -> list[str]:
+    """Return day-first, month-first and ISO forms of a valid English date."""
+    text = " ".join(text.split()).lower()
+    if match := re.fullmatch(r"([0-9]{1,2}) ([a-z]+) ([0-9]{4})", text):
+        day, month, year = match.groups()
+    elif match := re.fullmatch(r"([a-z]+) ([0-9]{1,2}), ([0-9]{4})", text):
+        month, day, year = match.groups()
+    else:
+        return []
+
+    month = month.capitalize()
+    try:
+        value = date(int(year), _MONTHS.index(month) + 1, int(day))
+    except ValueError:
+        return []
+    return [f"{value.day} {month} {year}", f"{month} {value.day}, {year}", value.isoformat()]
 
 
 def matches(text: str, groups: list[list[str]]) -> bool:

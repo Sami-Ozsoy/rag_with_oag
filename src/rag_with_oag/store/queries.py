@@ -307,6 +307,12 @@ ORDER BY score DESC
 LIMIT $k
 """
 
+FIND_ENTITIES_BY_NAME_NORMS = """
+UNWIND $names AS n
+MATCH (e:Entity {name_norm: n})
+RETURN e.id, e.name, labels(e), e.name_norm
+"""
+
 ENTITY_NAMES_NORM = """
 UNWIND $ids AS i
 MATCH (e:Entity {id: i})

@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from eval.run_golden import EvalMode, QuestionItem, Row, Summary, evaluate, render, summary_data
-from eval.synthetic.text import is_refusal
+from eval.synthetic.text import date_forms, is_refusal, matches
 
 from rag_with_oag import RagOagError
 from rag_with_oag.retrieval.context import CHUNKS_HEADER, FACTS_HEADER
@@ -70,6 +70,38 @@ async def test_scores_packed_facts_and_cited_passages(
     assert row.evidence_hit is (not include_unpacked)
     assert row.doc_hit is (not include_unpacked)
     assert row.evidence_cov == row.doc_recall == (2 / 3 if include_unpacked else 1.0)
+
+
+@pytest.mark.parametrize("date", ["1973-11-21", "21 November 1973", "November 21, 1973"])
+async def test_evidence_date_matches_packed_graph_fact(
+    context: RetrievedContext, date: str
+) -> None:
+    fact = Fact("First Film", "release date", date)
+    ctx = replace(context, facts=[fact], prompt_context=f"{FACTS_HEADER}\n[F1] {fact.render()}")
+    item: QuestionItem = {
+        "q": QUESTION,
+        "answer": [["First Film"]],
+        "evidences": [["First Film", "release date", "November 21, 1973"]],
+    }
+
+    row = await score(ctx, item)
+
+    assert row.evidence_hit
+    assert row.evidence_cov == 1.0
+
+
+@pytest.mark.parametrize("text", ["01 November 1973", "November 1, 1973"])
+def test_date_forms_canonicalize_textual_dates(text: str) -> None:
+    assert date_forms(text) == ["1 November 1973", "November 1, 1973", "1973-11-01"]
+
+
+def test_invalid_date_has_no_forms() -> None:
+    assert date_forms("31 February 1990") == []
+
+
+@pytest.mark.parametrize("apostrophe", list("’‘ʼ´`"))
+def test_apostrophe_folding(apostrophe: str) -> None:
+    assert matches(f"Charley{apostrophe}s Aunt", [["Charley's Aunt"]])
 
 
 async def test_missing_annotations_and_empty_docs(context: RetrievedContext) -> None:

@@ -455,6 +455,20 @@ class GraphRepository:
         result = await self._graph.ro_query(q.ENTITY_NAMES_NORM, {"ids": list(ids)})
         return {eid: name_norm for eid, name_norm in result.result_set if name_norm}
 
+    async def find_entities_by_name_norms(
+        self, names: Sequence[str]
+    ) -> list[tuple[str, EntityHit]]:
+        """Exact name matches paired with their stored normalized names."""
+        if not names:
+            return []
+        result = await self._graph.ro_query(
+            q.FIND_ENTITIES_BY_NAME_NORMS, {"names": list(dict.fromkeys(names))}
+        )
+        return [
+            (name_norm, EntityHit(id=eid, name=name, type=_entity_type(labels), score=1.0))
+            for eid, name, labels, name_norm in result.result_set
+        ]
+
     async def entity_details(self, ids: Sequence[str]) -> dict[str, EntityDetails]:
         if not ids:
             return {}
