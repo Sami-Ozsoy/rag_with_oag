@@ -74,6 +74,22 @@ async def test_llm_client_completes_and_counts_usage() -> None:
     await client.aclose()
 
 
+@pytest.mark.parametrize("effort", [None, "none"])
+async def test_llm_client_reasoning_effort(effort: str | None) -> None:
+    sdk, seen = fake_server(lambda _: httpx2.Response(200, json=completion("ok")))
+    client = LLMClient(LLMConfig(model="m", base_url=BASE, reasoning_effort=effort), client=sdk)
+    messages = [{"role": "user", "content": "x"}]
+    await client.complete(messages)
+    await client.complete(messages, reasoning_effort="high")
+    default, override = (json.loads(request.content) for request in seen)
+    if effort is None:
+        assert "reasoning_effort" not in default
+    else:
+        assert default["reasoning_effort"] == effort
+    assert override["reasoning_effort"] == "high"
+    await client.aclose()
+
+
 async def test_llm_client_retries_server_errors(monkeypatch: pytest.MonkeyPatch) -> None:
     replies = iter([httpx2.Response(503), httpx2.Response(200, json=completion("ok"))])
     sdk, seen = fake_server(lambda r: next(replies), max_retries=2)

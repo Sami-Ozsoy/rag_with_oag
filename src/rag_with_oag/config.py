@@ -47,6 +47,11 @@ class LLMConfig(BaseSettings):
     api_key: SecretStr | None = None
     temperature: float = 0.0
     max_tokens: int | None = None
+    reasoning_effort: str | None = Field(
+        default=None,
+        description="Sent as the OpenAI-compatible reasoning_effort parameter. None omits it "
+        "(server default). For example, 'none' turns thinking off on Ollama reasoning models.",
+    )
     timeout: float = Field(default=60.0, gt=0)
     max_retries: int = Field(default=3, ge=0)
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import sys
 from collections import Counter
 from hashlib import sha256
 from pathlib import Path
@@ -331,3 +332,61 @@ async def test_fresh_snapshots_source_and_seeds_target_before_ingest(
         call.close(),
     ]
     assert "Copied 2 extraction cache entries from 'target'" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("answer_effort", "extractor_effort"),
+    [("low", "none"), (None, "none"), (None, None)],
+)
+def test_runner_reports_reasoning_effort(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    answer_effort: str | None,
+    extractor_effort: str | None,
+) -> None:
+    (tmp_path / "ontology.yaml").write_bytes((run_golden.GOLDEN / "ontology.yaml").read_bytes())
+    (tmp_path / "questions.yaml").write_text("{}", encoding="utf-8")
+    out = tmp_path / "reports"
+    argv = [
+        "run_golden.py",
+        "--set",
+        str(tmp_path),
+        "--out",
+        str(out),
+        "--llm",
+        "fake-answer",
+        "--extractor",
+        "fake-extractor",
+    ]
+    if answer_effort is not None:
+        argv.extend(["--reasoning-effort", answer_effort])
+    if extractor_effort is not None:
+        argv.extend(["--extractor-reasoning-effort", extractor_effort])
+    monkeypatch.setattr(sys, "argv", argv)
+    kb_factory = MagicMock(
+        return_value=MagicMock(
+            ingest=AsyncMock(return_value=IngestReport()),
+            stats=AsyncMock(return_value={}),
+            close=AsyncMock(),
+        )
+    )
+    monkeypatch.setattr(run_golden, "AsyncKnowledgeBase", kb_factory)
+    monkeypatch.setattr(run_golden, "make_embedder", lambda _: EmbedConfig(model="fake"))
+
+    run_golden.main()
+
+    configs = kb_factory.call_args.kwargs
+    assert configs["llm"].reasoning_effort == answer_effort
+    assert configs["extractor_llm"].reasoning_effort == extractor_effort
+    summary = json.loads(next(out.glob("*.json")).read_text(encoding="utf-8"))
+    assert summary["model"]["reasoning_effort"] == answer_effort
+    assert summary["model"]["extractor_reasoning_effort"] == extractor_effort
+    lines = next(out.glob("*.md")).read_text(encoding="utf-8").splitlines()
+    models = next(line for line in lines if line.startswith("Models:"))
+    answer = "answer `fake-answer`"
+    extraction = "extraction `fake-extractor`"
+    if answer_effort is not None:
+        answer += f" (reasoning effort `{answer_effort}`)"
+    if extractor_effort is not None:
+        extraction += f" (reasoning effort `{extractor_effort}`)"
+    assert models.startswith(f"Models: {answer}, {extraction}, embedding")

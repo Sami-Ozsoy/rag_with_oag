@@ -4,7 +4,13 @@ Metrics per question group and mode:
   context hit   the expected answer string is present in the packed context
   chain hit     every hop is supported by the context (for sets with chains)
   chain cov     mean fraction of supported hops per question
+  evidence hit  all evidence object literals occur in the packed context
+  evidence cov  mean fraction of distinct evidence object literals found per question
+  doc hit       all gold documents have a chunk citation in the packed context
+  doc recall    mean fraction of gold documents with a packed chunk citation per question
   answer acc.   with --answers: the LLM's answer contains the expected keywords.
+                With distractors, a competing option before the first expected
+                mention makes the answer incorrect.
 
 The M2 gate compares hybrid with rag on multi_hop and deep_hop questions.
 
@@ -12,6 +18,10 @@ Models come from flags or the RAG_OAG_* environment variables, e.g. local Ollama
 
     python eval/run_golden.py --base-url http://localhost:11434/v1 \\
         --llm gemma4:e4b --embed nomic-embed-text --answers
+
+Use --reasoning-effort and --extractor-reasoning-effort to set reasoning effort
+for the answer and extraction models, respectively.
+Use --question-concurrency N to evaluate N questions at a time (default: 1).
 """
 
 from __future__ import annotations
@@ -22,7 +32,7 @@ import json
 import os
 import statistics
 import time
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -48,7 +58,7 @@ from rag_with_oag.store.schema import read_meta
 from rag_with_oag.types import MODES, Mode
 
 if TYPE_CHECKING or __package__:
-    from .chain import Chain, chain_coverage
+    from .chain import Chain, chain_coverage, packed_docs
     from .graph_quality import (
         ExpectedGraph,
         FoundEntity,
@@ -56,10 +66,11 @@ if TYPE_CHECKING or __package__:
         GraphQuality,
         score_graph_quality,
     )
+    from .synthetic.text import answer_first
     from .synthetic.text import matches as matches
     from .synthetic.text import norm as norm
 else:
-    from chain import Chain, chain_coverage
+    from chain import Chain, chain_coverage, packed_docs
     from graph_quality import (
         ExpectedGraph,
         FoundEntity,
@@ -67,6 +78,7 @@ else:
         GraphQuality,
         score_graph_quality,
     )
+    from synthetic.text import answer_first
     from synthetic.text import matches as matches
     from synthetic.text import norm as norm
 
@@ -75,6 +87,12 @@ GOLDEN = HERE / "golden"
 DEFAULT_BASE_URL = "http://localhost:11434/v1"
 RAG_EQ: Final = "rag_eq"
 MAX_EQUAL_K = 40
+RETRIEVAL_METRICS = {
+    "evidence_hit": "Evidence hit",
+    "evidence_cov": "Evidence coverage",
+    "doc_hit": "Doc hit",
+    "doc_recall": "Doc recall",
+}
 
 type EvalMode = Mode | Literal["rag_eq"]
 
@@ -83,6 +101,9 @@ class QuestionItem(TypedDict):
     q: str
     answer: list[list[str]]
     chain: NotRequired[Chain]
+    distractors: NotRequired[list[str]]
+    docs: NotRequired[list[str]]
+    evidences: NotRequired[list[list[str]]]
 
 
 def load_questions(set_dir: Path) -> dict[str, list[QuestionItem]]:
@@ -205,6 +226,10 @@ class Row:
     answer_ok: bool | None = None
     chain_hit: bool | None = None
     chain_cov: float | None = None
+    evidence_hit: bool | None = None
+    evidence_cov: float | None = None
+    doc_hit: bool | None = None
+    doc_recall: float | None = None
 
 
 @dataclass
@@ -215,12 +240,17 @@ class Summary:
     groups: list[str] = field(default_factory=list)
     graph_quality: GraphQuality | None = None
     rag_lexical: bool = field(default_factory=lambda: RetrievalConfig().rag_lexical)
+    question_concurrency: int = 1
 
     @property
     def has_chains(self) -> bool:
         return any(row.chain_hit is not None for row in self.rows)
 
     def cell(self, group: str | None, mode: str) -> dict[str, float | None]:
+        def mean_pct(values: Iterable[float | None]) -> float | None:
+            scored = [value for value in values if value is not None]
+            return 100 * statistics.fmean(scored) if scored else None
+
         rows = [r for r in self.rows if r.mode == mode and (group is None or r.group == group)]
         answered = [r for r in rows if r.answer_ok is not None]
         chain_hits = [r.chain_hit for r in rows if r.chain_hit is not None]
@@ -229,6 +259,10 @@ class Summary:
             "context_hit": 100 * sum(r.context_hit for r in rows) / len(rows) if rows else None,
             "chain_hit": 100 * statistics.fmean(chain_hits) if chain_hits else None,
             "chain_cov": 100 * statistics.fmean(chain_coverages) if chain_coverages else None,
+            "evidence_hit": mean_pct(r.evidence_hit for r in rows),
+            "evidence_cov": mean_pct(r.evidence_cov for r in rows),
+            "doc_hit": mean_pct(r.doc_hit for r in rows),
+            "doc_recall": mean_pct(r.doc_recall for r in rows),
             "answer_acc": (100 * sum(bool(r.answer_ok) for r in answered) / len(answered))
             if answered
             else None,
@@ -246,8 +280,19 @@ async def run(args: argparse.Namespace) -> Summary:
         json.loads(expected_path.read_text(encoding="utf-8")) if expected_path.exists() else None
     )
     base_url = args.base_url or DEFAULT_BASE_URL
-    llm = LLMConfig(model=args.llm, base_url=base_url, timeout=600, max_tokens=None)
-    extractor = LLMConfig(model=args.extractor or args.llm, base_url=base_url, timeout=600)
+    llm = LLMConfig(
+        model=args.llm,
+        base_url=base_url,
+        timeout=600,
+        max_tokens=None,
+        reasoning_effort=getattr(args, "reasoning_effort", None),
+    )
+    extractor = LLMConfig(
+        model=args.extractor or args.llm,
+        base_url=base_url,
+        timeout=600,
+        reasoning_effort=getattr(args, "extractor_reasoning_effort", None),
+    )
     embedder = make_embedder(args)
     rerank_model = getattr(args, "rerank", None)
     reranker = FastEmbedReranker(rerank_model) if rerank_model is not None else None
@@ -275,12 +320,15 @@ async def run(args: argparse.Namespace) -> Summary:
         model={
             "llm": args.llm,
             "extractor": args.extractor or args.llm,
+            "reasoning_effort": llm.reasoning_effort,
+            "extractor_reasoning_effort": extractor.reasoning_effort,
             "embed": embedder.model,
             "rerank": reranker.model if reranker is not None else None,
         },
         ingest={},
         groups=list(questions),
         rag_lexical=retrieval.rag_lexical,
+        question_concurrency=getattr(args, "question_concurrency", 1),
     )
     try:
         if seed_entries is not None:
@@ -321,17 +369,9 @@ async def run(args: argparse.Namespace) -> Summary:
             if any("chain" in item for items in questions.values() for item in items)
             else {}
         )
-        modes = runner_modes(args)
-        for group, items in questions.items():
-            for item in items[: args.limit]:
-                rows = await evaluate_modes(
-                    kb, group, item, modes, args.k, args.hops, node_keys, answers=args.answers
-                )
-                for row in rows:
-                    summary.rows.append(row)
-                    hit = row.context_hit if row.chain_hit is None else row.chain_hit
-                    mark = "✓" if hit else "·"
-                    print(f"{mark} {group:10} {row.mode:7} {item['q'][:70]}", flush=True)
+        summary.rows.extend(
+            await run_questions(kb, questions, args, node_keys, summary.question_concurrency)
+        )
     finally:
         await kb.close()
     return summary
@@ -342,6 +382,48 @@ def runner_modes(args: argparse.Namespace) -> list[EvalMode]:
     if args.equal_budget and "hybrid" in modes:
         modes.append(RAG_EQ)
     return modes
+
+
+async def run_questions(
+    kb: AsyncKnowledgeBase,
+    questions: Mapping[str, Sequence[QuestionItem]],
+    args: argparse.Namespace,
+    node_keys: Mapping[str, str],
+    concurrency: int,
+) -> list[Row]:
+    pairs = [(group, item) for group, items in questions.items() for item in items[: args.limit]]
+    modes = runner_modes(args)
+    semaphore = asyncio.Semaphore(concurrency)
+    failed = False
+
+    async def evaluate_question(group: str, item: QuestionItem) -> list[Row]:
+        nonlocal failed
+        async with semaphore:
+            # A waiter can acquire the semaphore before gather reports a failure.
+            if failed:
+                raise asyncio.CancelledError
+            try:
+                rows = await evaluate_modes(
+                    kb, group, item, modes, args.k, args.hops, node_keys, answers=args.answers
+                )
+                for row in rows:
+                    hit = row.context_hit if row.chain_hit is None else row.chain_hit
+                    mark = "✓" if hit else "·"
+                    print(f"{mark} {group:10} {row.mode:7} {item['q'][:70]}", flush=True)
+            except BaseException:
+                failed = True
+                raise
+            return rows
+
+    tasks = [asyncio.create_task(evaluate_question(group, item)) for group, item in pairs]
+    try:
+        results = await asyncio.gather(*tasks)
+    except BaseException:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        raise
+    return [row for rows in results for row in rows]
 
 
 async def evaluate_modes(
@@ -401,6 +483,17 @@ async def evaluate(
         covered, total = chain_coverage(ctx, item["chain"], node_keys)
         row.chain_hit = covered == total
         row.chain_cov = covered / total if total else 1.0
+    if "evidences" in item:
+        literals = {obj for _, _, obj in item["evidences"]}
+        text = norm(ctx.prompt_context)
+        found = sum(norm(literal) in text for literal in literals)
+        row.evidence_hit = found == len(literals)
+        row.evidence_cov = found / len(literals) if literals else 1.0
+    if docs := item.get("docs"):
+        gold_docs = set(docs)
+        found = len(gold_docs & packed_docs(ctx))
+        row.doc_hit = found == len(gold_docs)
+        row.doc_recall = found / len(gold_docs)
     if answers:
         try:
             result = await kb.query(item["q"], mode=mode, k=k, hops=hops)
@@ -408,7 +501,12 @@ async def evaluate(
             row.answer, row.answer_ok = f"{ANSWER_ERROR}{type(exc).__name__}: {exc}", False
         else:
             row.answer = result.answer
-            row.answer_ok = matches(result.answer, item["answer"])
+            distractors = item.get("distractors")
+            row.answer_ok = (
+                answer_first(result.answer, item["answer"], distractors)
+                if distractors
+                else matches(result.answer, item["answer"])
+            )
     return row
 
 
@@ -434,24 +532,37 @@ def pct(value: float | None, digits: int = 0) -> str:
 def render(s: Summary, modes: Sequence[EvalMode]) -> str:
     has_chains = s.has_chains
     loose_label = "Answer-string hit (loose)" if has_chains else "Context hit"
-    chain_headers = "Chain hit | Chain coverage | " if has_chains else ""
-    chain_dividers = "---|---|" if has_chains else ""
+    columns = [("chain_hit", "Chain hit"), ("chain_cov", "Chain coverage")] if has_chains else []
+    columns.extend(
+        (metric, label)
+        for metric, label in RETRIEVAL_METRICS.items()
+        if any(getattr(row, metric) is not None for row in s.rows)
+    )
+    metric_headers = "".join(f"{label} | " for _, label in columns)
+    metric_dividers = "---|" * len(columns)
+    answer_model = f"answer `{s.model['llm']}`"
+    if (effort := s.model.get("reasoning_effort")) is not None:
+        answer_model += f" (reasoning effort `{effort}`)"
+    extraction_model = f"extraction `{s.model['extractor']}`"
+    if (effort := s.model.get("extractor_reasoning_effort")) is not None:
+        extraction_model += f" (reasoning effort `{effort}`)"
     lines = [
         f"# Golden set — {datetime.now():%Y-%m-%d %H:%M}",
         "",
-        f"Models: answer `{s.model['llm']}`, extraction `{s.model['extractor']}`, "
+        f"Models: {answer_model}, {extraction_model}, "
         f"embedding `{s.model['embed']}`, reranker `{s.model.get('rerank') or 'none'}`",
         "",
         f"Lexical chunk search {'on' if s.rag_lexical else 'off'}",
+        f"Question concurrency `{s.question_concurrency}`",
         "",
         f"Ingest: {s.ingest['processed']} documents in {s.ingest['seconds']} s; graph "
         f"{s.ingest['stats'].get('entities')} entities, {s.ingest['stats'].get('relations')} "
         f"relations; {s.ingest['validation_errors']} extraction items rejected; "
         f"{len(s.ingest['failures'])} failures.",
         "",
-        f"| Group | Mode | {loose_label} | {chain_headers}Answer acc. | "
+        f"| Group | Mode | {loose_label} | {metric_headers}Answer acc. | "
         "Context tokens | Retrieval p50 | Fallbacks |",
-        f"|---|---|---|{chain_dividers}---|---|---|---|",
+        f"|---|---|---|{metric_dividers}---|---|---|---|",
     ]
     for group in [*s.groups, None]:
         for mode in modes:
@@ -459,9 +570,9 @@ def render(s: Summary, modes: Sequence[EvalMode]) -> str:
             name = group or "**all**"
             tokens = "–" if c["tokens"] is None else f"{c['tokens']:.0f}"
             latency = "–" if c["ms"] is None else f"{c['ms']:.0f} ms"
-            chain_cells = f"{pct(c['chain_hit'])} | {pct(c['chain_cov'])} | " if has_chains else ""
+            metric_cells = "".join(f"{pct(c[metric])} | " for metric, _ in columns)
             lines.append(
-                f"| {name} | {mode} | {pct(c['context_hit'])} | {chain_cells}"
+                f"| {name} | {mode} | {pct(c['context_hit'])} | {metric_cells}"
                 f"{pct(c['answer_acc'])} | {tokens} | {latency} | {c['fallbacks']} |"
             )
     for group in ("multi_hop", "deep_hop"):
@@ -470,9 +581,10 @@ def render(s: Summary, modes: Sequence[EvalMode]) -> str:
         hyb = s.cell(group, "hybrid")
         if hyb["context_hit"] is None:
             continue
-        metric = "answer_acc" if hyb["answer_acc"] is not None else "context_hit"
-        if hyb["chain_hit"] is not None:
-            metric = "chain_hit"
+        metric = next(
+            (key for key in ("answer_acc", "evidence_hit", "chain_hit") if hyb[key] is not None),
+            "context_hit",
+        )
         for baseline in ("rag", RAG_EQ):
             if baseline not in modes:
                 continue
@@ -563,6 +675,15 @@ def summary_data(summary: Summary, modes: Sequence[EvalMode]) -> dict[str, Any]:
                 for mode, cell in cells.items()
             }
         data["chain_metrics"] = chain_metrics
+    if any(row.evidence_hit is not None or row.doc_hit is not None for row in summary.rows):
+        retrieval_metrics = {}
+        for group in [*summary.groups, None]:
+            cells = {mode: summary.cell(group, mode) for mode in modes}
+            retrieval_metrics[group or "all"] = {
+                mode: {metric: cell[metric] for metric in RETRIEVAL_METRICS}
+                for mode, cell in cells.items()
+            }
+        data["retrieval_metrics"] = retrieval_metrics
     return data
 
 
@@ -570,7 +691,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     add_embedding_arguments(parser)
     parser.add_argument("--llm", required=True, help="answer model")
+    parser.add_argument("--reasoning-effort", help="answer model reasoning effort")
     parser.add_argument("--extractor", help="extraction model (default: --llm)")
+    parser.add_argument("--extractor-reasoning-effort", help="extraction model reasoning effort")
     parser.add_argument("--rerank", metavar="MODEL", help="FastEmbed cross-encoder model")
     parser.add_argument(
         "--lexical",
@@ -594,6 +717,9 @@ def main() -> None:
         help="copy extraction cache entries from KB before ingest",
     )
     parser.add_argument("--concurrency", type=int, default=2)
+    parser.add_argument(
+        "--question-concurrency", type=int, default=1, help="questions evaluated at the same time"
+    )
     parser.add_argument("--set", type=Path, default=GOLDEN, help="evaluation set directory")
     parser.add_argument("--kb", help="knowledge base name (default: the set directory name)")
     parser.add_argument("--limit", type=int, help="maximum questions per group")
@@ -601,6 +727,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.limit is not None and args.limit < 0:
         parser.error("--limit must be non-negative")
+    if args.question_concurrency < 1:
+        parser.error("--question-concurrency must be at least 1")
     if args.kb is None:
         args.kb = args.set.name or args.set.resolve().name
     args.out.mkdir(parents=True, exist_ok=True)

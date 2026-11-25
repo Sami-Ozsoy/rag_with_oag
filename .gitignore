@@ -13,5 +13,7 @@ htmlcov/
 *.falkordb
 spikes/out/
 eval/out/
+eval/external/*/sets/
+eval/external/*/raw/
 .DS_Store
 *.local.md

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field, field_validator
 
 from rag_with_oag.ontology.model import Ontology, Property
 
@@ -135,7 +135,7 @@ class RawEntity(BaseModel):
 
 
 class RawRelation(BaseModel):
-    type: str
+    type: str = Field(validation_alias=AliasChoices("type", "relation"))
     source: str
     target: str
     properties: dict[str, Any] = Field(default_factory=dict)
@@ -152,3 +152,37 @@ class RawExtraction(BaseModel):
     entities: list[RawEntity] = Field(default_factory=list)
     relations: list[RawRelation] = Field(default_factory=list)
     unmapped: list[RawUnmapped] = Field(default_factory=list)
+
+    @field_validator("unmapped", mode="before")
+    @classmethod
+    def _normalize_unmapped(cls, value: Any) -> list[RawUnmapped]:
+        if not isinstance(value, list):
+            return []
+
+        items: list[RawUnmapped] = []
+        for item in value:
+            if isinstance(item, str):
+                items.append(RawUnmapped(term=item))
+                continue
+            if not isinstance(item, dict):
+                continue
+            term = next(
+                (
+                    text
+                    for key in ("term", "concept", "name")
+                    if isinstance(text := item.get(key), str) and text.strip()
+                ),
+                None,
+            )
+            if term is None:
+                continue
+            count = item.get("count", 1)
+            if isinstance(count, str):
+                try:
+                    count = int(count)
+                except ValueError:
+                    count = 1
+            if not isinstance(count, int) or isinstance(count, bool) or count < 1:
+                count = 1
+            items.append(RawUnmapped(term=term, count=count))
+        return items

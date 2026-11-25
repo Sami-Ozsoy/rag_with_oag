@@ -119,6 +119,7 @@ Ollama, LM Studio, OpenRouter, Groq.
   which a hybrid context alone can fill (`OLLAMA_CONTEXT_LENGTH=16384`, or
   `PARAMETER num_ctx 16384` in the model file). A model that runs out before
   answering raises `OutputTruncatedError`.
+  Set `LLMConfig(..., reasoning_effort="none")` to turn off thinking on Ollama reasoning models.
 - **Embedding prefixes:** models trained with instructions need them on every
   text, e.g. `EmbedConfig(model="nomic-embed-text", query_prefix="search_query: ",
   document_prefix="search_document: ")`. The prefix is recorded with the knowledge
@@ -168,6 +169,35 @@ relations:
   Adding an ontology to a RAG-only knowledge base extracts the existing documents
   on the next `ingest`.
 
+### Suggesting an ontology
+
+```python
+from rag_with_oag import LLMConfig, Ontology
+
+llm = LLMConfig(model="gpt-4o-mini")
+ontology = Ontology.suggest(["docs/"], llm=llm)
+ontology.to_yaml("ontology.yaml")
+```
+
+To extend an existing ontology, pass it with the unmapped concepts from an
+ingest report:
+
+```python
+extended = Ontology.suggest(
+    ["docs/"], llm=llm, base=ontology, unmapped=report.unmapped_concepts
+)
+```
+
+```bash
+rag-with-oag suggest docs/ -o ontology.yaml
+```
+
+The model sees a sample of about `sample_tokens` tokens from the start of the
+documents, spread across them. Review and edit the suggestion before ingesting.
+Extending an ontology changes its fingerprint. A knowledge base built with the
+old ontology raises `OntologyMismatchError` when opened with the extension.
+Rebuild it under a new name.
+
 ## Modes
 
 | Mode | Finds its starting point by | Gives the model |
@@ -204,6 +234,7 @@ help on our evaluation sets, so it is off by default.
 ```bash
 export RAG_OAG_EMBED_MODEL=text-embedding-3-small
 export RAG_OAG_LLM_MODEL=gpt-4o-mini       # *_BASE_URL and *_API_KEY as needed
+rag-with-oag suggest docs/ -o ontology.yaml
 rag-with-oag ingest docs/ --kb contracts --ontology ontology.yaml
 rag-with-oag query "Who owns the provider?" --kb contracts --ontology ontology.yaml
 rag-with-oag query "..." --kb contracts --mode rag --retrieve-only --json
@@ -370,6 +401,6 @@ python spikes/m0_falkordb.py     # M0 backend spike: recall, latency, memory
 | M0 | FalkorDB spike: ANN recall, hybrid latency, memory |
 | M1 (v0.1) | Skeleton and RAG |
 | M2 (v0.2) | Ontology, extraction, OAG and hybrid modes, evaluation sets |
-| **M3 (v0.3)** | `Ontology.suggest()`, streaming, ~~re-ingest and delete~~ (done), `reembed()`, observability ← *you are here* |
+| **M3 (v0.3)** | ~~`Ontology.suggest()`~~ (done), streaming, ~~re-ingest and delete~~ (done), `reembed()`, observability ← *you are here* |
 
 MIT licensed.

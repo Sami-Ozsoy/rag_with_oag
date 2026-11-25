@@ -9,7 +9,7 @@ from pathlib import PureWindowsPath
 from typing import TYPE_CHECKING, Any
 
 from rag_with_oag.retrieval.context import CHUNKS_HEADER
-from rag_with_oag.types import Fact, RetrievedContext
+from rag_with_oag.types import ChunkHit, Fact, RetrievedContext
 
 if TYPE_CHECKING or __package__:
     from .synthetic.text import norm
@@ -21,9 +21,22 @@ type Chain = list[list[dict[str, Any]]]
 CHUNK_BLOCK = re.compile(r"(?:\A|\n\n)\[(C\d+)\] [^\n]*\n")
 
 
-def _packed_text(ctx: RetrievedContext) -> dict[str, list[str]]:
+def _cited_chunks(ctx: RetrievedContext) -> dict[str, ChunkHit]:
     hits = {hit.chunk_id: hit for hit in ctx.chunks}
-    citations = {c.id: hits[c.ref] for c in ctx.citations if c.kind == "chunk" and c.ref in hits}
+    return {c.id: hits[c.ref] for c in ctx.citations if c.kind == "chunk" and c.ref in hits}
+
+
+def _chunk_doc_names(hit: ChunkHit) -> set[str]:
+    return {PureWindowsPath(value).name for value in (hit.source, hit.doc_id)}
+
+
+def packed_docs(ctx: RetrievedContext) -> set[str]:
+    """Return source and document basenames for the cited chunks."""
+    return {name for hit in _cited_chunks(ctx).values() for name in _chunk_doc_names(hit)}
+
+
+def _packed_text(ctx: RetrievedContext) -> dict[str, list[str]]:
+    citations = _cited_chunks(ctx)
     by_doc: dict[str, list[str]] = defaultdict(list)
     # Read each body separately, including any neighbours selected by the packer.
     section = ctx.prompt_context.partition(f"{CHUNKS_HEADER}\n\n")[-1]
@@ -31,7 +44,7 @@ def _packed_text(ctx: RetrievedContext) -> dict[str, list[str]]:
     for citation, body in zip(blocks[1::2], blocks[2::2], strict=True):
         if (hit := citations.get(citation)) is not None:
             folded = norm(body)
-            for name in {PureWindowsPath(value).name for value in (hit.source, hit.doc_id)}:
+            for name in _chunk_doc_names(hit):
                 by_doc[name].append(folded)
     return by_doc
 

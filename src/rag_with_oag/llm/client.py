@@ -92,6 +92,8 @@ class LLMClient:
         params: dict[str, Any] = {"temperature": self.config.temperature}
         if self.config.max_tokens is not None:
             params["max_tokens"] = self.config.max_tokens
+        if self.config.reasoning_effort is not None:
+            params["reasoning_effort"] = self.config.reasoning_effort
         params.update(kwargs)
         response = await self._client.chat.completions.create(
             model=self.model,

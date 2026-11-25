@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections import Counter
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any, Literal
 
 import httpx2
@@ -24,7 +24,7 @@ from rag_with_oag import (
 )
 from rag_with_oag._text import DEFAULT_NAME_SUFFIXES, fold, fulltext_query, match_name
 from rag_with_oag.generation.prompts import EXTRACTION_SYSTEM
-from rag_with_oag.ingest.extractor import validate
+from rag_with_oag.ingest.extractor import Extractor, validate
 from rag_with_oag.llm import capabilities, structured
 from rag_with_oag.llm.capabilities import StructuredMethod
 from rag_with_oag.llm.client import LLMClient
@@ -35,6 +35,7 @@ from rag_with_oag.retrieval.linking import rrf
 from rag_with_oag.store import queries as q
 from rag_with_oag.store.connection import GraphConnection
 from rag_with_oag.store.repository import GraphRepository
+from rag_with_oag.types import Chunk
 
 from .conftest import CONTRACTS_ONTOLOGY, FakeGraphLLM, fake_extraction
 
@@ -160,9 +161,22 @@ def test_extraction_schema_is_strict_and_typed(ontology: Ontology) -> None:
     variants = schema["properties"]["entities"]["items"]["anyOf"]
     sirket = next(v for v in variants if v["properties"]["type"]["enum"] == ["Sirket"])
     assert set(sirket["properties"]["properties"]["properties"]) == {"vergi_no", "sehir"}
-    rel = schema["properties"]["relations"]["items"]["anyOf"][0]
+    relations = schema["properties"]["relations"]["items"]["anyOf"]
+    for relation in relations:
+        assert "type" in relation["required"]
+        assert "relation" not in relation["properties"]
+    rel = relations[0]
     rol = rel["properties"]["properties"]["properties"]["rol"]
     assert rol["enum"] == ["musteri", "saglayici", "kiraci", None]
+    assert schema["properties"]["unmapped"] == {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {"term": {"type": "string"}, "count": {"type": "integer"}},
+            "required": ["term", "count"],
+            "additionalProperties": False,
+        },
+    }
 
 
 def test_extraction_schema_describes_relation_direction(ontology: Ontology) -> None:
@@ -255,6 +269,62 @@ def test_coerce_number(value: Any, expected: float | None) -> None:
         assert clean == {"oran": expected} and not errors
 
 
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (
+            [
+                {"term": "original", "concept": "ignored", "count": 3},
+                {"term": "", "concept": "alias", "name": "ignored", "count": "2"},
+                {"term": 1, "concept": " ", "name": "fallback", "count": "bad"},
+                "plain",
+                {"term": "missing"},
+                {"term": "zero", "count": 0},
+                {"term": "negative", "count": -2},
+                {"term": "float", "count": 2.0},
+                {"term": "boolean", "count": True},
+                {"term": "list", "count": [2]},
+                7,
+                {"count": 4},
+                {"term": "", "concept": " ", "name": None},
+            ],
+            [
+                ("original", 3),
+                ("alias", 2),
+                ("fallback", 1),
+                ("plain", 1),
+                ("missing", 1),
+                ("zero", 1),
+                ("negative", 1),
+                ("float", 1),
+                ("boolean", 1),
+                ("list", 1),
+            ],
+        ),
+        ({"term": "not a list"}, []),
+        ("not a list", []),
+        (None, []),
+    ],
+)
+def test_raw_extraction_normalizes_unmapped(value: object, expected: list[tuple[str, int]]) -> None:
+    raw = RawExtraction.model_validate({"unmapped": value})
+    assert [(item.term, item.count) for item in raw.unmapped] == expected
+
+
+@pytest.mark.parametrize(
+    ("keys", "expected"),
+    [
+        ({"relation": "DIRECTED_BY"}, "DIRECTED_BY"),
+        ({"relation": "DIRECTED_BY", "type": "PRODUCED_BY"}, "PRODUCED_BY"),
+    ],
+)
+def test_raw_extraction_accepts_relation_type_alias(keys: dict[str, str], expected: str) -> None:
+    raw = RawExtraction.model_validate(
+        {"relations": [{"source": "e1", "target": "e2", "chunks": ["K1"], **keys}]}
+    )
+    assert raw.relations[0].type == expected
+
+
 def test_validate_splits_per_chunk_and_reports_errors(ontology: Ontology) -> None:
     raw = RawExtraction.model_validate(
         {
@@ -328,6 +398,44 @@ class _ScriptedLLM:
         return self.replies.pop(0)
 
 
+async def test_extractor_accepts_unmapped_concept_without_retry(ontology: Ontology) -> None:
+    llm = _ScriptedLLM(
+        [
+            '{"entities": [], "relations": [], "unmapped": [{"concept": "x", "count": 2}]}',
+            '{"entities": [], "relations": [], "unmapped": [{"term": "x", "count": 2}]}',
+        ]
+    )
+    extractor = Extractor(llm, ontology)
+    chunk = Chunk(id="c1", doc_id="doc", idx=0, text="x", token_count=1, start_char=0, end_char=1)
+
+    result = await extractor.extract([chunk])
+
+    assert len(llm.sent) == 1
+    assert result.errors == []
+    assert result.graphs["c1"].unmapped == [("x", 2)]
+
+
+async def test_extractor_accepts_relation_type_alias_without_retry(ontology: Ontology) -> None:
+    text = "Atlas Lojistik A.Ş. HS-2024-01 Hizmet Sözleşmesi"
+    canonical = fake_extraction(f"[K1] {text}")
+    aliased_relation = canonical["relations"][0].copy()
+    aliased_relation["relation"] = aliased_relation.pop("type")
+    aliased = {**canonical, "relations": [aliased_relation]}
+    llm = _ScriptedLLM([json.dumps(aliased), json.dumps(canonical)])
+    extractor = Extractor(llm, ontology)
+    chunk = Chunk(
+        id="c1", doc_id="doc", idx=0, text=text, token_count=8, start_char=0, end_char=len(text)
+    )
+
+    result = await extractor.extract([chunk])
+
+    assert len(llm.sent) == 1
+    assert result.errors == []
+    assert [(r.type, r.source, r.target) for r in result.graphs["c1"].relations] == [
+        ("TARAFIDIR", "e1", "e2")
+    ]
+
+
 async def test_structured_retries_with_validation_feedback() -> None:
     good = json.dumps({"entities": [], "relations": [], "unmapped": []})
     llm = _ScriptedLLM(['{"entities": "oops"}', f"```json\n{good}\n```"])
@@ -346,7 +454,9 @@ async def test_structured_gives_up_with_clear_error() -> None:
         )
 
 
-def _sdk(handler: Any) -> tuple[AsyncOpenAI, list[httpx2.Request]]:
+def _sdk(
+    handler: Callable[[httpx2.Request], httpx2.Response],
+) -> tuple[AsyncOpenAI, list[httpx2.Request]]:
     seen: list[httpx2.Request] = []
 
     def record(request: httpx2.Request) -> httpx2.Response:
@@ -372,6 +482,16 @@ def _reply(message: dict[str, Any], finish_reason: str = "stop") -> httpx2.Respo
             "choices": [{"index": 0, "finish_reason": finish_reason, "message": message}],
         },
     )
+
+
+async def test_extractor_fingerprint_preserves_cache_compatibility(ontology: Ontology) -> None:
+    sdk, _ = _sdk(lambda _: pytest.fail("fingerprint should not call the model"))
+    async with sdk:
+        for effort in (None, "none"):
+            config = LLMConfig(model="m", base_url="http://llm.test/v1", reasoning_effort=effort)
+            extractor = Extractor(LLMClient(config, client=sdk), ontology)
+            # Fingerprint of the contracts fixture before tolerant parsing or reasoning effort.
+            assert extractor.fingerprint == "fc7a412528fec215"
 
 
 async def _generate_with(client: LLMClient, ontology: Ontology) -> Any:
@@ -432,7 +552,8 @@ async def test_answer_cut_off_before_any_text_is_an_error() -> None:
     await client.aclose()
 
 
-async def test_real_client_json_schema_then_tools(ontology: Ontology) -> None:
+@pytest.mark.parametrize("effort", [None, "none"])
+async def test_real_client_json_schema_then_tools(ontology: Ontology, effort: str | None) -> None:
     payload = fake_extraction("[K1] Atlas Lojistik A.Ş. burada.")
 
     def handler(request: httpx2.Request) -> httpx2.Response:
@@ -441,6 +562,10 @@ async def test_real_client_json_schema_then_tools(ontology: Ontology) -> None:
             return httpx2.Response(400, json={"error": {"message": "json_schema unsupported"}})
         assert body["tool_choice"]["function"]["name"] == "extraction"
         assert body["tools"][0]["function"]["strict"] is True
+        if effort is None:
+            assert "reasoning_effort" not in body
+        else:
+            assert body["reasoning_effort"] == effort
         return _reply(
             {
                 "role": "assistant",
@@ -456,7 +581,8 @@ async def test_real_client_json_schema_then_tools(ontology: Ontology) -> None:
         )
 
     sdk, seen = _sdk(handler)
-    client = LLMClient(LLMConfig(model="m", base_url="http://llm.test/v1"), client=sdk)
+    config = LLMConfig(model="m", base_url="http://llm.test/v1", reasoning_effort=effort)
+    client = LLMClient(config, client=sdk)
     result = await structured.generate(
         client,
         _extraction_messages(),

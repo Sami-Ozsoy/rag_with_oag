@@ -1,4 +1,4 @@
-"""Command line for ingesting, deleting and querying documents.
+"""Command line for ingesting, deleting and querying documents and suggesting ontologies.
 
 Models come from the environment, e.g.::
 
@@ -9,6 +9,7 @@ Models come from the environment, e.g.::
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import logging
 import sys
@@ -22,6 +23,9 @@ from rag_with_oag import __version__
 from rag_with_oag.config import EmbedConfig, LLMConfig
 from rag_with_oag.errors import RagOagError
 from rag_with_oag.kb import KnowledgeBase
+from rag_with_oag.llm.client import LLMClient
+from rag_with_oag.ontology.model import Ontology
+from rag_with_oag.ontology.suggest import load_documents
 from rag_with_oag.retrieval.context import fact_ref
 from rag_with_oag.types import MODES
 
@@ -53,6 +57,16 @@ def build_parser() -> argparse.ArgumentParser:
     query.add_argument("-k", type=int, default=None, help="chunks to retrieve")
     query.add_argument("--hops", type=int, default=None, help="graph expansion depth")
     query.add_argument("--retrieve-only", action="store_true", help="print context, skip the LLM")
+
+    suggest = sub.add_parser("suggest", help="suggest an ontology from sample documents")
+    suggest.add_argument("sources", nargs="+")
+    suggest.add_argument("-o", metavar="FILE", dest="output", type=Path)
+    suggest.add_argument("--force", action="store_true", help="overwrite the output file")
+    suggest.add_argument("--base", metavar="ONTOLOGY_YAML", type=Path)
+    suggest.add_argument("--name")
+    suggest.add_argument("--instructions")
+    suggest.add_argument("--sample-tokens", type=int, default=12_000)
+    suggest.add_argument("-v", "--verbose", action="store_true")
     return parser
 
 
@@ -61,15 +75,12 @@ def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(
         level=logging.INFO if args.verbose else logging.WARNING, format="%(levelname)s %(message)s"
     )
+    if args.command == "suggest":
+        return _suggest(args)
     try:
         kb = _open(args)
     except ValidationError as exc:
-        missing = ", ".join(
-            f"RAG_OAG_{'EMBED' if 'Embed' in exc.title else 'LLM'}_{str(e['loc'][0]).upper()}"
-            for e in exc.errors()
-        )
-        print(f"error: missing or invalid model settings: {missing}", file=sys.stderr)
-        return 2
+        return _model_settings_error(exc)
     except (RagOagError, ValueError, OSError) as exc:  # bad ontology file, kb name, ...
         print(f"error: {exc}", file=sys.stderr)
         return 2
@@ -81,6 +92,73 @@ def main(argv: list[str] | None = None) -> int:
                 return _delete(kb, args)
             return _query(kb, args)
     except (RagOagError, ValueError, FileNotFoundError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+
+
+def _model_settings_error(exc: ValidationError) -> int:
+    prefix = "EMBED" if "Embed" in exc.title else "LLM"
+    missing = ", ".join(f"RAG_OAG_{prefix}_{str(e['loc'][0]).upper()}" for e in exc.errors())
+    print(f"error: missing or invalid model settings: {missing}", file=sys.stderr)
+    return 2
+
+
+def _make_llm(config: LLMConfig) -> LLMClient:
+    return LLMClient(config)
+
+
+def _suggest(args: argparse.Namespace) -> int:
+    output: Path | None = args.output
+    try:
+        if output is not None and not args.force and (output.exists() or output.is_symlink()):
+            print(f"error: output file already exists: {output} (use --force)", file=sys.stderr)
+            return 2
+        try:
+            config = LLMConfig()  # type: ignore[call-arg]  # filled from env
+        except ValidationError as exc:
+            return _model_settings_error(exc)
+        base = Ontology.from_yaml(args.base) if args.base else None
+        documents = load_documents(args.sources)
+
+        async def generate() -> Ontology:
+            llm = _make_llm(config)
+            try:
+                return await Ontology.asuggest(
+                    documents,
+                    llm,
+                    base=base,
+                    name=args.name,
+                    instructions=args.instructions,
+                    sample_tokens=args.sample_tokens,
+                )
+            finally:
+                close = getattr(llm, "aclose", None)
+                if close is not None:
+                    await close()
+
+        ontology = asyncio.run(generate())
+        text = (
+            f"# Suggested by rag_with_oag from {len(documents)} documents. Review before use.\n"
+            + ontology.to_yaml()
+        )
+        if output is None:
+            print(text, end="")
+            return 0
+        try:
+            with output.open("w" if args.force else "x", encoding="utf-8") as file:
+                file.write(text)
+        except FileExistsError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+
+        entities, relations = len(ontology.entities), len(ontology.relations)
+        summary = f"Wrote {output} (entity types={entities}, relation types={relations})"
+        if base is not None:
+            summary += f" (added entity types={entities - len(base.entities)}, "
+            summary += f"relation types={relations - len(base.relations)})"
+        print(summary, file=sys.stderr)
+        return 0
+    except (RagOagError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
 

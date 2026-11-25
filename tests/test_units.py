@@ -25,9 +25,11 @@ from rag_with_oag.types import ChunkHit, Citation, Document, chunk_id, content_h
 def test_config_reads_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("RAG_OAG_LLM_MODEL", "qwen")
     monkeypatch.setenv("RAG_OAG_LLM_BASE_URL", "http://localhost:8000/v1")
+    monkeypatch.setenv("RAG_OAG_LLM_REASONING_EFFORT", "none")
     monkeypatch.setenv("RAG_OAG_EMBED_MODEL", "bge")
     llm = LLMConfig()  # type: ignore[call-arg]
     assert (llm.model, llm.base_url) == ("qwen", "http://localhost:8000/v1")
+    assert llm.reasoning_effort == "none"
     assert EmbedConfig().model == "bge"  # type: ignore[call-arg]
 
 

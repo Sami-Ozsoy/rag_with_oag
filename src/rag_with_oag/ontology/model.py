@@ -7,16 +7,22 @@ language and are what the extraction model reads.
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from pathlib import Path
-from typing import Any, Literal, Self
+from typing import TYPE_CHECKING, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, model_validator
 
 from rag_with_oag._text import DEFAULT_NAME_SUFFIXES, fold, match_name
 from rag_with_oag.errors import OntologyError
+
+if TYPE_CHECKING:
+    from rag_with_oag.config import LLMConfig
+    from rag_with_oag.ingest.loaders import Source
+    from rag_with_oag.llm.client import ChatModel
 
 PropertyType = Literal["string", "integer", "number", "boolean", "date", "enum"]
 
@@ -180,6 +186,64 @@ class Ontology(BaseModel):
         if path is not None:
             Path(path).write_text(text, encoding="utf-8")
         return text
+
+    # --- suggestion -----------------------------------------------------------
+
+    @classmethod
+    async def asuggest(
+        cls,
+        sources: Iterable[Source] | Source,
+        llm: LLMConfig | ChatModel,
+        *,
+        base: Ontology | None = None,
+        unmapped: Iterable[str | tuple[str, int]] = (),
+        name: str | None = None,
+        instructions: str | None = None,
+        sample_tokens: int = 12_000,
+    ) -> Ontology:
+        """Propose an ontology from sample documents, optionally extending a base."""
+        from rag_with_oag.ontology.suggest import suggest_ontology
+
+        return await suggest_ontology(
+            sources,
+            llm,
+            base=base,
+            unmapped=unmapped,
+            name=name,
+            instructions=instructions,
+            sample_tokens=sample_tokens,
+        )
+
+    @classmethod
+    def suggest(
+        cls,
+        sources: Iterable[Source] | Source,
+        llm: LLMConfig | ChatModel,
+        *,
+        base: Ontology | None = None,
+        unmapped: Iterable[str | tuple[str, int]] = (),
+        name: str | None = None,
+        instructions: str | None = None,
+        sample_tokens: int = 12_000,
+    ) -> Ontology:
+        """Synchronous version of ``asuggest``. Review the result before ingesting."""
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            pass
+        else:
+            raise RuntimeError("an event loop is running; use await Ontology.asuggest(...) instead")
+        return asyncio.run(
+            cls.asuggest(
+                sources,
+                llm,
+                base=base,
+                unmapped=unmapped,
+                name=name,
+                instructions=instructions,
+                sample_tokens=sample_tokens,
+            )
+        )
 
 
 def _describe_property(p: Property) -> str:

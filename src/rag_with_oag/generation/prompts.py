@@ -72,3 +72,42 @@ EXTRACTION_USER = """\
 Passages:
 
 {passages}"""
+
+SUGGEST_SYSTEM = """\
+You design an ontology that an extraction model will follow to build a knowledge graph
+from these documents. The graph should support questions that chain facts across documents.
+
+Rules:
+- Prefer a small number (at most about 12) of general entity types that recur across the
+  documents, and the relations the documents actually state. Do not model one-off details.
+- A key is the property that uniquely identifies an instance (tax number, contract number,
+  national ID, etc.). Set it only when the documents show such an identifier, otherwise null.
+- Property types are string, integer, number, boolean, date and enum. Use enum only for
+  a small closed set and list its members in values. Set values to null for other types.
+  Mark a property required only when every instance states it.
+- Use PascalCase for entity types, UPPER_SNAKE_CASE for relation types and lower_snake_case
+  for properties. All names must be ASCII identifiers ([A-Za-z_][A-Za-z0-9_]*).
+  Transliterate non-ASCII letters (ş→s, ğ→g, ı→i, ö→o, ü→u, ç→c).
+- Never use these reserved names: {reserved}.
+- The extraction model reads the descriptions: write them in the language of the
+  documents and say what to extract. Phrase each relation description as
+  "<source> <RELATION> <target>" so the direction is unambiguous.
+- In name_suffixes, list only legal-form suffixes seen in entity names that are absent
+  from the defaults ({default_suffixes}). Usually this is an empty list.
+- Output JSON only."""
+
+SUGGEST_USER = """\
+Sample documents:
+
+{documents}"""
+
+SUGGEST_EXTEND = """\
+Existing ontology:
+
+{ontology}
+
+Unmapped concepts the current ontology could not express during extraction (with counts):
+{unmapped}
+
+Return the full ontology. Keep every existing entity type, relation, key and property.
+Add only what the documents or the unmapped concepts need."""
