@@ -5,6 +5,10 @@
   </picture>
 </h1>
 
+<p align="center">
+  <a href="https://pypi.org/project/rag-with-oag/"><img src="https://img.shields.io/pypi/v/rag-with-oag" alt="PyPI version"></a>
+</p>
+
 Ask questions about your documents, including questions whose answer is spread
 over several documents. `rag_with_oag` is a Python library with three modes.
 
