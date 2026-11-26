@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.2.0rc1] - 2026-11-26
+
 ### Added
 
 - Readable model errors for connection failures, authentication and missing models (`ModelConnectionError`, `ModelAuthError` and `ModelNotFoundError`).
