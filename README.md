@@ -42,7 +42,7 @@ while the retrieval settings were tuned, and on 500 real Wikipedia questions
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/images/rag_vs_hybrid-dark.png">
     <img src="docs/images/rag_vs_hybrid.png" width="800"
-         alt="Share of questions answered correctly, hybrid versus RAG (vector plus BM25) at the same token budget. Synthetic Turkish contracts, 160 held-out questions: hybrid 94%, RAG 39%; single fact 100% vs 100%, two hops 98% vs 18%, three hops 78% vs 0%, free-text clause 100% vs 40%. Real Wikipedia, 2WikiMultiHopQA, 500 questions: hybrid 60%, RAG 50%; two hops 50% vs 34%, family relations 70% vs 62%, comparison 98% vs 99%, bridge comparison 22% vs 4%.">
+         alt="Share of questions answered correctly, hybrid versus RAG (vector plus BM25) at the same token budget. Synthetic Turkish contracts, 160 held-out questions: hybrid 94%, RAG 39%; single fact 100% vs 100%, two hops 98% vs 18%, three hops 78% vs 0%, free-text clause 100% vs 40%. Real Wikipedia, 2WikiMultiHopQA, 500 questions: hybrid 74%, RAG 50%; two hops 58% vs 34%, family relations 71% vs 65%, comparison 99% vs 99%, bridge comparison 67% vs 2%.">
   </picture>
 </p>
 
@@ -72,24 +72,26 @@ domain; see below for real documents.
 
 On 500 questions from the [2WikiMultiHopQA](https://github.com/Alab-NII/2wikimultihop) dev set,
 over 3,267 English Wikipedia paragraphs, with an ontology drafted by `Ontology.suggest()` and
-then reviewed, the gap is smaller but holds:
+then reviewed, the gap is smaller than on the synthetic set but clear:
 
 | Question type | RAG | RAG at hybrid's budget | Graph only (`oag`) | Hybrid |
 |---|---|---|---|---|
-| Compositional ("Where was the director of film X born?") | 26% | 34% | 36% | 50% |
-| Inference ("Who is X's maternal grandmother?") | 47% | 62% | 62% | 70% |
-| Comparison ("Which film came out first, X or Y?") | 100% | 99% | 55% | 98% |
-| Bridge comparison ("Which film has the director born first?") | 0% | 4% | 22% | 22% |
-| **All** | **43%** | **50%** | **44%** | **60%** |
+| Compositional ("Where was the director of film X born?") | 28% | 34% | 40% | 58% |
+| Inference ("Who is X's maternal grandmother?") | 47% | 65% | 62% | 71% |
+| Comparison ("Which film came out first, X or Y?") | 99% | 99% | 82% | 99% |
+| Bridge comparison ("Which film has the director born first?") | 0% | 2% | 63% | 67% |
+| **All** | **44%** | **50%** | **62%** | **74%** |
 
 Same models and budget as above; extraction ran with `reasoning_effort="none"`. Hybrid answered
-79 questions that RAG at the same budget missed and missed 26 that it answered (McNemar test,
+141 questions that RAG at the same budget missed and missed 21 that it answered (McNemar test,
 p < 0.001). An answer that says the evidence is insufficient counts as wrong: hybrid gave one to
-30% of the questions, RAG at the same budget to 42%. Comparison questions name both entities, so
+17% of the questions, RAG at the same budget to 41%. Comparison questions name both entities, so
 plain search finds both passages and the graph adds nothing. Bridge comparisons need four facts
-from four documents and remain mostly unsolved. On its own the graph is weak here, because
-extraction from real prose misses facts; it works best next to the passages. Wikipedia is likely
-in the model's training data, which affects all modes alike.
+from four documents and never name the directors, so RAG almost never finds their paragraphs,
+while the graph walks film → director → date. Most remaining graph misses come from one person
+stored as two entities under different names (for example "Howard Hawks" and "Howard Winchester
+Hawks"), so the date sits on a node the walk does not reach. Wikipedia is likely in the model's
+training data, which affects all modes alike.
 
 ## Install
 
