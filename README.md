@@ -6,37 +6,35 @@
 </h1>
 
 Ask questions about your documents, including questions whose answer is spread
-over several documents.
+over several documents. `rag_with_oag` is a Python library with three modes.
 
-`rag_with_oag` is a Python library that combines two ways of feeding an LLM:
+- **RAG** finds passages similar to the question.
+- **OAG** (ontology-augmented generation) builds a knowledge graph from your ontology and walks its relations.
+- **Hybrid** (default) gives the model both graph facts and source text.
 
-- **RAG**: find the text passages most similar to the question.
-- **OAG** (ontology-augmented generation): extract a knowledge graph from the
-  documents, following an ontology you define, and walk its relations.
+> **Status: v0.2, pre-alpha.** The API may still change. Not on PyPI yet.
 
-The default **hybrid** mode gives the model both: typed facts from the graph
-*and* the source text behind them. Everything lives in **one embedded FalkorDB
-graph**, so there is no server to run.
+## Why a graph?
 
-> **Status: v0.2 (pre-alpha).** All three modes (`rag`, `oag`, `hybrid`) work end
-> to end. Not on PyPI yet.
+Who is the largest shareholder of the largest shareholder of the customer in
+contract DS-2023-008? The answer is three hops away across the contract and two
+shareholder records. Plain RAG can pick a similar but incomplete passage.
 
-## Why
+```mermaid
+flowchart LR
+    subgraph RAG["RAG"]
+        direction TB
+        S["Passages similar to the question"] --> P["Contract only<br/>No shareholder records"]
+    end
+    subgraph Walk["Graph walk"]
+        D["Contract DS-2023-008"] -->|customer| A["Company A"]
+        A -->|shareholder| B["Company B"]
+        B -->|shareholder| C["Company C"]
+    end
+    RAG ~~~ Walk
+```
 
-Take this question about a set of contracts and company records:
-
-> *"Who is the largest shareholder of the largest shareholder of the customer in
-> contract DS-2023-008?"*
-
-The answer is three hops away, in three different documents (the contract, and
-two shareholder records). No single passage looks like the question, so plain
-RAG retrieves the wrong text. A graph answers it by following
-`contract → customer → shareholder → shareholder`.
-
-On a held-out synthetic Turkish corpus of 593 documents and 160 questions
-([details](#evaluation)), generated with sentence patterns that were never seen
-while the retrieval settings were tuned, and on 500 real Wikipedia questions
-([below](#on-real-documents)):
+## Results
 
 <p align="center">
   <picture>
@@ -46,52 +44,33 @@ while the retrieval settings were tuned, and on 500 real Wikipedia questions
   </picture>
 </p>
 
-<details>
-<summary>The synthetic numbers as a table</summary>
+On held-out synthetic Turkish contracts, hybrid answered 94% correctly and RAG answered 39%.
+On 500 real Wikipedia questions from 2WikiMultiHopQA, the scores were 74% and 50%.
+Both modes used the same token budget, with `deepseek-v4.1-flash` and `bge-m3`.
 
-| Question type | RAG | RAG at hybrid's budget | Hybrid |
-|---|---|---|---|
-| Single fact (a tax number, a date) | 100% | 100% | 100% |
-| Two hops | 8% | 18% | 98% |
-| Three hops | 0% | 0% | 78% |
-| Free-text clause (not in the ontology) | 58% | 40% | 100% |
-| **All** | **41%** | **39%** | **94%** |
+[Tables, method and caveats](docs/evaluation.md).
 
-</details>
+## How it works
 
-Answer accuracy with `deepseek-v4.1-flash` for answers and extraction and
-`bge-m3` for embeddings, with a 6,000-token context budget. RAG is the strongest
-baseline we measured: vector search fused with BM25 keyword search. A
-multilingual cross-encoder reranker did not improve it on this data. "RAG at
-hybrid's budget" raises `k` until its context is as large as hybrid's; the extra
-passages push out the neighbours of the best hit, so it scores slightly lower.
-On the default set used for tuning, hybrid scores 98%. This is one synthetic
-domain; see below for real documents.
+```mermaid
+flowchart TD
+    D["Documents"] -->|Chunk and embed| T["Passages"]
+    D & O["Ontology"] --> X["LLM extraction"]
+    X --> G["Knowledge graph"]
+    T & G --> S[("One FalkorDB file")]
+    Q["Question"] --> V["Vector + BM25 search"] & W["Match entities and walk graph"]
+    S -.-> V & W
+    V & W --> P["Pack context"]
+    P --> A["LLM answer with [F] and [C] citations"]
+```
 
-### On real documents
+| Mode | Gives the model |
+|---|---|
+| `rag` | Source passages |
+| `oag` | Graph facts |
+| `hybrid` | Graph facts and source passages |
 
-On 500 questions from the [2WikiMultiHopQA](https://github.com/Alab-NII/2wikimultihop) dev set,
-over 3,267 English Wikipedia paragraphs, with an ontology drafted by `Ontology.suggest()` and
-then reviewed, the gap is smaller than on the synthetic set but clear:
-
-| Question type | RAG | RAG at hybrid's budget | Graph only (`oag`) | Hybrid |
-|---|---|---|---|---|
-| Compositional ("Where was the director of film X born?") | 28% | 34% | 40% | 58% |
-| Inference ("Who is X's maternal grandmother?") | 47% | 65% | 62% | 71% |
-| Comparison ("Which film came out first, X or Y?") | 99% | 99% | 82% | 99% |
-| Bridge comparison ("Which film has the director born first?") | 0% | 2% | 63% | 67% |
-| **All** | **44%** | **50%** | **62%** | **74%** |
-
-Same models and budget as above; extraction ran with `reasoning_effort="none"`. Hybrid answered
-141 questions that RAG at the same budget missed and missed 21 that it answered (McNemar test,
-p < 0.001). An answer that says the evidence is insufficient counts as wrong: hybrid gave one to
-17% of the questions, RAG at the same budget to 41%. Comparison questions name both entities, so
-plain search finds both passages and the graph adds nothing. Bridge comparisons need four facts
-from four documents and never name the directors, so RAG almost never finds their paragraphs,
-while the graph walks film → director → date. Most remaining graph misses come from one person
-stored as two entities under different names (for example "Howard Hawks" and "Howard Winchester
-Hawks"), so the date sits on a node the walk does not reach. Wikipedia is likely in the model's
-training data, which affects all modes alike.
+[Details of ingest, retrieval and deletion](docs/how-it-works.md).
 
 ## Install
 
@@ -99,342 +78,106 @@ training data, which affects all modes alike.
 pip install "rag_with_oag @ git+https://github.com/Sami-Ozsoy/rag_with_oag"
 ```
 
-Extras: `[pdf]` for PDF loading, `[local]` for CPU embeddings without a server.
-Python 3.12+. On macOS the embedded database needs OpenMP: `brew install libomp`.
+Python 3.12+. Add `[pdf]` for PDF loading or `[local]` for CPU embeddings without a server.
+
+The embedded database runs on Linux and macOS (macOS needs `brew install libomp`). On Windows, run FalkorDB in Docker (`docker run -p 6379:6379 falkordb/falkordb`) and pass `url="redis://localhost:6379"`.
 
 ## Quick start
 
+Start [Ollama](https://ollama.com/download), then clone the repository and run the example.
+
+```bash
+git clone https://github.com/Sami-Ozsoy/rag_with_oag && cd rag_with_oag
+ollama pull qwen2.5:7b-instruct
+ollama pull bge-m3
+python examples/quickstart/run.py
+```
+
+Run the Python snippet from the clone, too.
+
 ```python
-from rag_with_oag import KnowledgeBase, LLMConfig, EmbedConfig, Ontology
+from rag_with_oag import EmbedConfig, KnowledgeBase, LLMConfig, Ontology
 
 kb = KnowledgeBase(
     "contracts",
-    path="./rag_with_oag.db",  # embedded FalkorDB file
+    path="./rag_with_oag.db",
     llm=LLMConfig(base_url="http://localhost:11434/v1", model="qwen2.5:7b-instruct"),
-    embedder=EmbedConfig(model="text-embedding-3-small"),
-    ontology=Ontology.from_yaml("ontology.yaml"),  # leave out for RAG only
+    embedder=EmbedConfig(base_url="http://localhost:11434/v1", model="bge-m3"),
+    ontology=Ontology.from_yaml("examples/quickstart/ontology.yaml"),
 )
 
-kb.ingest(["docs/"])  # txt, md, rst, html (+ pdf with the extra)
-
-res = kb.query("Which company owns the provider in contract HS-2024-01?")
-print(res.answer)  # cites graph facts as [F1] and passages as [C1]
+kb.ingest(["examples/quickstart/docs"])
+res = kb.query("Where is the company that owns the provider in HS-2024-01 based?")
+print(res.answer)
 kb.close()
 ```
 
-What else a result holds:
+- `res.answer` holds the answer with citations such as `[F1]` and `[C1]`.
+- `res.facts` holds typed graph facts and `res.chunks` holds source passages.
+- `res.mode_used` records the mode, including a fallback from `hybrid` to `rag`.
+
+<details>
+<summary>Using OpenAI instead</summary>
+
+Set `OPENAI_API_KEY` before running this version.
 
 ```python
-res.facts  # typed facts from the graph
-res.chunks  # source passages
-res.mode_used  # "hybrid", or "rag" if nothing in the question matched the graph
+from rag_with_oag import EmbedConfig, KnowledgeBase, LLMConfig, Ontology
 
-ctx = kb.retrieve("...", mode="oag")  # retrieval only, no LLM call
+kb = KnowledgeBase(
+    "contracts",
+    path="./rag_with_oag_openai.db",
+    llm=LLMConfig(model="gpt-4o-mini"),
+    embedder=EmbedConfig(model="text-embedding-3-small"),
+    ontology=Ontology.from_yaml("examples/quickstart/ontology.yaml"),
+)
+
+kb.ingest(["examples/quickstart/docs"])
+res = kb.query("Where is the company that owns the provider in HS-2024-01 based?")
+print(res.answer)
+kb.close()
 ```
 
-`AsyncKnowledgeBase` offers the same API with `await`. To use a FalkorDB server
-instead of the embedded file, pass `url="redis://localhost:6379"` instead of `path`.
+</details>
 
-## Models
+`AsyncKnowledgeBase` has the same API with `await`. See the [CLI commands](docs/configuration.md#cli).
 
-Any OpenAI-compatible endpoint works for the answer model (`llm`), the extraction
-model (`extractor_llm`, defaults to `llm`) and the embedder: OpenAI, vLLM,
-Ollama, LM Studio, OpenRouter, Groq.
+## Is it a good fit?
 
-- **API keys:** pass `api_key=` or set `RAG_OAG_LLM_API_KEY` /
-  `RAG_OAG_EMBED_API_KEY`. `OPENAI_API_KEY` is used only when `base_url` points at
-  OpenAI itself; it is never sent to another server.
-- **Ollama:** raise the context window. Ollama serves 4,096 tokens by default,
-  which a hybrid context alone can fill (`OLLAMA_CONTEXT_LENGTH=16384`, or
-  `PARAMETER num_ctx 16384` in the model file). A model that runs out before
-  answering raises `OutputTruncatedError`.
-  Set `LLMConfig(..., reasoning_effort="none")` to turn off thinking on Ollama reasoning models.
-- **Embedding prefixes:** models trained with instructions need them on every
-  text, e.g. `EmbedConfig(model="nomic-embed-text", query_prefix="search_query: ",
-  document_prefix="search_document: ")`. The prefix is recorded with the knowledge
-  base, which then refuses to open without it.
-- **Local embeddings:** with the `local` extra, pass
-  `embedder=FastEmbedEmbedder(...)` from `rag_with_oag.embed.local`. The default
-  `BAAI/bge-small-en-v1.5` (67 MB) is English only; for other languages use a
-  multilingual model such as `Qwen/Qwen3-Embedding-0.6B-Q` (1.1 GB, Apache-2.0),
-  whose prefixes are filled in automatically.
+| Good fit | Probably not |
+|---|---|
+| Questions that join facts across documents | Single-passage lookup over free prose (plain `rag` mode is enough) |
+| Clear entities and relations, such as contracts, companies, people or products | No one can define which entities matter |
+| Someone can review the ontology | Very large corpora on a tight LLM budget (every chunk goes through extraction) |
+| Answers that cite facts and passages | Windows without Docker |
 
-## Ontology
+## Limitations
 
-The ontology tells the extraction model what to look for: entity types, their
-properties, and the relations between them. Write it in YAML, or build it from
-Pydantic classes with `Ontology.from_classes`.
+- The API may change between pre-alpha versions. Install from Git until it is on PyPI.
+- The embedded database has no Windows build. Use a FalkorDB server there.
+- You design the ontology. Reviewing a draft from `Ontology.suggest()` takes domain knowledge. See [Ontology](docs/ontology.md).
+- Every chunk goes to the extraction model, so ingest uses at least as many LLM
+  tokens as the corpus, plus prompts. `IngestReport.token_usage` reports the
+  actual usage. Results are cached per chunk, so interrupted or repeated ingests
+  can reuse work already done. A small, fast `extractor_llm` with
+  `reasoning_effort="none"` keeps it cheap.
+- One entity can end up as two nodes under different names, such as "Howard Hawks"
+  and "Howard Winchester Hawks". A shared value for a `key` property prevents this.
+- Streaming answers, `reembed()` and observability hooks are planned. Changing the embedder means rebuilding.
+- Evaluation covers one synthetic domain and one public multi-hop set, with one answer model.
 
-```yaml
-name: contracts
-entities:
-  Sirket:                    # company
-    description: A company that is party to contracts or owns shares in other companies
-    key: vergi_no            # identifying property: same tax number = same company
-    properties:
-      vergi_no: string
-      sehir: {type: string, description: City of the head office}
-  Sozlesme:                  # contract
-    key: numara
-    properties:
-      numara: string
-      imza_tarihi: date
-relations:
-  TARAFIDIR:                 # company is a party to a contract
-    source: Sirket
-    target: Sozlesme
-    properties:
-      rol: {type: enum, values: [musteri, saglayici]}
-  ORTAGIDIR: {source: Sirket, target: Sirket, properties: {oran: number}}  # owns shares
-```
+## Documentation
 
-- Type names become graph labels, so they must be ASCII identifiers.
-  Descriptions can be in any language: they are what the extraction model reads.
-- A `key` is what makes two mentions the same entity. Without one, names are
-  compared, ignoring legal forms such as "A.Ş.", "Ltd." or "GmbH" (extend the list
-  with `name_suffixes`).
-- The ontology's fingerprint is stored in the graph. Opening a knowledge base with
-  a changed ontology raises `OntologyMismatchError` instead of mixing two schemas.
-  Adding an ontology to a RAG-only knowledge base extracts the existing documents
-  on the next `ingest`.
-
-### Suggesting an ontology
-
-```python
-from rag_with_oag import LLMConfig, Ontology
-
-llm = LLMConfig(model="gpt-4o-mini")
-ontology = Ontology.suggest(["docs/"], llm=llm)
-ontology.to_yaml("ontology.yaml")
-```
-
-To extend an existing ontology, pass it with the unmapped concepts from an
-ingest report:
-
-```python
-extended = Ontology.suggest(["docs/"], llm=llm, base=ontology, unmapped=report.unmapped_concepts)
-```
-
-```bash
-rag-with-oag suggest docs/ -o ontology.yaml
-```
-
-The model sees a sample of about `sample_tokens` tokens from the start of the
-documents, spread across them. Review and edit the suggestion before ingesting.
-Extending an ontology changes its fingerprint. A knowledge base built with the
-old ontology raises `OntologyMismatchError` when opened with the extension.
-Rebuild it under a new name.
-
-## Modes
-
-| Mode | Finds its starting point by | Gives the model |
-|---|---|---|
-| `rag` | vector and BM25 keyword search over passages | the best passages and their neighbours |
-| `oag` | matching names and keys in the question to graph entities | facts from walking the graph up to `hops` relations away |
-| `hybrid` (default) | both | graph facts, passages from the documents the matched entities appear in, and the best RAG passages |
-
-`kb.query(..., mode="rag")` picks a mode per question. Hybrid falls back to RAG,
-and says so in `mode_used`, when nothing in the question matches the graph.
-
-### Tuning
-
-Pass `retrieval=RetrievalConfig(...)` to `KnowledgeBase`. The defaults suit most
-cases; the ones worth knowing:
-
-| Setting | Default | Meaning |
-|---|---|---|
-| `context_token_budget` | 6000 | Upper limit for the whole context, headers included |
-| `hops` | 3 | How many relations away from the question's entities the graph walk goes |
-| `max_fanout` | 8 | Edges kept per entity, relation type and direction, so 30 contracts cannot crowd out 2 shareholders |
-| `fact_budget_ratio` | 0.6 | Maximum share of the budget for graph facts in hybrid |
-| `hybrid_text_reserve` | 4 | Passages hybrid always keeps ahead of facts |
-| `link_exact_anchors` | `True` | A key or full name written in the question makes that entity the only starting point |
-| `rag_lexical` | `True` | Fuse BM25 keyword ranks with vector ranks for RAG passages (in `rag` and `hybrid`) |
-| `rerank_candidates` | 30 | Passages a reranker rescores, when one is passed |
-
-A cross-encoder reranker is optional: `KnowledgeBase(..., reranker=FastEmbedReranker())`
-from `rag_with_oag.rerank.local` (the `local` extra). It runs on CPU and did not
-help on our evaluation sets, so it is off by default.
-
-## CLI
-
-```bash
-export RAG_OAG_EMBED_MODEL=text-embedding-3-small
-export RAG_OAG_LLM_MODEL=gpt-4o-mini       # *_BASE_URL and *_API_KEY as needed
-rag-with-oag suggest docs/ -o ontology.yaml
-rag-with-oag ingest docs/ --kb contracts --ontology ontology.yaml
-rag-with-oag query "Who owns the provider?" --kb contracts --ontology ontology.yaml
-rag-with-oag query "..." --kb contracts --mode rag --retrieve-only --json
-```
-
-## How it works
-
-### Ingest
-
-```mermaid
-flowchart LR
-    D["Documents"] --> L["Load<br/>id = content hash"]
-    L --> C["Chunk"]
-    C --> E["Embed"]
-    E -->|"Document, Chunk"| G[("FalkorDB<br/>one embedded graph")]
-    C --> X["Extract<br/>LLM + JSON Schema"]
-    O[/"Ontology"/] --> X
-    X --> V["Validate"]
-    V --> R["Resolve entities"]
-    R -->|"Entity, MENTIONS, relations"| G
-```
-
-For each document:
-
-1. **Load.** A document's id is its content hash, so ingesting unchanged content
-   again does nothing. When a source (a file path) comes back with new content,
-   the new version is written and extracted first, then the old version is
-   removed (`replace=False` keeps both). Identical content under two sources is
-   one document.
-2. **Chunk.** [adaptive-oci-chunking](https://pypi.org/project/adaptive-oci-chunking/)
-   picks a strategy per document. Each chunk keeps its section path and page.
-3. **Embed** the chunks. The embedding model and dimension are recorded; opening
-   the knowledge base with a different embedder is an error.
-4. **Store** `Document -[:HAS_CHUNK]-> Chunk -[:NEXT]-> Chunk`. RAG works from here.
-5. **Extract.** Chunks go to the model in batches with a JSON Schema generated
-   from the ontology. If the endpoint lacks `json_schema`, it falls back to tool
-   calling, then `json_object`, then plain-prompt JSON, and remembers what works.
-6. **Validate** types, relation endpoints, required properties and enum values.
-   Invalid output goes back to the model once with the errors; what is still
-   invalid is dropped and reported.
-7. **Resolve** mentions into entities. The same key means the same entity. A
-   mention without a key joins the entity with the same name. A remaining new
-   mention joins a near-duplicate by embedding similarity, but only when one
-   name's words contain the other's: "Zirve" joins "Zirve Gıda A.Ş.", while
-   "Kemer Ambalaj" never joins "Bahar Ambalaj".
-8. **Write** entities as `Entity:<Type>` nodes, `Chunk -[:MENTIONS]-> Entity`
-   links, and relations that list their source chunks as evidence.
-
-`kb.ingest` returns an `IngestReport`: documents, chunks, entities, relations,
-rejected extraction items, concepts the ontology could not express, and token
-usage. Extraction results are cached per chunk, ontology, model and prompt; a
-document whose extraction failed is retried on the next ingest.
-
-### Retrieval
-
-```mermaid
-flowchart LR
-    Q["Question"] --> LK["Link<br/>keys and names to entities"]
-    Q --> RS["RAG search<br/>vector + BM25, RRF"]
-    LK --> W["Walk graph<br/>up to hops"]
-    RS --> RR["Rerank<br/>optional"]
-    W -->|"facts"| P["Pack context<br/>token budget"]
-    RR -->|"passages"| P
-    P --> A["LLM answer"]
-```
-
-`oag` uses the upper path, `rag` the lower one, and `hybrid` both; hybrid falls back to the
-lower path when nothing in the question matches the graph.
-
-1. **Link.** Keys and full names written in the question are matched exactly.
-   Otherwise full-text and vector matches on entity names are fused.
-2. **Walk.** From the matched entities, the graph is expanded one hop at a time,
-   both directions, up to `hops`. Facts are ordered by distance, so when the
-   budget runs out the farthest ones are dropped first.
-3. **Search passages.** Vector search and an in-memory BM25 index (built on
-   first use, rebuilt after writes) are fused with Reciprocal Rank Fusion.
-   Turkish words are folded and cut to six letters, so "sözleşmesindeki" matches
-   "sözleşme"; keys like `KS-2024-002` are single tokens, so `DS-2024-002` does
-   not match.
-4. **Pack** (hybrid). Passages from the documents the matched entities appear in
-   and the top RAG passages are reserved first. Graph facts come next, then the
-   remaining passages, fused with Reciprocal Rank Fusion.
-
-### Delete
-
-`kb.delete("docs/contract.md")` (or a document id) removes a document and
-returns a `DeleteReport`:
-
-- Its chunks go, and their ids are removed from each relation's evidence.
-- A relation with no evidence left is deleted. One that another document also
-  states stays.
-- Entities that are no longer mentioned anywhere and have no relations are
-  deleted.
-
-Entity properties are not rolled back: a property only the deleted document
-stated keeps its last value until another document sets it. Ingest and delete
-take a write lock, so they never interleave; queries do not wait.
-
-```bash
-rag-with-oag delete docs/contract.md --kb contracts
-```
-
-### Raw Cypher
-
-`kb.store.query(cypher, params)` runs raw Cypher. It is documented but outside
-the API stability promise. Inside the library, labels and relationship types
-reach Cypher only from the validated ontology; every other value is a parameter.
-
-## Evaluation
-
-Two evaluation sets ship with the repository, and a third is built from public data:
-
-- **`eval/golden`**: 14 contract documents and 33 questions. Small and readable;
-  strong models answer all of it.
-- **`eval/synthetic`**: a generator for large Turkish corpora with known ground
-  truth. The default set has 596 documents (526k tokens), 450 entities, 749
-  relations and 160 questions in four groups. It includes confusable company
-  names, passive and reversed phrasing, and facts spread over documents. Each
-  question records its answer chain and the sentence that states each hop.
-  `--variant b` uses separate sentence, document and question templates;
-  `eval/synthetic/sets/heldout` (seed 101) is built with it and shares no
-  sentence with the default set, so it checks that tuning did not overfit.
-- **`eval/external/twowiki`**: builds a sample of the 2WikiMultiHopQA dev set (questions, their
-  Wikipedia paragraphs and gold evidence). The data is downloaded, not committed; see
-  [its README](eval/external/twowiki/README.md).
-
-```bash
-python eval/run_golden.py --base-url http://localhost:11434/v1 \
-    --llm qwen2.5:7b-instruct --embed nomic-embed-text --answers --equal-budget
-
-python eval/run_golden.py --set eval/synthetic/sets/heldout --kb heldout \
-    --llm <model> --embed bge-m3 --answers --equal-budget
-```
-
-`--no-lexical` turns BM25 fusion off and `--rerank MODEL` adds a FastEmbed
-cross-encoder, to compare RAG baselines.
-
-What the runner reports per mode and question group:
-
-- **Chain hit:** whether every hop of the answer chain reached the context, as a
-  graph fact or as its source sentence. This is cheap (no LLM) and tracks answer
-  accuracy closely. A plain "answer string appears somewhere" check is also
-  printed, but it overrates crowded contexts.
-- **Answer accuracy** with `--answers`.
-- **Evidence hit** and **document recall** for sets with gold evidence: whether every gold fact
-  value, and every gold document, reached the context. No LLM is needed.
-- **Refusals** with `--answers`: the share of answers that say the evidence is insufficient.
-  On choice questions a refusal counts as wrong.
-- **`rag_eq`** with `--equal-budget`: RAG with `k` raised until its context is as
-  large as hybrid's, so modes are compared at the same token budget.
-- **Graph quality** for the synthetic set: missing, extra and duplicate entities;
-  relation precision, recall and reversed edges; property accuracy.
-
-`eval/sweep_retrieval.py` sweeps retrieval settings on an ingested knowledge base
-without calling an LLM. `--seed-cache-from KB` copies another knowledge base's
-extraction cache, so a re-ingest after a resolver change makes no LLM calls.
-
-## Development
-
-```bash
-python3.12 -m venv .venv && .venv/bin/pip install -e ".[dev]"
-.venv/bin/pytest                 # embedded FalkorDB and fake models: no network or Docker
-.venv/bin/ruff check . && .venv/bin/mypy
-python spikes/m0_falkordb.py     # M0 backend spike: recall, latency, memory
-```
+- [Ontology](docs/ontology.md)
+- [Configuration and CLI](docs/configuration.md)
+- [How it works](docs/how-it-works.md)
+- [Evaluation](docs/evaluation.md)
+- [Quick start example](examples/quickstart/)
+- [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md)
 
 ## Roadmap
 
-| Milestone | Scope |
-|---|---|
-| M0 | FalkorDB spike: ANN recall, hybrid latency, memory |
-| M1 (v0.1) | Skeleton and RAG |
-| M2 (v0.2) | Ontology, extraction, OAG and hybrid modes, evaluation sets |
-| **M3 (v0.3)** | ~~`Ontology.suggest()`~~ (done), streaming, ~~re-ingest and delete~~ (done), `reembed()`, observability ← *you are here* |
+v0.3 adds streaming, `reembed()` and observability. Ontology suggestions, re-ingest and deletion already work.
 
-MIT licensed.
+MIT licensed. See [CONTRIBUTING.md](CONTRIBUTING.md) to get involved.
