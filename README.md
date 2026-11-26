@@ -12,7 +12,7 @@ over several documents. `rag_with_oag` is a Python library with three modes.
 - **OAG** (ontology-augmented generation) builds a knowledge graph from your ontology and walks its relations.
 - **Hybrid** (default) gives the model both graph facts and source text.
 
-> **Status: v0.2, pre-alpha.** The API may still change. Not on PyPI yet.
+> **Status: v0.2, pre-alpha.** The API may still change.
 
 ## Why a graph?
 
@@ -75,8 +75,10 @@ flowchart TD
 ## Install
 
 ```bash
-pip install "rag_with_oag @ git+https://github.com/Sami-Ozsoy/rag_with_oag"
+pip install rag_with_oag
 ```
+
+Install the development version with `pip install "rag_with_oag @ git+https://github.com/Sami-Ozsoy/rag_with_oag"`.
 
 Python 3.12+. Add `[pdf]` for PDF loading or `[local]` for CPU embeddings without a server.
 
@@ -153,7 +155,7 @@ kb.close()
 
 ## Limitations
 
-- The API may change between pre-alpha versions. Install from Git until it is on PyPI.
+- The API may change between pre-alpha versions.
 - The embedded database has no Windows build. Use a FalkorDB server there.
 - You design the ontology. Reviewing a draft from `Ontology.suggest()` takes domain knowledge. See [Ontology](docs/ontology.md).
 - Every chunk goes to the extraction model, so ingest uses at least as many LLM

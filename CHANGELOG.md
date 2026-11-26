@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-26
+
+First release on PyPI. No changes since 0.2.0rc1.
+
 ## [0.2.0rc1] - 2026-11-26
 
 ### Added
