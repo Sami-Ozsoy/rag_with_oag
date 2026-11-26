@@ -1,0 +1,20 @@
+name: contracts
+entities:
+  Sirket:                    # company
+    description: A company that is party to contracts or owns shares in other companies
+    key: vergi_no            # identifying property: same tax number = same company
+    properties:
+      vergi_no: string
+      sehir: {type: string, description: City of the head office}
+  Sozlesme:                  # contract
+    key: numara
+    properties:
+      numara: string
+      imza_tarihi: date
+relations:
+  TARAFIDIR:                 # company is a party to a contract
+    source: Sirket
+    target: Sozlesme
+    properties:
+      rol: {type: enum, values: [musteri, saglayici]}
+  ORTAGIDIR: {source: Sirket, target: Sirket, properties: {oran: number}}  # owns shares
