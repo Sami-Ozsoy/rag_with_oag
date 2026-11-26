@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 
 from rag_with_oag import (
     LLMConfig,
+    ModelNotFoundError,
     Ontology,
     OntologyError,
     OutputTruncatedError,
@@ -553,13 +554,16 @@ async def test_answer_cut_off_before_any_text_is_an_error() -> None:
 
 
 @pytest.mark.parametrize("effort", [None, "none"])
-async def test_real_client_json_schema_then_tools(ontology: Ontology, effort: str | None) -> None:
+@pytest.mark.parametrize("status", [400, 404, 422])
+async def test_real_client_json_schema_then_tools(
+    ontology: Ontology, effort: str | None, status: int
+) -> None:
     payload = fake_extraction("[K1] Atlas Lojistik A.Ş. burada.")
 
     def handler(request: httpx2.Request) -> httpx2.Response:
         body = json.loads(request.content)
         if "response_format" in body:
-            return httpx2.Response(400, json={"error": {"message": "json_schema unsupported"}})
+            return httpx2.Response(status, json={"error": {"message": "json_schema unsupported"}})
         assert body["tool_choice"]["function"]["name"] == "extraction"
         assert body["tools"][0]["function"]["strict"] is True
         if effort is None:
@@ -594,6 +598,29 @@ async def test_real_client_json_schema_then_tools(ontology: Ontology, effort: st
     first = json.loads(seen[0].content)
     assert first["response_format"]["json_schema"]["strict"] is True
     await client.aclose()
+
+
+@pytest.mark.parametrize("model_exists", [True, False])
+async def test_real_client_structured_404_falls_back_to_plain(
+    ontology: Ontology, model_exists: bool
+) -> None:
+    payload = fake_extraction("[K1] Atlas Lojistik A.Ş. burada.")
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        body = json.loads(request.content)
+        if "response_format" in body or "tools" in body or not model_exists:
+            return httpx2.Response(404, json={"error": {"message": "not found"}})
+        return _reply({"role": "assistant", "content": json.dumps(payload)})
+
+    sdk, seen = _sdk(handler)
+    client = LLMClient(LLMConfig(model="m", base_url="http://llm.test/v1"), client=sdk)
+    async with sdk:
+        if model_exists:
+            assert (await _generate_with(client, ontology)).method == StructuredMethod.PROMPT
+        else:
+            with pytest.raises(ModelNotFoundError, match="ollama pull m"):
+                await _generate_with(client, ontology)
+    assert len(seen) == 4
 
 
 # --- text folding, fusion, query safety -----------------------------------------

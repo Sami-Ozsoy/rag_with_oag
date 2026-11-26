@@ -14,7 +14,7 @@ from typing import Any, Protocol, runtime_checkable
 from openai import AsyncOpenAI
 
 from rag_with_oag.config import LLMConfig, resolve_api_key
-from rag_with_oag.errors import OutputTruncatedError
+from rag_with_oag.errors import OutputTruncatedError, _translate_model_errors
 
 Message = dict[str, Any]
 
@@ -95,11 +95,17 @@ class LLMClient:
         if self.config.reasoning_effort is not None:
             params["reasoning_effort"] = self.config.reasoning_effort
         params.update(kwargs)
-        response = await self._client.chat.completions.create(
-            model=self.model,
-            messages=list(messages),  # type: ignore[arg-type]  # plain dicts, SDK wants TypedDicts
-            **params,
-        )
+        with _translate_model_errors(
+            self._client,
+            self.config,
+            role="chat",
+            structured_request="response_format" in kwargs or "tools" in kwargs,
+        ):
+            response = await self._client.chat.completions.create(
+                model=self.model,
+                messages=list(messages),  # type: ignore[arg-type]  # SDK wants TypedDicts
+                **params,
+            )
         if response.usage is not None:
             self.usage["prompt_tokens"] += response.usage.prompt_tokens
             self.usage["completion_tokens"] += response.usage.completion_tokens

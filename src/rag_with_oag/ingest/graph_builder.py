@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 
 from rag_with_oag.config import ExtractionConfig
 from rag_with_oag.embed.base import Embedder
+from rag_with_oag.errors import MODEL_ENDPOINT_ERRORS
 from rag_with_oag.ingest.extractor import ChunkGraph, Extractor
 from rag_with_oag.ingest.resolver import EntityResolver
 from rag_with_oag.llm.client import ChatModel
@@ -92,6 +93,8 @@ class GraphBuilder:
             batch = todo[i : i + size]
             try:
                 outcome = await self.extractor.extract(batch)
+            except MODEL_ENDPOINT_ERRORS:
+                raise
             except Exception as exc:
                 logger.warning(
                     "extraction failed for %s chunks %d-%d: %s",

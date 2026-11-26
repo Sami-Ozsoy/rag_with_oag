@@ -17,7 +17,7 @@ from dataclasses import dataclass
 
 from rag_with_oag._tokens import count_tokens
 from rag_with_oag.embed.base import Embedder, embed_documents, embedder_identity
-from rag_with_oag.errors import EmbeddingMismatchError
+from rag_with_oag.errors import MODEL_ENDPOINT_ERRORS, EmbeddingMismatchError
 from rag_with_oag.ingest.chunker import Chunker, page_index
 from rag_with_oag.ingest.graph_builder import BuildResult, GraphBuilder
 from rag_with_oag.ingest.loaders import Source, iter_paths, load_path
@@ -85,7 +85,7 @@ class IngestPipeline:
                         if replace and (outcome.graph is None or outcome.graph.complete):
                             old_ids = await self.repo.replacement_ids(doc.source, doc.id)
                             replacements[doc.source] = (doc.id, old_ids)
-                except EmbeddingMismatchError:
+                except (EmbeddingMismatchError, *MODEL_ENDPOINT_ERRORS):
                     raise  # every later document would fail the same way
                 except Exception as exc:
                     logger.warning("ingest failed for %s: %s", label, exc, exc_info=True)
@@ -104,10 +104,10 @@ class IngestPipeline:
                 for source in _expand(sources, report):
                     tg.create_task(handle(source))
         except ExceptionGroup as group:
-            # Surface the first real error, not a group the caller has to unpack.
+            # Surface a single error and preserve the original SDK cause, if any.
             mismatch = group.subgroup(EmbeddingMismatchError)
             first = mismatch.exceptions[0] if mismatch else group.exceptions[0]
-            raise first from None
+            raise first from first.__cause__
 
         # Keep old documents available until all concurrent entity resolution is done.
         for source, (doc_id, old_ids) in replacements.items():

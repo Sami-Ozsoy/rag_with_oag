@@ -7,6 +7,7 @@ from typing import Any
 from openai import AsyncOpenAI
 
 from rag_with_oag.config import EmbedConfig, resolve_api_key
+from rag_with_oag.errors import _translate_model_errors
 
 
 class OpenAIEmbedder:
@@ -36,9 +37,10 @@ class OpenAIEmbedder:
         params: dict[str, Any] = {}
         if self.config.dimensions is not None:
             params["dimensions"] = self.config.dimensions
-        response = await self._client.embeddings.create(
-            model=self.model, input=list(batch), encoding_format="float", **params
-        )
+        with _translate_model_errors(self._client, self.config, role="embedding"):
+            response = await self._client.embeddings.create(
+                model=self.model, input=list(batch), encoding_format="float", **params
+            )
         if response.usage is not None:
             self.usage["embedding_tokens"] += response.usage.prompt_tokens
         # Servers are not required to keep input order; ``index`` is authoritative.
