@@ -1,12 +1,12 @@
 [build-system]
-requires = ["hatchling>=1.25"]
+requires = ["hatchling>=1.27", "hatch-fancy-pypi-readme>=24.1"]
 build-backend = "hatchling.build"
 
 [project]
 name = "rag_with_oag"
 version = "0.2.0.dev0"
 description = "RAG, ontology-augmented generation (OAG) and hybrid retrieval over a single FalkorDB graph."
-readme = "README.md"
+dynamic = ["readme"]
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.12"
@@ -51,6 +51,26 @@ rag-with-oag = "rag_with_oag.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/Sami-Ozsoy/rag_with_oag"
+
+[tool.hatch.metadata.hooks.fancy-pypi-readme]
+content-type = "text/markdown"
+fragments = [{ path = "README.md" }]
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '(?ms)^```mermaid[ \t]*\n.*?^```[ \t]*$'
+replacement = '*Diagram: [view it on GitHub](https://github.com/Sami-Ozsoy/rag_with_oag).*'
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '(?<![\w-])(src(?:set)?=")(?![a-zA-Z][a-zA-Z0-9+.-]*:|[/#])([^"\s,]+)'
+replacement = '\g<1>https://raw.githubusercontent.com/Sami-Ozsoy/rag_with_oag/main/\g<2>'
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '\]\((?![a-zA-Z][a-zA-Z0-9+.-]*:|[/#])([^()\s<>]+)\)'
+replacement = '](https://github.com/Sami-Ozsoy/rag_with_oag/blob/main/\g<1>)'
+
+[[tool.hatch.metadata.hooks.fancy-pypi-readme.substitutions]]
+pattern = '\]\((#[^()\s<>]+)\)'
+replacement = '](https://github.com/Sami-Ozsoy/rag_with_oag\g<1>)'
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/rag_with_oag"]

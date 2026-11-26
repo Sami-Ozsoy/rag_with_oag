@@ -33,3 +33,7 @@ Keep pull requests small and focused. Add tests for behaviour changes and
 update the relevant docs and [CHANGELOG.md](CHANGELOG.md).
 
 Report security issues as described in [SECURITY.md](SECURITY.md).
+
+## Releasing
+
+Bump the version in `pyproject.toml` and update [CHANGELOG.md](CHANGELOG.md), then run `git tag vX.Y.Z && git push origin vX.Y.Z`. Pre-release tags such as `v0.3.0rc1` go only to TestPyPI. Publishing uses Trusted Publishing through the `pypi` GitHub environment without API tokens.

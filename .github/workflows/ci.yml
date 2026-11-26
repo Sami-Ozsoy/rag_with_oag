@@ -29,21 +29,119 @@ jobs:
       - run: mypy
       - run: pytest --cov=rag_with_oag --cov-report=term-missing
 
-  publish:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: test
+  package:
     runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write  # trusted publishing, no API token stored
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install build && python -m build
-      # TestPyPI only until the M2 gate passes; then add the PyPI step here.
+      - run: pip install build twine
+      - run: python -m build
+      - run: twine check --strict dist/*
+      - name: Check packaged README links and diagrams
+        run: |
+          python - <<'PY'
+          from email import message_from_bytes
+          from pathlib import Path
+          from tarfile import open as open_tar
+          from zipfile import ZipFile
+
+          forbidden = ('src="docs/', 'srcset="docs/', '](docs/', '](examples/', '```mermaid')
+
+          def check_description(metadata, artifact):
+              description = message_from_bytes(metadata).get_payload()
+              for marker in forbidden:
+                  if marker in description:
+                      raise SystemExit(f"{artifact}: found {marker!r} in the long description")
+
+          wheel, = Path("dist").glob("*.whl")
+          with ZipFile(wheel) as archive:
+              metadata, = (name for name in archive.namelist() if name.endswith(".dist-info/METADATA"))
+              check_description(archive.read(metadata), wheel)
+
+          sdist, = Path("dist").glob("*.tar.gz")
+          with open_tar(sdist) as archive:
+              metadata, = (name for name in archive.getnames() if name.split("/", 1)[-1] == "PKG-INFO")
+              with archive.extractfile(metadata) as metadata_file:
+                  check_description(metadata_file.read(), sdist)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: distributions
+          path: dist/
+          if-no-files-found: error
+
+  release-check:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [test, package]
+    runs-on: ubuntu-latest
+    outputs:
+      prerelease: ${{ steps.release.outputs.prerelease }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install packaging
+      - name: Validate release tag
+        id: release
+        run: |
+          python - <<'PY'
+          import os
+          from email import message_from_bytes
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          from packaging.version import Version
+
+          wheel, = Path("dist").glob("*.whl")
+          with ZipFile(wheel) as archive:
+              metadata, = (name for name in archive.namelist() if name.endswith(".dist-info/METADATA"))
+              v = message_from_bytes(archive.read(metadata))["Version"]
+          tag = os.environ["GITHUB_REF_NAME"]
+          if tag.removeprefix("v") != v:
+              raise SystemExit(
+                  f"Tag {tag} differs from built version {v}. "
+                  "Bump the version in pyproject.toml before tagging."
+              )
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              print(f"prerelease={str(Version(v).is_prerelease).lower()}", file=output)
+          PY
+
+  # All release tags go to TestPyPI. Only final versions go to PyPI.
+  publish-testpypi:
+    needs: release-check
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write  # trusted publishing, no API token stored
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: distributions
+          path: dist/
       - name: TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           repository-url: https://test.pypi.org/legacy/
+          skip-existing: true
+
+  publish-pypi:
+    needs: [release-check, publish-testpypi]
+    if: needs.release-check.outputs.prerelease == 'false'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write  # trusted publishing, no API token stored
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: distributions
+          path: dist/
+      - name: PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
