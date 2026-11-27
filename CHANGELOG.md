@@ -4,6 +4,7 @@
 
 ### Added
 
+- Local Ontology Studio (`rag-with-oag ui`) for suggesting, editing, previewing, checking, and saving ontologies, with bundled Cytoscape.js (MIT).
 - Question-driven ontology suggestions with one repair round, plus `Ontology.check_questions()` and `check-questions` to route questions to graph or text and validate proposed graph paths.
 - `Ontology.preview()` and the `preview` CLI command to report extraction coverage on sample documents before ingest.
 

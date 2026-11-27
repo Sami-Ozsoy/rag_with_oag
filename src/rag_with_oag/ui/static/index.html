@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light dark">
+  <title>Ontology Studio</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script defer src="/static/vendor/cytoscape.min.js"></script>
+  <script type="module" src="/static/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" width="34" height="34" aria-hidden="true">
+        <path d="M10 10 22 16 10 23" fill="none" stroke="currentColor" stroke-width="1.8"/>
+        <circle cx="9" cy="9" r="3" fill="currentColor"/>
+        <circle cx="23" cy="16" r="3" fill="currentColor"/>
+        <circle cx="9" cy="24" r="3" fill="currentColor"/>
+      </svg>
+      <h1>Ontology Studio</h1>
+    </div>
+    <div class="session">
+      <span id="document-count">Loading documents…</span>
+      <span id="model" class="model"></span>
+      <span id="dirty" class="dirty" hidden>Unsaved changes</span>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" hidden>
+    <span id="banner-text" role="alert"></span>
+    <button id="dismiss-banner" type="button" aria-label="Dismiss error">Dismiss</button>
+  </div>
+
+  <main id="studio">
+    <div class="workspace">
+      <section class="schema surface" id="schema-panel" aria-labelledby="schema-title">
+        <div class="panel-heading">
+          <div>
+            <h2 id="schema-title">Schema</h2>
+            <p id="schema-count"></p>
+          </div>
+          <div class="button-group">
+            <button id="layout" type="button">Re-run layout</button>
+          </div>
+        </div>
+        <div class="canvas">
+          <div id="graph" aria-label="Ontology schema graph"></div>
+          <div id="empty" class="empty">
+            <div class="empty-icon" aria-hidden="true">
+              <svg viewBox="0 0 48 48" width="42" height="42">
+                <path d="M14 12 34 24 14 36" fill="none" stroke="currentColor" stroke-width="2"/>
+                <circle cx="13" cy="11" r="4" fill="currentColor"/>
+                <circle cx="35" cy="24" r="4" fill="currentColor"/>
+                <circle cx="13" cy="37" r="4" fill="currentColor"/>
+              </svg>
+            </div>
+            <h3 id="empty-title">Loading workspace…</h3>
+            <div id="empty-actions" class="button-group" hidden>
+              <button type="button" class="primary" data-job="suggest">Suggest an ontology</button>
+              <button id="start-empty" type="button">Start empty</button>
+            </div>
+          </div>
+          <div id="graph-tools" class="graph-tools" hidden>
+            <div class="button-group zoom-controls" aria-label="Graph zoom">
+              <button id="zoom-out" type="button" aria-label="Zoom out">−</button>
+              <button id="zoom-in" type="button" aria-label="Zoom in">+</button>
+              <button id="fit" type="button">Fit</button>
+            </div>
+            <button id="clear-path" type="button" hidden>Clear path <kbd>Esc</kbd></button>
+          </div>
+          <div id="edge-tooltip" role="tooltip" hidden></div>
+          <div id="preview-legend" class="preview-legend" hidden>
+            <span class="legend-unused">No extractions</span>
+            <span class="legend-low">Low key fill</span>
+            <span class="legend-mismatch">Endpoint mismatch</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="inspector surface" id="inspector-panel" aria-labelledby="inspector-title">
+        <div class="panel-heading">
+          <h2 id="inspector-title">Inspector</h2>
+          <div class="button-group">
+            <button id="add-entity" type="button">Add entity</button>
+            <button id="add-relation" type="button">Add relation</button>
+          </div>
+        </div>
+        <div class="inspector-content">
+          <label class="type-picker">Schema type <select id="type-picker"></select></label>
+          <div id="inspector-fields"></div>
+          <div id="inspector-preview"></div>
+        </div>
+      </aside>
+
+      <section class="yaml-panel surface" id="yaml-panel" aria-labelledby="yaml-title" hidden>
+        <div class="panel-heading">
+          <h2 id="yaml-title">Ontology YAML</h2>
+          <p id="yaml-file"></p>
+        </div>
+        <textarea id="yaml-editor" aria-label="Ontology YAML" spellcheck="false"
+                  aria-describedby="yaml-errors"></textarea>
+        <ul id="yaml-errors" class="errors" aria-live="polite" hidden></ul>
+      </section>
+    </div>
+
+    <div id="report-resize" role="separator" tabindex="0" aria-label="Report panel height"
+         aria-orientation="horizontal" aria-controls="workbench"></div>
+
+    <section class="workbench surface" id="workbench" aria-label="Ontology tools and reports">
+      <div class="toolbar">
+        <div class="button-group">
+          <button type="button" class="primary" data-job="suggest">Suggest</button>
+          <button type="button" data-job="preview">Preview</button>
+          <button type="button" data-job="check-questions">Check questions</button>
+        </div>
+        <div class="toolbar-status" id="workbench-status" role="status"></div>
+        <div class="button-group">
+          <button id="show-yaml" type="button" aria-controls="yaml-panel" aria-pressed="false">YAML</button>
+          <button id="save" type="button" class="save-button">Save</button>
+        </div>
+      </div>
+      <div class="tabs" role="tablist" aria-label="Reports">
+        <button id="tab-questions" role="tab" type="button" aria-selected="true"
+                aria-controls="questions-panel">Questions</button>
+        <button id="tab-preview" role="tab" type="button" aria-selected="false"
+                aria-controls="preview-panel" tabindex="-1">Preview report</button>
+        <button id="tab-problems" role="tab" type="button" aria-selected="false"
+                aria-controls="problems-panel" tabindex="-1">Problems <span id="problem-count" hidden></span></button>
+      </div>
+      <section class="tab-panel" id="questions-panel" role="tabpanel" aria-labelledby="tab-questions">
+        <div class="question-editor">
+          <label for="questions">Questions <span class="muted">· One per line</span></label>
+          <textarea id="questions" rows="3" placeholder="Which companies have signed the same contract?"></textarea>
+          <button type="button" data-job="check-questions">Check questions</button>
+        </div>
+        <div id="question-results" class="report" aria-live="polite"></div>
+      </section>
+      <section class="tab-panel report" id="preview-panel" role="tabpanel" aria-labelledby="tab-preview" hidden></section>
+      <section class="tab-panel report" id="problems-panel" role="tabpanel" aria-labelledby="tab-problems" hidden>
+        <p id="problems-empty" class="muted">No validation problems.</p>
+        <ul id="problems" class="errors"></ul>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="suggest-dialog" aria-labelledby="suggest-title">
+    <form id="suggest-form">
+      <h2 id="suggest-title">Suggest an ontology</h2>
+      <label>Instructions <textarea name="instructions" rows="4" placeholder="What should the schema capture?"></textarea></label>
+      <label class="check"><input name="useQuestions" type="checkbox" checked> Use questions</label>
+      <label class="check"><input name="repair" type="checkbox" checked> Repair coverage gaps</label>
+      <label class="check" id="extend-option"><input name="extend" type="checkbox"> Extend current ontology</label>
+      <label class="number-field">Hop limit <input name="hops" type="number" min="1" required></label>
+      <div class="dialog-actions">
+        <button type="button" data-cancel>Cancel</button>
+        <button type="submit" class="primary">Run suggestion</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="preview-dialog" aria-labelledby="preview-title">
+    <form id="preview-form">
+      <h2 id="preview-title">Preview extraction</h2>
+      <label class="number-field">Documents <input name="documents" type="number" min="1" required></label>
+      <label class="number-field">Chunks per document <input name="chunks" type="number" min="1" required></label>
+      <div class="dialog-actions">
+        <button type="button" data-cancel>Cancel</button>
+        <button type="submit" class="primary">Run preview</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="check-dialog" aria-labelledby="check-title">
+    <form id="check-form">
+      <h2 id="check-title">Check questions</h2>
+      <p id="check-count" class="muted"></p>
+      <label class="number-field">Hop limit <input name="hops" type="number" min="1" required></label>
+      <div class="dialog-actions">
+        <button type="button" data-cancel>Cancel</button>
+        <button type="submit" class="primary">Check questions</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="save-dialog" aria-labelledby="save-title">
+    <form id="save-form">
+      <h2 id="save-title">Save ontology</h2>
+      <label>Path inside the working directory <input name="path" type="text" spellcheck="false" required></label>
+      <div class="dialog-actions">
+        <button type="button" data-cancel>Cancel</button>
+        <button type="submit" class="primary">Save YAML</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="approval-dialog" aria-labelledby="approval-title" aria-describedby="approval-message">
+    <form method="dialog">
+      <h2 id="approval-title"></h2>
+      <p id="approval-message"></p>
+      <div class="dialog-actions">
+        <button type="submit" value="cancel" autofocus>Cancel</button>
+        <button type="submit" value="proceed" id="approval-action" class="primary"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

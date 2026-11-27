@@ -192,6 +192,8 @@ def test_report(ontology: Ontology) -> None:
             2,
             "path needs 2 hops (limit 1)",
             "graph",
+            "Sirket",
+            [("ORTAGIDIR", "forward"), ("TARAFIDIR", "backward")],
         ),
         QuestionCoverage(
             "Q2?",
@@ -200,8 +202,10 @@ def test_report(ontology: Ontology) -> None:
             1,
             "step 1: unknown relation 'OTHER'",
             "graph",
+            "Sirket",
+            [("OTHER", "forward")],
         ),
-        QuestionCoverage("Q3?", "covered", "Sirket", 0, "", "graph"),
+        QuestionCoverage("Q3?", "covered", "Sirket", 0, "", "graph", "Sirket"),
         QuestionCoverage("Q4?", "not_covered", None, None, "Needs a payment property", "graph"),
         QuestionCoverage("Q5?", "not_covered", None, None, "no answer from the model", None),
     ]
@@ -257,9 +261,9 @@ async def test_text_routing_keeps_valid_paths_and_excludes_text_from_gaps(
     )
     report = await ontology.acheck_questions([f"Q{i}?" for i in range(1, 9)], llm, hops=1)
     assert report.questions == [
-        QuestionCoverage("Q1?", "covered", "Sirket .sehir", 0, "", "text"),
+        QuestionCoverage("Q1?", "covered", "Sirket .sehir", 0, "", "text", "Sirket"),
         QuestionCoverage("Q2?", "text", None, None, detail, "text"),
-        QuestionCoverage("Q3?", "text", "Unknown", 0, detail, "text"),
+        QuestionCoverage("Q3?", "text", "Unknown", 0, detail, "text", "Unknown"),
         QuestionCoverage(
             "Q4?",
             "text",
@@ -267,10 +271,12 @@ async def test_text_routing_keeps_valid_paths_and_excludes_text_from_gaps(
             2,
             detail,
             "text",
+            "Sirket",
+            [("ORTAGIDIR", "forward"), ("TARAFIDIR", "backward")],
         ),
         QuestionCoverage("Q5?", "text", None, None, "Needs a duration property", "text"),
         QuestionCoverage("Q6?", "text", None, None, detail, "text"),
-        QuestionCoverage("Q7?", "text", "Sirket", 0, detail, "text"),
+        QuestionCoverage("Q7?", "text", "Sirket", 0, detail, "text", "Sirket"),
         QuestionCoverage("Q8?", "not_covered", None, None, "Needs a supplier relation", "graph"),
     ]
     assert report.covered == 1
@@ -486,6 +492,8 @@ def test_cli_output(
                     "hops": 0,
                     "reason": "",
                     "route": "graph",
+                    "start_type": "Sirket",
+                    "steps": [],
                 },
                 {
                     "question": "Q2?",
@@ -494,6 +502,8 @@ def test_cli_output(
                     "hops": None,
                     "reason": reason,
                     "route": "text",
+                    "start_type": None,
+                    "steps": [],
                 },
                 {
                     "question": "Q3?",
@@ -502,6 +512,8 @@ def test_cli_output(
                     "hops": None,
                     "reason": "Needs a City type",
                     "route": "graph",
+                    "start_type": None,
+                    "steps": [],
                 },
             ],
             "token_usage": {"prompt_tokens": 100, "completion_tokens": 10},

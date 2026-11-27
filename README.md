@@ -175,6 +175,7 @@ kb.close()
 ## Documentation
 
 - [Ontology](docs/ontology.md)
+- [Ontology Studio](docs/ontology.md#ontology-studio) opens with `rag-with-oag ui`.
 - [Configuration and CLI](docs/configuration.md)
 - [How it works](docs/how-it-works.md)
 - [Evaluation](docs/evaluation.md)

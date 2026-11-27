@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections import Counter
 from collections.abc import Iterable, Iterator, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from itertools import batched
 from pathlib import Path
 from typing import Literal, get_args
@@ -33,6 +33,8 @@ class QuestionCoverage:
     hops: int | None
     reason: str
     route: QuestionRoute | None
+    start_type: str | None = None
+    steps: list[tuple[str, str]] = field(default_factory=list)
 
 
 @dataclass(slots=True)
@@ -171,6 +173,8 @@ def _coverage(
         hops=len(proposal.steps) if has_path else None,
         reason=reason,
         route=proposal.route,
+        start_type=proposal.start_type if has_path else None,
+        steps=[(step.relation, step.direction) for step in proposal.steps] if has_path else [],
     )
 
 

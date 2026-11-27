@@ -12,6 +12,7 @@ import argparse
 import asyncio
 import json
 import logging
+import secrets
 import sys
 from dataclasses import asdict
 from pathlib import Path
@@ -96,6 +97,14 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--concurrency", type=_positive_int, default=4)
     check.add_argument("--json", action="store_true", help="machine-readable output")
     check.add_argument("-v", "--verbose", action="store_true")
+
+    ui = sub.add_parser("ui", help="open Ontology Studio in a local browser")
+    ui.add_argument("sources", nargs="+", type=Path)
+    ui.add_argument("--ontology", metavar="FILE", type=Path, help="ontology YAML and save target")
+    ui.add_argument("--questions", metavar="FILE", type=Path, help="text or YAML questions file")
+    ui.add_argument("--port", type=_positive_int, default=8765)
+    ui.add_argument("--no-browser", action="store_true")
+    ui.add_argument("-v", "--verbose", action="store_true")
     return parser
 
 
@@ -117,6 +126,8 @@ def main(argv: list[str] | None = None) -> int:
         return _preview(args)
     if args.command == "check-questions":
         return _check_questions(args)
+    if args.command == "ui":
+        return _ui(args)
     try:
         kb = _open(args)
     except ValidationError as exc:
@@ -145,6 +156,44 @@ def _model_settings_error(exc: ValidationError) -> int:
 
 def _make_llm(config: LLMConfig) -> LLMClient:
     return LLMClient(config)
+
+
+def _ui(args: argparse.Namespace) -> int:
+    try:
+        from rag_with_oag.ui import create_app, run
+    except ImportError:
+        print(
+            "error: the ui needs extra dependencies: pip install 'rag_with_oag[ui]'",
+            file=sys.stderr,
+        )
+        return 2
+    if args.port > 65535:
+        print("error: port must be between 1 and 65535", file=sys.stderr)
+        return 2
+    token = secrets.token_urlsafe(24)
+    try:
+        app = create_app(
+            root=Path.cwd(),
+            sources=args.sources,
+            ontology_path=args.ontology,
+            questions_path=args.questions,
+            token=token,
+            port=args.port,
+        )
+    except (ValueError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    url = f"http://127.0.0.1:{args.port}/#token={token}"
+    print(f"Ontology Studio: {url}", flush=True)
+    print("Press Ctrl+C to stop", flush=True)
+    try:
+        run(app, port=args.port, open_browser=not args.no_browser, url=url)
+    except KeyboardInterrupt:
+        pass
+    except OSError as exc:
+        print(f"error: cannot listen on 127.0.0.1:{args.port}: {exc}", file=sys.stderr)
+        return 1
+    return 0
 
 
 def _suggest(args: argparse.Namespace) -> int:

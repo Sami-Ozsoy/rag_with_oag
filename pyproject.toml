@@ -35,8 +35,10 @@ dependencies = [
 [project.optional-dependencies]
 pdf = ["pypdf>=4.2", "adaptive-oci-chunking[pdf]>=0.3,<0.4"]
 local = ["fastembed>=0.4"]
-all = ["rag_with_oag[pdf,local]"]
+ui = ["fastapi>=0.115", "uvicorn>=0.30"]
+all = ["rag_with_oag[pdf,local,ui]"]
 dev = [
+    "rag_with_oag[ui]",
     "pytest>=8.0",
     "pytest-asyncio>=0.24",
     "pytest-cov>=5.0",

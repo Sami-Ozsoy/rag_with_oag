@@ -39,6 +39,32 @@ relations:
   Adding an ontology to a RAG-only knowledge base extracts the existing documents
   on the next `ingest`.
 
+## Ontology studio
+
+```bash
+pip install 'rag_with_oag[ui]'
+rag-with-oag ui docs/ --ontology ontology.yaml --questions questions.txt
+```
+
+- **Suggest** drafts or extends a schema from sample documents and can repair gaps
+  against the questions you provide.
+- **Schema** and **YAML** let you edit the ontology, with validation in Problems.
+- **Preview** runs sample extraction and marks unused types, low key fill, and
+  endpoint mismatches on the graph.
+- **Check questions** reports which questions the graph covers. Select a result
+  to highlight its path.
+- **Save** writes the validated YAML. An optional `--ontology` file can be an
+  existing schema or a new save target.
+
+Studio serves the page on loopback only and accepts files inside the current
+working directory. Open the full URL printed by the CLI, including its session
+token in the URL fragment. Studio removes the fragment and keeps the token for
+reloads in the same tab. Model actions use the same `RAG_OAG_LLM_*` settings
+as the CLI, and the API key stays on the server. Use `--no-browser` to open the
+URL yourself. The graph uses bundled Cytoscape.js (MIT).
+Studio checks document paths before loading them and assumes local files and
+symlinks remain stable between the check and the read.
+
 ## Suggesting an ontology
 
 ```python
