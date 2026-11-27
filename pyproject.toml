@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rag_with_oag"
-version = "0.2.0"
+version = "0.3.0rc1"
 description = "RAG, ontology-augmented generation (OAG) and hybrid retrieval over a single FalkorDB graph."
 dynamic = ["readme"]
 license = "MIT"

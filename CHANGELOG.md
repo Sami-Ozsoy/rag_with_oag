@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [0.3.0rc1] - 2026-11-27
+
 ### Added
 
 - Local Ontology Studio (`rag-with-oag ui`) for suggesting, editing, previewing, checking, and saving ontologies, with bundled Cytoscape.js (MIT).
