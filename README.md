@@ -161,7 +161,7 @@ kb.close()
 
 - The API may change between pre-alpha versions.
 - The embedded database has no Windows build. Use a FalkorDB server there.
-- You design the ontology. Reviewing a draft from `Ontology.suggest()` takes domain knowledge. See [Ontology](docs/ontology.md).
+- You design the ontology. Reviewing a draft from `Ontology.suggest()` takes domain knowledge. See [ontology suggestion and preview](docs/ontology.md).
 - Every chunk goes to the extraction model, so ingest uses at least as many LLM
   tokens as the corpus, plus prompts. `IngestReport.token_usage` reports the
   actual usage. Results are cached per chunk, so interrupted or repeated ingests

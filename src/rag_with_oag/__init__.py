@@ -20,6 +20,12 @@ from rag_with_oag.errors import (
 )
 from rag_with_oag.kb import AsyncKnowledgeBase, KnowledgeBase
 from rag_with_oag.ontology import EntityType, Ontology, Property, RelationType
+from rag_with_oag.ontology.preview import (
+    DroppedItems,
+    EntityTypeStats,
+    PreviewReport,
+    RelationTypeStats,
+)
 from rag_with_oag.types import (
     ChunkHit,
     Citation,
@@ -45,10 +51,12 @@ __all__ = [
     "ConfigError",
     "DeleteReport",
     "Document",
+    "DroppedItems",
     "EmbedConfig",
     "EmbeddingMismatchError",
     "EntityHit",
     "EntityType",
+    "EntityTypeStats",
     "ExtractionConfig",
     "Fact",
     "IngestReport",
@@ -64,10 +72,12 @@ __all__ = [
     "OntologyError",
     "OntologyMismatchError",
     "OutputTruncatedError",
+    "PreviewReport",
     "Property",
     "QueryResult",
     "RagOagError",
     "RelationType",
+    "RelationTypeStats",
     "RetrievalConfig",
     "RetrievedContext",
     "StoreError",

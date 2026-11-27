@@ -65,3 +65,43 @@ documents, spread across them. Review and edit the suggestion before ingesting.
 Extending an ontology changes its fingerprint. A knowledge base built with the
 old ontology raises `OntologyMismatchError` when opened with the extension.
 Rebuild it under a new name.
+
+## Previewing an ontology
+
+Preview runs the ingest chunker and extractor on an evenly spread sample of
+documents and chunks. It needs only the chat model. It writes nothing, opens no
+database, and skips embeddings, the extraction cache, and entity resolution.
+
+```python
+from pathlib import Path
+
+from rag_with_oag import LLMConfig, Ontology
+
+ontology = Ontology.from_yaml(Path("ontology.yaml"))
+llm = LLMConfig(model="gpt-4o-mini")
+report = ontology.preview(["docs/"], llm=llm, documents=5, chunks_per_doc=6)
+```
+
+In async code, use `await ontology.apreview(...)` with the same arguments.
+
+```bash
+rag-with-oag preview docs/ --ontology ontology.yaml --docs 5 --chunks-per-doc 6
+```
+
+Use `--json` for the full report, including property fill rates, validation
+examples, failed batches, unmapped concepts, and token usage. `documents_available`
+counts sources with text. Chunk coverage counts passages that mention an entity
+or support a relation. Mentions and relations count once per extracted item even
+when supported by several chunks.
+
+- `entity_types` and `relation_types` include every declared type. Property fill
+  rates cover each declared property when the type has at least one match.
+- `distinct` counts instances by key value when one was extracted, otherwise by
+  normalized name. Low `key_fill_rate` means more mentions rely on name matching
+  and may end up as separate nodes after ingest.
+- An `endpoint_mismatch` hint shows the observed source and target types alongside
+  the pair the ontology allows. Check the relation direction and type descriptions
+  against the sample before editing the definition.
+
+Use the loop **suggest → preview → edit → preview → ingest** to refine the ontology
+before building the knowledge base.

@@ -6,7 +6,7 @@ import datetime as dt
 import re
 from collections.abc import Mapping
 from decimal import Decimal, InvalidOperation
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from rag_with_oag.ontology.model import (
     RESERVED_LABELS,
@@ -82,9 +82,17 @@ def coerce_properties(
     Unknown properties and nulls are dropped silently: the model was told to use
     null for anything the text does not state. Returns (clean values, errors).
     """
+    clean, issues = coerce_properties_with_issues(defined, given, where)
+    return clean, [message for _, message in issues]
+
+
+def coerce_properties_with_issues(
+    defined: tuple[Property, ...], given: Mapping[str, Any], where: str
+) -> tuple[dict[str, Any], list[tuple[Literal["property_error", "missing_required"], str]]]:
+    """Coerce properties and label each validation message with its kind."""
     by_name = {p.name: p for p in defined}
     clean: dict[str, Any] = {}
-    errors: list[str] = []
+    errors: list[tuple[Literal["property_error", "missing_required"], str]] = []
     for name, value in given.items():
         prop = by_name.get(name)
         if prop is None or value is None or value == "":
@@ -92,10 +100,12 @@ def coerce_properties(
         try:
             clean[name] = _coerce(prop, value)
         except ValueError as exc:
-            errors.append(f"{where}: property {name!r}: {exc}")
+            errors.append(("property_error", f"{where}: property {name!r}: {exc}"))
     for prop in defined:
         if prop.required and prop.name not in clean:
-            errors.append(f"{where}: required property {prop.name!r} is missing")
+            errors.append(
+                ("missing_required", f"{where}: required property {prop.name!r} is missing")
+            )
     return clean, errors
 
 

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+- `Ontology.preview()` and the `preview` CLI command to report extraction coverage on sample documents before ingest.
+
 ## [0.2.0] - 2026-11-26
 
 First release on PyPI. No changes since 0.2.0rc1.

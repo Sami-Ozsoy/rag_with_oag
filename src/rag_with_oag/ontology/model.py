@@ -20,9 +20,10 @@ from rag_with_oag._text import DEFAULT_NAME_SUFFIXES, fold, match_name
 from rag_with_oag.errors import OntologyError
 
 if TYPE_CHECKING:
-    from rag_with_oag.config import LLMConfig
+    from rag_with_oag.config import ExtractionConfig, LLMConfig
     from rag_with_oag.ingest.loaders import Source
     from rag_with_oag.llm.client import ChatModel
+    from rag_with_oag.ontology.preview import PreviewReport
 
 PropertyType = Literal["string", "integer", "number", "boolean", "date", "enum"]
 
@@ -242,6 +243,57 @@ class Ontology(BaseModel):
                 name=name,
                 instructions=instructions,
                 sample_tokens=sample_tokens,
+            )
+        )
+
+    async def apreview(
+        self,
+        sources: Iterable[Source] | Source,
+        llm: LLMConfig | ChatModel,
+        *,
+        documents: int = 5,
+        chunks_per_doc: int = 6,
+        concurrency: int = 4,
+        config: ExtractionConfig | None = None,
+    ) -> PreviewReport:
+        """Preview what this ontology extracts from a document sample before ingest."""
+        from rag_with_oag.ontology.preview import preview_ontology
+
+        return await preview_ontology(
+            self,
+            sources,
+            llm,
+            documents=documents,
+            chunks_per_doc=chunks_per_doc,
+            concurrency=concurrency,
+            config=config,
+        )
+
+    def preview(
+        self,
+        sources: Iterable[Source] | Source,
+        llm: LLMConfig | ChatModel,
+        *,
+        documents: int = 5,
+        chunks_per_doc: int = 6,
+        concurrency: int = 4,
+        config: ExtractionConfig | None = None,
+    ) -> PreviewReport:
+        """Synchronous version of ``apreview``."""
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            pass
+        else:
+            raise RuntimeError("an event loop is running; use await ontology.apreview(...) instead")
+        return asyncio.run(
+            self.apreview(
+                sources,
+                llm,
+                documents=documents,
+                chunks_per_doc=chunks_per_doc,
+                concurrency=concurrency,
+                config=config,
             )
         )
 

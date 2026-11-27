@@ -1,4 +1,4 @@
-"""Command line for ingesting, deleting and querying documents and suggesting ontologies.
+"""Command line for managing documents, querying, and suggesting or previewing ontologies.
 
 Models come from the environment, e.g.::
 
@@ -15,7 +15,7 @@ import logging
 import sys
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import ValidationError
 
@@ -28,6 +28,9 @@ from rag_with_oag.ontology.model import Ontology
 from rag_with_oag.ontology.suggest import load_documents
 from rag_with_oag.retrieval.context import fact_ref
 from rag_with_oag.types import MODES
+
+if TYPE_CHECKING:
+    from rag_with_oag.ontology.preview import PreviewReport
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -67,7 +70,25 @@ def build_parser() -> argparse.ArgumentParser:
     suggest.add_argument("--instructions")
     suggest.add_argument("--sample-tokens", type=int, default=12_000)
     suggest.add_argument("-v", "--verbose", action="store_true")
+
+    preview = sub.add_parser(
+        "preview", help="preview what an ontology extracts from sample documents"
+    )
+    preview.add_argument("sources", nargs="+")
+    preview.add_argument("--ontology", required=True, type=Path, help="ontology YAML file")
+    preview.add_argument("--docs", type=_positive_int, default=5)
+    preview.add_argument("--chunks-per-doc", type=_positive_int, default=6)
+    preview.add_argument("--concurrency", type=_positive_int, default=4)
+    preview.add_argument("--json", action="store_true", help="machine-readable output")
+    preview.add_argument("-v", "--verbose", action="store_true")
     return parser
+
+
+def _positive_int(text: str) -> int:
+    value = int(text)
+    if value < 1:
+        raise argparse.ArgumentTypeError("must be >= 1")
+    return value
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -77,6 +98,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     if args.command == "suggest":
         return _suggest(args)
+    if args.command == "preview":
+        return _preview(args)
     try:
         kb = _open(args)
     except ValidationError as exc:
@@ -161,6 +184,97 @@ def _suggest(args: argparse.Namespace) -> int:
     except (RagOagError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+
+
+def _preview(args: argparse.Namespace) -> int:
+    try:
+        ontology = Ontology.from_yaml(args.ontology)
+    except (RagOagError, ValueError, OSError, AttributeError, TypeError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    try:
+        config = LLMConfig()  # type: ignore[call-arg]  # filled from env
+    except ValidationError as exc:
+        return _model_settings_error(exc)
+
+    async def generate() -> PreviewReport:
+        llm = _make_llm(config)
+        try:
+            return await ontology.apreview(
+                args.sources,
+                llm,
+                documents=args.docs,
+                chunks_per_doc=args.chunks_per_doc,
+                concurrency=args.concurrency,
+            )
+        finally:
+            close = getattr(llm, "aclose", None)
+            if close is not None:
+                await close()
+
+    try:
+        report = asyncio.run(generate())
+    except (RagOagError, ValueError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    if args.json:
+        _print_json(asdict(report))
+    else:
+        _print_preview(report)
+    return 1 if len(report.failed_batches) == report.batches else 0
+
+
+def _print_preview(report: PreviewReport) -> None:
+    print(
+        f"Previewed ontology {report.ontology!r} on {report.documents_sampled} of "
+        f"{report.documents_available} documents ({report.chunks_sampled} chunks, "
+        f"{report.batches} batches)."
+    )
+    print(
+        f"Coverage: {report.chunks_with_entities}/{report.chunks_sampled} chunks with entities, "
+        f"{report.chunks_with_relations}/{report.chunks_sampled} with relations."
+    )
+    print("\nEntity types:")
+    entity_width = max((len(entity.name) for entity in report.entity_types), default=0)
+    for entity in report.entity_types:
+        summary = f"{entity.mentions} mentions"
+        if entity.mentions:
+            summary += f", {entity.distinct} distinct"
+            if entity.key_fill_rate is not None:
+                summary += f", key {entity.key} {entity.key_fill_rate:.0%}"
+            summary += f"   e.g. {', '.join(entity.examples)}"
+        print(f"  {entity.name:<{entity_width}}  {summary}")
+    if report.relation_types:
+        print("\nRelation types:")
+        relation_width = max(len(relation.name) for relation in report.relation_types)
+        endpoints = [
+            f"({relation.source} -> {relation.target})" for relation in report.relation_types
+        ]
+        endpoint_width = max(map(len, endpoints))
+        for relation, pair in zip(report.relation_types, endpoints, strict=True):
+            examples = f"   e.g. {', '.join(relation.examples)}" if relation.examples else ""
+            print(
+                f"  {relation.name:<{relation_width}}  {pair:<{endpoint_width}}  "
+                f"{relation.count}{examples}"
+            )
+    if report.dropped:
+        print("\nDropped:")
+        for group in report.dropped:
+            label = f"{group.kind} {group.type_name}" if group.type_name is not None else group.kind
+            pairs = ", ".join(f"{pair} {count}" for pair, count in group.observed.items())
+            details = f"  ({pairs})" if pairs else ""
+            print(f"  {label}  {group.count}{details}")
+    if report.hints:
+        print("\nHints:")
+        for hint in report.hints:
+            print(f"  - {hint}")
+    usage = report.token_usage
+    print(
+        f"\nTokens: prompt {usage.get('prompt_tokens', 0)}, "
+        f"completion {usage.get('completion_tokens', 0)}"
+    )
+    for failure in report.failed_batches:
+        print(f"  failed: {failure}", file=sys.stderr)
 
 
 def _open(args: argparse.Namespace) -> KnowledgeBase:

@@ -16,14 +16,14 @@ import hashlib
 import json
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass, field
-from typing import Any
+from typing import Any, Literal, overload
 
 from rag_with_oag.generation import prompts
 from rag_with_oag.llm import structured
 from rag_with_oag.llm.client import ChatModel, Message
 from rag_with_oag.ontology.model import Ontology
 from rag_with_oag.ontology.schema_gen import RawExtraction, extraction_schema
-from rag_with_oag.ontology.validator import coerce_properties
+from rag_with_oag.ontology.validator import coerce_properties_with_issues
 from rag_with_oag.types import Chunk
 
 
@@ -70,10 +70,20 @@ class ChunkGraph:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class ValidationIssue:
+    kind: str
+    type_name: str | None
+    message: str
+    observed: tuple[str, str] | None = None
+
+
 @dataclass(slots=True)
 class BatchResult:
     graphs: dict[str, ChunkGraph]  # chunk id -> graph
     errors: list[str]
+    issues: list[ValidationIssue] = field(default_factory=list)
+    relations: list[RelationMention] = field(default_factory=list)  # once per validated item
 
 
 class Extractor:
@@ -117,48 +127,79 @@ class Extractor:
             name="extraction",
             mode=self.mode,
         )
-        graphs, errors = validate(result.value, labels, self.ontology)
+        outcome = validate(result.value, labels, self.ontology, detailed=True)
         for _ in range(self.validation_retries):
-            if not errors:
+            if not outcome.errors:
                 break
             retry = await structured.generate(
                 self.llm,
-                [*messages, *structured.feedback_messages(result.raw, errors)],
+                [*messages, *structured.feedback_messages(result.raw, outcome.errors)],
                 schema=self.schema,
                 model=RawExtraction,
                 name="extraction",
                 mode=self.mode,
             )
             result = retry
-            graphs, errors = validate(result.value, labels, self.ontology)
-        return BatchResult(graphs=graphs, errors=errors)
+            outcome = validate(result.value, labels, self.ontology, detailed=True)
+        return outcome
+
+
+@overload
+def validate(
+    raw: RawExtraction, labels: dict[str, str], ontology: Ontology, *, detailed: Literal[True]
+) -> BatchResult: ...
+
+
+@overload
+def validate(
+    raw: RawExtraction,
+    labels: dict[str, str],
+    ontology: Ontology,
+    *,
+    detailed: Literal[False] = False,
+) -> tuple[dict[str, ChunkGraph], list[str]]: ...
 
 
 def validate(
-    raw: RawExtraction, labels: dict[str, str], ontology: Ontology
-) -> tuple[dict[str, ChunkGraph], list[str]]:
-    """Keep what obeys the ontology, split it per chunk, and list what does not."""
-    errors: list[str] = []
+    raw: RawExtraction, labels: dict[str, str], ontology: Ontology, *, detailed: bool = False
+) -> BatchResult | tuple[dict[str, ChunkGraph], list[str]]:
+    """Split valid items per chunk. Request details for issues and batch-wide relations."""
+    issues: list[ValidationIssue] = []
+    relations: list[RelationMention] = []
     entities: dict[str, tuple[EntityMention, list[str]]] = {}
 
     for item in raw.entities:
         where = f"entity {item.ref!r} ({item.type} {item.name!r})"
         etype = ontology.entity(item.type)
         if etype is None:
-            errors.append(
-                f"{where}: unknown entity type {item.type!r}; use one of {ontology.entity_names}"
+            issues.append(
+                ValidationIssue(
+                    "unknown_entity_type",
+                    item.type,
+                    f"{where}: unknown entity type {item.type!r}; "
+                    f"use one of {ontology.entity_names}",
+                )
             )
             continue
         if not item.name.strip():
-            errors.append(f"{where}: name is empty")
+            issues.append(ValidationIssue("empty_name", item.type, f"{where}: name is empty"))
             continue
         if item.ref in entities:
-            errors.append(f"{where}: ref {item.ref!r} is used twice")
+            issues.append(
+                ValidationIssue(
+                    "duplicate_ref", item.type, f"{where}: ref {item.ref!r} is used twice"
+                )
+            )
             continue
-        props, prop_errors = coerce_properties(etype.properties, item.properties, where)
+        props, prop_errors = coerce_properties_with_issues(etype.properties, item.properties, where)
         chunk_ids, chunk_errors = _chunk_ids(item.chunks, labels, where)
         if prop_errors or chunk_errors:
-            errors.extend(prop_errors + chunk_errors)
+            issues.extend(
+                ValidationIssue(kind, item.type, message) for kind, message in prop_errors
+            )
+            issues.extend(
+                ValidationIssue("bad_reference", item.type, message) for message in chunk_errors
+            )
             continue
         mention = EntityMention(
             item.ref, etype.name, item.name.strip(), (item.description or "").strip() or None, props
@@ -174,33 +215,51 @@ def validate(
         where = f"relation {rel.type}({rel.source} -> {rel.target})"
         rtype = ontology.relation(rel.type)
         if rtype is None:
-            errors.append(
-                f"{where}: unknown relation type {rel.type!r}; use one of {ontology.relation_names}"
+            issues.append(
+                ValidationIssue(
+                    "unknown_relation_type",
+                    rel.type,
+                    f"{where}: unknown relation type {rel.type!r}; "
+                    f"use one of {ontology.relation_names}",
+                )
             )
             continue
         src_entry, tgt_entry = entities.get(rel.source), entities.get(rel.target)
         if src_entry is None or tgt_entry is None:
-            errors.append(f"{where}: source and target must be refs of valid entities")
+            issues.append(
+                ValidationIssue(
+                    "bad_reference",
+                    rel.type,
+                    f"{where}: source and target must be refs of valid entities",
+                )
+            )
             continue
         (src, src_chunks), (tgt, tgt_chunks) = src_entry, tgt_entry
         if (src.type, tgt.type) != (rtype.source, rtype.target):
-            errors.append(
-                f"{where}: {rel.type} connects {rtype.source} -> {rtype.target}, "
-                f"not {src.type} -> {tgt.type}"
+            issues.append(
+                ValidationIssue(
+                    "endpoint_mismatch",
+                    rel.type,
+                    f"{where}: {rel.type} connects {rtype.source} -> {rtype.target}, "
+                    f"not {src.type} -> {tgt.type}",
+                    (src.type, tgt.type),
+                )
             )
             continue
-        props, prop_errors = coerce_properties(rtype.properties, rel.properties, where)
+        props, prop_errors = coerce_properties_with_issues(rtype.properties, rel.properties, where)
         if prop_errors:
-            errors.extend(prop_errors)
+            issues.extend(ValidationIssue(kind, rel.type, message) for kind, message in prop_errors)
             continue
         chunk_ids, chunk_errors = _chunk_ids(rel.chunks, labels, where, allow_empty=True)
         if chunk_errors:
-            errors.extend(chunk_errors)
+            issues.extend(
+                ValidationIssue("bad_reference", rel.type, message) for message in chunk_errors
+            )
             continue
         # No passage given: the passages that mention both ends are the evidence.
         chunk_ids = chunk_ids or [c for c in src_chunks if c in tgt_chunks] or src_chunks
         confidence = rel.confidence if rel.confidence is None or 0 <= rel.confidence <= 1 else None
-        for cid in chunk_ids:
+        for i, cid in enumerate(chunk_ids):
             graph = graphs[cid]
             for end in (src, tgt):
                 if graph.entity(end.ref) is None:
@@ -214,11 +273,17 @@ def validate(
                             mentioned=False,
                         )
                     )
-            graph.relations.append(RelationMention(rtype.name, src.ref, tgt.ref, props, confidence))
+            relation = RelationMention(rtype.name, src.ref, tgt.ref, props, confidence)
+            graph.relations.append(relation)
+            if i == 0:
+                relations.append(relation)
 
     if raw.unmapped and graphs:
         first = next(iter(graphs.values()))
         first.unmapped = [(u.term.strip(), max(1, u.count)) for u in raw.unmapped if u.term.strip()]
+    errors = [issue.message for issue in issues]
+    if detailed:
+        return BatchResult(graphs=graphs, errors=errors, issues=issues, relations=relations)
     return graphs, errors
 
 
