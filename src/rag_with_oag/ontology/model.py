@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from rag_with_oag.ingest.loaders import Source
     from rag_with_oag.llm.client import ChatModel
     from rag_with_oag.ontology.preview import PreviewReport
+    from rag_with_oag.ontology.questions import QuestionCoverageReport
 
 PropertyType = Literal["string", "integer", "number", "boolean", "date", "enum"]
 
@@ -201,6 +202,9 @@ class Ontology(BaseModel):
         name: str | None = None,
         instructions: str | None = None,
         sample_tokens: int = 12_000,
+        questions: Iterable[str] = (),
+        repair: bool = True,
+        hops: int = 3,
     ) -> Ontology:
         """Propose an ontology from sample documents, optionally extending a base."""
         from rag_with_oag.ontology.suggest import suggest_ontology
@@ -213,6 +217,9 @@ class Ontology(BaseModel):
             name=name,
             instructions=instructions,
             sample_tokens=sample_tokens,
+            questions=questions,
+            repair=repair,
+            hops=hops,
         )
 
     @classmethod
@@ -226,6 +233,9 @@ class Ontology(BaseModel):
         name: str | None = None,
         instructions: str | None = None,
         sample_tokens: int = 12_000,
+        questions: Iterable[str] = (),
+        repair: bool = True,
+        hops: int = 3,
     ) -> Ontology:
         """Synchronous version of ``asuggest``. Review the result before ingesting."""
         try:
@@ -243,7 +253,42 @@ class Ontology(BaseModel):
                 name=name,
                 instructions=instructions,
                 sample_tokens=sample_tokens,
+                questions=questions,
+                repair=repair,
+                hops=hops,
             )
+        )
+
+    async def acheck_questions(
+        self,
+        questions: Iterable[str],
+        llm: LLMConfig | ChatModel,
+        *,
+        hops: int = 3,
+        concurrency: int = 4,
+    ) -> QuestionCoverageReport:
+        """Check whether this ontology can express paths to answer the questions."""
+        from rag_with_oag.ontology.questions import check_questions
+
+        return await check_questions(self, questions, llm, hops=hops, concurrency=concurrency)
+
+    def check_questions(
+        self,
+        questions: Iterable[str],
+        llm: LLMConfig | ChatModel,
+        *,
+        hops: int = 3,
+        concurrency: int = 4,
+    ) -> QuestionCoverageReport:
+        """Synchronous version of ``acheck_questions``."""
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            pass
+        else:
+            raise RuntimeError("an event loop is running; use await ontology.acheck_questions(...)")
+        return asyncio.run(
+            self.acheck_questions(questions, llm, hops=hops, concurrency=concurrency)
         )
 
     async def apreview(

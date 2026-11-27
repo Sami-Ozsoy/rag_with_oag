@@ -111,3 +111,56 @@ Unmapped concepts the current ontology could not express during extraction (with
 
 Return the full ontology. Keep every existing entity type, relation, key and property.
 Add only what the documents or the unmapped concepts need."""
+
+SUGGEST_QUESTIONS = """\
+Questions to consider when designing the knowledge graph:
+{questions}
+
+Design the graph for questions that connect, combine or compare entities. Include the entity
+types, correctly directed relations and properties those questions need.
+Passage search answers single details stated in one passage. Do not add types or properties
+just for those questions. Never add long free-text properties such as clauses, conditions,
+explanations, event lists or formulas. Properties should be short facts such as identifiers,
+names, dates, numbers and small enums that recur across documents.
+Prefer general types over question-specific ones."""
+
+SUGGEST_REPAIR = """\
+Existing ontology:
+
+{ontology}
+
+Uncovered questions and coverage findings:
+{questions}
+
+Return the full ontology. Keep every existing entity type, relation, key and property.
+Add only what the uncovered questions need."""
+
+QUESTIONS_SYSTEM = """\
+Route each question as graph or text and give a one-sentence route_reason.
+- graph: the answer needs relations connecting two or more entities (the partner of the company
+  that supplies X, the parties of contract C, where the customers of X are based), combines facts
+  about several entities (lists, counts or which of several entities), or compares entities.
+- text: the answer is a single detail about one entity or document, stated directly in a passage
+  (amounts, dates, durations, conditions, clauses, explanations or descriptions).
+
+Propose the shortest graph path that can answer the question using the ontology. For text
+questions, still propose a path when the ontology already expresses one, such as a declared
+property.
+A path starts at an entity type (start_type). For each step, give the relation name and direction:
+forward (source -> target) or backward (target -> source). Set answer.type to the final entity
+type and answer.property to the requested property, or null when the answer is the final entity
+itself (its name). A question about a property of the starting entity takes zero steps.
+Use only entity, relation and property names from the ontology, or name for the entity's name.
+Use the question's 1-based index from this batch. If no path can answer it, set answerable to false,
+start_type and answer to null, and steps to an empty list. Describe the missing types, relations
+or properties in missing. For an answerable question, set missing to an empty string.
+Output JSON only."""
+
+QUESTIONS_USER = """\
+Ontology:
+
+{ontology}
+
+Questions:
+
+{questions}"""

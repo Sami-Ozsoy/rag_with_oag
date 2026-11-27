@@ -1,4 +1,4 @@
-"""Command line for managing documents, querying, and suggesting or previewing ontologies.
+"""Command line for managing documents, querying, and designing ontologies.
 
 Models come from the environment, e.g.::
 
@@ -25,12 +25,14 @@ from rag_with_oag.errors import RagOagError
 from rag_with_oag.kb import KnowledgeBase
 from rag_with_oag.llm.client import LLMClient
 from rag_with_oag.ontology.model import Ontology
-from rag_with_oag.ontology.suggest import load_documents
+from rag_with_oag.ontology.questions import load_questions
+from rag_with_oag.ontology.suggest import load_documents, suggest_with_coverage
 from rag_with_oag.retrieval.context import fact_ref
 from rag_with_oag.types import MODES
 
 if TYPE_CHECKING:
     from rag_with_oag.ontology.preview import PreviewReport
+    from rag_with_oag.ontology.questions import QuestionCoverageReport
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -69,6 +71,11 @@ def build_parser() -> argparse.ArgumentParser:
     suggest.add_argument("--name")
     suggest.add_argument("--instructions")
     suggest.add_argument("--sample-tokens", type=int, default=12_000)
+    suggest.add_argument("--questions", metavar="FILE", type=Path, help="text or YAML questions")
+    suggest.add_argument("--no-repair", action="store_true", help="skip the ontology repair round")
+    suggest.add_argument(
+        "--hops", type=_positive_int, default=3, help="question coverage hop limit"
+    )
     suggest.add_argument("-v", "--verbose", action="store_true")
 
     preview = sub.add_parser(
@@ -81,6 +88,14 @@ def build_parser() -> argparse.ArgumentParser:
     preview.add_argument("--concurrency", type=_positive_int, default=4)
     preview.add_argument("--json", action="store_true", help="machine-readable output")
     preview.add_argument("-v", "--verbose", action="store_true")
+
+    check = sub.add_parser("check-questions", help="check whether an ontology covers questions")
+    check.add_argument("--ontology", required=True, type=Path, help="ontology YAML file")
+    check.add_argument("--questions", required=True, type=Path, help="text or YAML questions file")
+    check.add_argument("--hops", type=_positive_int, default=3)
+    check.add_argument("--concurrency", type=_positive_int, default=4)
+    check.add_argument("--json", action="store_true", help="machine-readable output")
+    check.add_argument("-v", "--verbose", action="store_true")
     return parser
 
 
@@ -100,6 +115,8 @@ def main(argv: list[str] | None = None) -> int:
         return _suggest(args)
     if args.command == "preview":
         return _preview(args)
+    if args.command == "check-questions":
+        return _check_questions(args)
     try:
         kb = _open(args)
     except ValidationError as exc:
@@ -137,53 +154,133 @@ def _suggest(args: argparse.Namespace) -> int:
             print(f"error: output file already exists: {output} (use --force)", file=sys.stderr)
             return 2
         try:
+            questions = load_questions(args.questions) if args.questions is not None else []
+        except (ValueError, OSError) as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
+        try:
             config = LLMConfig()  # type: ignore[call-arg]  # filled from env
         except ValidationError as exc:
             return _model_settings_error(exc)
         base = Ontology.from_yaml(args.base) if args.base else None
         documents = load_documents(args.sources)
 
-        async def generate() -> Ontology:
+        async def generate() -> tuple[Ontology, QuestionCoverageReport | None]:
             llm = _make_llm(config)
             try:
-                return await Ontology.asuggest(
+                return await suggest_with_coverage(
                     documents,
                     llm,
                     base=base,
                     name=args.name,
                     instructions=args.instructions,
                     sample_tokens=args.sample_tokens,
+                    questions=questions,
+                    repair=not args.no_repair,
+                    hops=args.hops,
                 )
             finally:
                 close = getattr(llm, "aclose", None)
                 if close is not None:
                     await close()
 
-        ontology = asyncio.run(generate())
+        ontology, report = asyncio.run(generate())
         text = (
             f"# Suggested by rag_with_oag from {len(documents)} documents. Review before use.\n"
             + ontology.to_yaml()
         )
         if output is None:
             print(text, end="")
-            return 0
-        try:
-            with output.open("w" if args.force else "x", encoding="utf-8") as file:
-                file.write(text)
-        except FileExistsError as exc:
-            print(f"error: {exc}", file=sys.stderr)
-            return 2
+        else:
+            try:
+                with output.open("w" if args.force else "x", encoding="utf-8") as file:
+                    file.write(text)
+            except FileExistsError as exc:
+                print(f"error: {exc}", file=sys.stderr)
+                return 2
 
-        entities, relations = len(ontology.entities), len(ontology.relations)
-        summary = f"Wrote {output} (entity types={entities}, relation types={relations})"
-        if base is not None:
-            summary += f" (added entity types={entities - len(base.entities)}, "
-            summary += f"relation types={relations - len(base.relations)})"
-        print(summary, file=sys.stderr)
+            entities, relations = len(ontology.entities), len(ontology.relations)
+            summary = f"Wrote {output} (entity types={entities}, relation types={relations})"
+            if base is not None:
+                summary += f" (added entity types={entities - len(base.entities)}, "
+                summary += f"relation types={relations - len(base.relations)})"
+            print(summary, file=sys.stderr)
+        if report is not None:
+            _print_question_summary(report)
         return 0
     except (RagOagError, ValueError, OSError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
+
+
+def _print_question_summary(report: QuestionCoverageReport) -> None:
+    counts = report.counts
+    gaps = report.uncovered
+    print(
+        f"Questions: {counts['covered']} covered, {counts['text']} answered from text, "
+        f"{len(gaps)} gaps "
+        f"({counts['not_covered']} not covered, {counts['invalid_path']} invalid path, "
+        f"{counts['too_many_hops']} too many hops)",
+        file=sys.stderr,
+    )
+    for item in gaps:
+        label = item.status.replace("_", " ")
+        detail = item.reason
+        if item.status == "too_many_hops":
+            label += f" ({item.hops} > {report.hops_limit})"
+            detail = item.path or item.reason
+        question = " ".join(item.question.splitlines())
+        detail = " ".join(detail.splitlines())
+        print(f"  {label}: {question} — {detail}", file=sys.stderr)
+
+
+def _check_questions(args: argparse.Namespace) -> int:
+    try:
+        ontology = Ontology.from_yaml(args.ontology)
+        questions = load_questions(args.questions)
+    except (RagOagError, ValueError, OSError, AttributeError, TypeError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    try:
+        config = LLMConfig()  # type: ignore[call-arg]  # filled from env
+    except ValidationError as exc:
+        return _model_settings_error(exc)
+
+    async def generate() -> QuestionCoverageReport:
+        llm = _make_llm(config)
+        try:
+            return await ontology.acheck_questions(
+                questions, llm, hops=args.hops, concurrency=args.concurrency
+            )
+        finally:
+            close = getattr(llm, "aclose", None)
+            if close is not None:
+                await close()
+
+    try:
+        report = asyncio.run(generate())
+    except (RagOagError, ValueError, OSError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    if args.json:
+        _print_json(asdict(report))
+    else:
+        print(
+            f"Checked {len(report.questions)} questions against ontology {report.ontology!r} "
+            f"(hops limit {report.hops_limit}): {report.covered} covered, "
+            f"{len(report.text_only)} answered from text, {len(report.uncovered)} gaps."
+        )
+        for item in report.questions:
+            label = item.status.replace("_", " ")
+            detail = item.path if item.status in {"covered", "too_many_hops"} else item.reason
+            print(f"  {label:<13}  {' '.join(item.question.splitlines())}")
+            print(f"    {' '.join((detail or '').splitlines())}")
+        usage = report.token_usage
+        print(
+            f"Tokens: prompt {usage.get('prompt_tokens', 0)}, "
+            f"completion {usage.get('completion_tokens', 0)}"
+        )
+    return 0
 
 
 def _preview(args: argparse.Namespace) -> int:

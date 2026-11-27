@@ -4,6 +4,7 @@
 
 ### Added
 
+- Question-driven ontology suggestions with one repair round, plus `Ontology.check_questions()` and `check-questions` to route questions to graph or text and validate proposed graph paths.
 - `Ontology.preview()` and the `preview` CLI command to report extraction coverage on sample documents before ingest.
 
 ## [0.2.0] - 2026-11-26

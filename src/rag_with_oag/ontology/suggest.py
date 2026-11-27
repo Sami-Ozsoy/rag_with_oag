@@ -27,10 +27,16 @@ from rag_with_oag.ontology.model import (
     PropertyType,
     RelationType,
 )
+from rag_with_oag.ontology.questions import (
+    QuestionCoverageReport,
+    _normalize_questions,
+    check_questions,
+)
 from rag_with_oag.ontology.schema_gen import _nullable
 from rag_with_oag.types import Document
 
 logger = logging.getLogger(__name__)
+_QUESTION_LIMIT = 50
 
 
 class SuggestedProperty(BaseModel):
@@ -236,16 +242,54 @@ async def suggest_ontology(
     name: str | None = None,
     instructions: str | None = None,
     sample_tokens: int = 12_000,
+    questions: Iterable[str] = (),
+    repair: bool = True,
+    hops: int = 3,
 ) -> Ontology:
     """Suggest an ontology to review, preserving existing definitions when extending a base."""
+    ontology, _ = await suggest_with_coverage(
+        sources,
+        llm,
+        base=base,
+        unmapped=unmapped,
+        name=name,
+        instructions=instructions,
+        sample_tokens=sample_tokens,
+        questions=questions,
+        repair=repair,
+        hops=hops,
+    )
+    return ontology
+
+
+async def suggest_with_coverage(
+    sources: Iterable[Source] | Source,
+    llm: LLMConfig | ChatModel,
+    *,
+    base: Ontology | None = None,
+    unmapped: Iterable[str | tuple[str, int]] = (),
+    name: str | None = None,
+    instructions: str | None = None,
+    sample_tokens: int = 12_000,
+    questions: Iterable[str] = (),
+    repair: bool = True,
+    hops: int = 3,
+) -> tuple[Ontology, QuestionCoverageReport | None]:
+    """Suggest an ontology and return its final coverage report when requested."""
     if sample_tokens < 500:
         raise ValueError("sample_tokens must be at least 500")
+    prepared = _normalize_questions(questions)
+    if len(prepared) > _QUESTION_LIMIT:
+        logger.warning("Using only the first %d of %d questions", _QUESTION_LIMIT, len(prepared))
+        prepared = prepared[:_QUESTION_LIMIT]
+    if prepared and hops < 1:
+        raise ValueError("hops must be >= 1")
     documents = load_documents(sources)
     counts: Counter[str] = Counter()
     for item in unmapped:
         term, count = (item, 1) if isinstance(item, str) else item
         counts[term] += count
-    if not documents and not counts:
+    if not documents and not counts and not prepared:
         raise ValueError("suggestion needs documents or unmapped concepts")
     if not documents and base is None:
         raise ValueError("suggestion without a base ontology needs documents")
@@ -255,21 +299,52 @@ async def suggest_ontology(
         reserved=", ".join(sorted(RESERVED_LABELS | RESERVED_RELATIONS | RESERVED_PROPERTIES)),
         default_suffixes=", ".join(DEFAULT_NAME_SUFFIXES),
     )
-    user = prompts.SUGGEST_USER.format(documents=_sample_documents(documents, sample_tokens))
+    sample = prompts.SUGGEST_USER.format(documents=_sample_documents(documents, sample_tokens))
+    user = sample
     if base is not None:
         user += "\n\n" + prompts.SUGGEST_EXTEND.format(
             ontology=base.describe(), unmapped=terms or "(none)"
         )
     elif terms:
         user += f"\n\nUnmapped concepts (with counts):\n{terms}"
-    if instructions:
-        user += f"\n\nUser guidance about what matters:\n{instructions}"
-    messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
+    if prepared:
+        user += "\n\n" + prompts.SUGGEST_QUESTIONS.format(
+            questions="\n".join(f"- {question}" for question in prepared)
+        )
+    guidance = f"\n\nUser guidance about what matters:\n{instructions}" if instructions else ""
 
+    def messages(content: str) -> list[Message]:
+        return [
+            {"role": "system", "content": system},
+            {"role": "user", "content": content + guidance},
+        ]
+
+    client = None
     if isinstance(llm, LLMConfig):
-        client = LLMClient(llm)
+        llm = client = LLMClient(llm)
+    try:
+        ontology = await _generate(llm, messages(user), base, name)
+        if not prepared:
+            return ontology, None
+        report = await check_questions(ontology, prepared, llm, hops=hops)
+        uncovered = report.uncovered
+        if not repair or not uncovered:
+            return ontology, report
+
+        findings = "\n".join(
+            f"- {item.question} [{item.status}]: {item.reason}" for item in uncovered
+        )
+        repair_user = (
+            sample
+            + "\n\n"
+            + prompts.SUGGEST_REPAIR.format(ontology=ontology.describe(), questions=findings)
+        )
         try:
-            return await _generate(client, messages, base, name)
-        finally:
+            repaired = await _generate(llm, messages(repair_user), ontology, name)
+        except OntologyError as exc:
+            logger.warning("Could not repair the suggested ontology: %s", exc)
+            return ontology, report
+        return repaired, await check_questions(repaired, prepared, llm, hops=hops)
+    finally:
+        if client is not None:
             await client.aclose()
-    return await _generate(llm, messages, base, name)

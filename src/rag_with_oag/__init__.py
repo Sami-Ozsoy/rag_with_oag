@@ -26,6 +26,7 @@ from rag_with_oag.ontology.preview import (
     PreviewReport,
     RelationTypeStats,
 )
+from rag_with_oag.ontology.questions import QuestionCoverage, QuestionCoverageReport
 from rag_with_oag.types import (
     ChunkHit,
     Citation,
@@ -75,6 +76,8 @@ __all__ = [
     "PreviewReport",
     "Property",
     "QueryResult",
+    "QuestionCoverage",
+    "QuestionCoverageReport",
     "RagOagError",
     "RelationType",
     "RelationTypeStats",

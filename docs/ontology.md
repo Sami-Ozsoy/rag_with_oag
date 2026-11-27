@@ -66,6 +66,56 @@ Extending an ontology changes its fingerprint. A knowledge base built with the
 old ontology raises `OntologyMismatchError` when opened with the extension.
 Rebuild it under a new name.
 
+## Designing from questions
+
+Hybrid mode uses passages for single details and the graph for questions that
+connect, combine or compare entities. Give `suggest` both kinds of questions so
+it can focus the ontology on graph questions. Use one question per line
+in a text file. Blank lines and lines starting with `#` are ignored. YAML files
+can contain a list of strings or grouped entries with a `q` or `question` field.
+Questions are deduplicated in file order. `suggest` uses the first 50.
+
+```bash
+rag-with-oag suggest docs/ --questions questions.txt -o ontology.yaml
+```
+
+The model routes each question to `graph` or `text` and proposes a path where
+the ontology can express one. The library checks those paths against the ontology.
+`suggest` tries one repair round for coverage gaps, preserving existing definitions,
+then checks the result again. Text-only questions need no ontology change. Use
+`--no-repair` to skip that round. The coverage summary is printed to stderr.
+
+Check a hand-written or edited ontology with the same questions. Use `--json`
+for the full report.
+
+```bash
+rag-with-oag check-questions --ontology ontology.yaml --questions questions.txt --hops 3
+```
+
+- `covered` means the proposed path uses declared types, relations and properties
+  within the hop limit. A property of the starting entity takes zero hops.
+- `text` means the model routed the question to passages and no valid path fit
+  the hop limit. The report shows the model's routing reason so you can spot
+  misrouted questions.
+- `not_covered` means the model found no path for a graph question or omitted it.
+- `invalid_path` means the proposed path for a graph question violates the
+  ontology, for example by traversing a relation from the wrong entity type.
+- `too_many_hops` means the graph path is valid but exceeds `--hops` (default 3).
+
+Coverage checks the schema. Use preview to see what extraction finds in documents.
+
+```python
+from rag_with_oag import LLMConfig, Ontology
+
+llm = LLMConfig(model="gpt-4o-mini")
+questions = ["Which company signed contract C-1?", "Where is the signer of contract C-1 based?"]
+ontology = Ontology.suggest(["docs/"], llm=llm, questions=questions)
+report = ontology.check_questions(questions, llm=llm, hops=3)
+```
+
+In async code, use `await Ontology.asuggest(...)` and
+`await ontology.acheck_questions(...)`.
+
 ## Previewing an ontology
 
 Preview runs the ingest chunker and extractor on an evenly spread sample of
@@ -103,5 +153,5 @@ when supported by several chunks.
   the pair the ontology allows. Check the relation direction and type descriptions
   against the sample before editing the definition.
 
-Use the loop **suggest → preview → edit → preview → ingest** to refine the ontology
-before building the knowledge base.
+Use the loop **suggest --questions → preview → edit → check-questions / preview → ingest**
+to refine the ontology before building the knowledge base.

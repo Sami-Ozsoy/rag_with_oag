@@ -11,11 +11,14 @@ from typing import Any
 import pytest
 
 from rag_with_oag import Document, LLMConfig, Ontology, cli
+from rag_with_oag._text import DEFAULT_NAME_SUFFIXES
 from rag_with_oag._tokens import count_tokens
 from rag_with_oag.errors import OntologyError, StructuredOutputError
+from rag_with_oag.generation import prompts
 from rag_with_oag.llm import capabilities
 from rag_with_oag.llm.client import Message
 from rag_with_oag.ontology import suggest
+from rag_with_oag.ontology.model import RESERVED_LABELS, RESERVED_PROPERTIES, RESERVED_RELATIONS
 
 from .conftest import FakeLLM
 
@@ -408,4 +411,278 @@ def test_cli_reports_loading_errors(
 ) -> None:
     assert cli.main(["suggest", str(tmp_path / "missing")]) == 1
     assert "error: no such file or directory" in capsys.readouterr().err
+    assert not cli_llm.requests
+
+
+def _path(
+    index: int,
+    property_: str = "tax_number",
+    *,
+    start_type: str = "Company",
+    steps: list[dict[str, str]] | None = None,
+) -> dict[str, Any]:
+    return {
+        "index": index,
+        "route": "graph",
+        "route_reason": "The answer follows a relation between entities.",
+        "answerable": True,
+        "start_type": start_type,
+        "steps": steps or [],
+        "answer": {"type": "Company", "property": property_},
+        "missing": "",
+    }
+
+
+def _missing_city(index: int = 1) -> dict[str, Any]:
+    return {
+        "index": index,
+        "route": "graph",
+        "route_reason": "The answer combines facts about a company and a contract.",
+        "answerable": False,
+        "start_type": None,
+        "steps": [],
+        "answer": None,
+        "missing": "Company needs a city property",
+    }
+
+
+def _text_only(index: int) -> dict[str, Any]:
+    return {
+        "index": index,
+        "route": "text",
+        "route_reason": "The deposit is stated directly in the contract.",
+        "answerable": False,
+        "start_type": None,
+        "steps": [],
+        "answer": None,
+        "missing": "Contract has no deposit property",
+    }
+
+
+async def test_no_questions_preserves_prompt() -> None:
+    base = Ontology.from_yaml("name: base\nentities: {Company: {}}")
+    llm = QueuedLLM()
+    _, report = await suggest.suggest_with_coverage(
+        DOC, llm, base=base, unmapped=[("Legal form", 2)], instructions="Include signatories."
+    )
+    system = prompts.SUGGEST_SYSTEM.format(
+        reserved=", ".join(sorted(RESERVED_LABELS | RESERVED_RELATIONS | RESERVED_PROPERTIES)),
+        default_suffixes=", ".join(DEFAULT_NAME_SUFFIXES),
+    )
+    expected_user = (
+        prompts.SUGGEST_USER.format(documents=f"### D1: example.txt\n{DOC.text}")
+        + "\n\n"
+        + prompts.SUGGEST_EXTEND.format(ontology=base.describe(), unmapped="- Legal form (2)")
+        + "\n\nUser guidance about what matters:\nInclude signatories."
+    )
+    assert llm.requests == [
+        [{"role": "system", "content": system}, {"role": "user", "content": expected_user}]
+    ]
+    assert report is None
+
+
+def test_suggest_questions_already_covered() -> None:
+    llm = QueuedLLM(_reply(), {"answers": [_path(1)]})
+    result = Ontology.suggest(
+        DOC, llm, questions=[" Which tax number? ", "Which tax number?"], instructions="Guidance"
+    )
+    content = llm.requests[0][1]["content"]
+    assert content.index(
+        "Questions to consider when designing the knowledge graph:"
+    ) < content.index("User guidance about what matters:")
+    assert "Design the graph for questions that connect, combine or compare entities." in content
+    assert "Passage search answers single details stated in one passage." in content
+    assert "Never add long free-text properties" in content
+    assert "small enums that recur across documents" in content
+    assert "Prefer general types over question-specific ones." in content
+    assert content.count("- Which tax number?") == 1
+    assert isinstance(result, Ontology)
+    assert len(llm.requests) == 2
+
+
+async def test_suggest_does_not_repair_text_only_questions() -> None:
+    llm = QueuedLLM(_reply(), {"answers": [_text_only(1)]})
+    _, report = await suggest.suggest_with_coverage(
+        DOC, llm, questions=["How much is the deposit?"]
+    )
+    assert report is not None
+    assert report.uncovered == []
+    assert [item.question for item in report.text_only] == ["How much is the deposit?"]
+    assert len(llm.requests) == 2
+
+
+async def test_suggest_repairs_only_uncovered_and_checks_again() -> None:
+    city = "Where is the company that signed contract C-1 based?"
+    tax = "Which tax number?"
+    deposit = "How much is the deposit?"
+    repair_reply = {
+        "entities": [
+            {
+                "name": "Company",
+                "description": "changed",
+                "key": "city",
+                "properties": [_property("city")],
+            }
+        ],
+        "relations": [],
+        "name_suffixes": [],
+    }
+    llm = QueuedLLM(
+        _reply(),
+        {"answers": [_path(1), _text_only(2), _missing_city(3)]},
+        repair_reply,
+        {
+            "answers": [
+                _path(1),
+                _text_only(2),
+                _path(
+                    3,
+                    "city",
+                    start_type="Contract",
+                    steps=[{"relation": "SIGNS", "direction": "backward"}],
+                ),
+            ]
+        },
+    )
+    ontology, report = await suggest.suggest_with_coverage(DOC, llm, questions=[tax, deposit, city])
+    assert len(llm.requests) == 4
+    repair_prompt = llm.requests[2][1]["content"]
+    assert "Existing ontology:" in repair_prompt
+    assert "Contract" in repair_prompt
+    assert "SIGNS" in repair_prompt
+    assert f"{city} [not_covered]: Company needs a city property" in repair_prompt
+    assert tax not in repair_prompt
+    assert deposit not in repair_prompt
+    assert ontology.entity_names == ["Company", "Contract"]
+    assert ontology.relation_names == ["SIGNS"]
+    company = ontology.entity("Company")
+    assert company is not None
+    assert (company.description, company.key) == (
+        _reply()["entities"][0]["description"],
+        "tax_number",
+    )
+    assert [p.name for p in company.properties] == ["tax_number", "city"]
+    assert report is not None
+    assert report.covered == 2
+    assert report.text_only == [report.questions[1]]
+    assert report.questions[2].path == "Contract <-[SIGNS]- Company .city"
+    assert report.token_usage == {"prompt_tokens": 100, "completion_tokens": 10}
+
+
+async def test_invalid_repair_keeps_first_result(caplog: pytest.LogCaptureFixture) -> None:
+    bad = _reply()
+    bad["relations"][0]["target"] = "Unknown"
+    llm = QueuedLLM(_reply(), {"answers": [_missing_city()]}, bad, bad)
+    ontology, report = await suggest.suggest_with_coverage(
+        DOC, llm, questions=["Where is Acme based?"]
+    )
+    assert ontology.relations[0].target == "Contract"
+    assert report is not None
+    assert report.questions[0].reason == "Company needs a city property"
+    assert "Could not repair the suggested ontology" in caplog.text
+    assert "invalid after one correction" in caplog.text
+    assert len(llm.requests) == 4
+
+
+async def test_suggest_stops_after_one_repair() -> None:
+    uncovered = {"answers": [_missing_city()]}
+    llm = QueuedLLM(_reply(), uncovered, _reply(), uncovered)
+    _, report = await suggest.suggest_with_coverage(DOC, llm, questions=["Where?"])
+    assert report is not None
+    assert report.covered == 0
+    assert len(llm.requests) == 4
+
+
+async def test_suggest_no_repair_and_base_without_documents() -> None:
+    base = Ontology.from_yaml("name: base\nentities: {Company: {}}")
+    llm = QueuedLLM(_reply(), {"answers": [_missing_city()]})
+    result = await Ontology.asuggest([], llm, base=base, questions=["Where?"], repair=False)
+    assert result.name == "base"
+    assert len(llm.requests) == 2
+    with pytest.raises(ValueError, match="without a base ontology needs documents"):
+        await Ontology.asuggest([], llm, questions=["Where?"])
+
+
+async def test_suggest_caps_questions_after_dedupe(caplog: pytest.LogCaptureFixture) -> None:
+    llm = QueuedLLM(_reply(), {"answers": []}, {"answers": []}, {"answers": []})
+    _, report = await suggest.suggest_with_coverage(
+        DOC,
+        llm,
+        questions=(f" Q{index}? " for index in [1, 1, *range(2, 52)]),
+        repair=False,
+    )
+    assert "Using only the first 50 of 51 questions" in caplog.text
+    prompt = llm.requests[0][1]["content"]
+    assert prompt.count("- Q1?") == 1
+    assert "- Q50?" in prompt
+    assert "Q51?" not in prompt
+    assert report is not None
+    assert [item.question for item in report.questions] == [f"Q{i}?" for i in range(1, 51)]
+    assert len(llm.requests) == 4
+
+
+def test_cli_suggest_questions_no_repair(
+    cli_llm: QueuedLLM, corpus: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = tmp_path / "questions.txt"
+    path.write_text(
+        "Where is Acme based?\nHow much is the deposit?\nWho's the parent?\n", encoding="utf-8"
+    )
+    cli_llm.replies.append(
+        {
+            "answers": [
+                _missing_city(),
+                _text_only(2),
+                _path(
+                    3,
+                    steps=[
+                        {"relation": "SIGNS", "direction": "forward"},
+                        {"relation": "SIGNS", "direction": "backward"},
+                    ],
+                ),
+            ]
+        }
+    )
+    assert (
+        cli.main(["suggest", str(corpus), "--questions", str(path), "--no-repair", "--hops", "1"])
+        == 0
+    )
+    captured = capsys.readouterr()
+    assert Ontology.from_yaml(captured.out).relation_names == ["SIGNS"]
+    assert captured.err.splitlines() == [
+        "Questions: 0 covered, 1 answered from text, 2 gaps "
+        "(1 not covered, 0 invalid path, 1 too many hops)",
+        "  not covered: Where is Acme based? — Company needs a city property",
+        "  too many hops (2 > 1): Who's the parent? — Company -[SIGNS]-> Contract "
+        "<-[SIGNS]- Company .tax_number",
+    ]
+    assert len(cli_llm.requests) == 2
+    assert cli_llm.closed
+
+
+def test_cli_suggest_reports_final_coverage_once(
+    cli_llm: QueuedLLM, corpus: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = tmp_path / "questions.txt"
+    path.write_text("What is the company's tax number?\n", encoding="utf-8")
+    output = tmp_path / "ontology.yaml"
+    cli_llm.replies.extend(({"answers": []}, _reply(), {"answers": [_path(1)]}))
+    assert cli.main(["suggest", str(corpus), "--questions", str(path), "-o", str(output)]) == 0
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.count("Questions:") == 1
+    assert "Questions: 1 covered, 0 answered from text, 0 gaps" in captured.err
+    assert Ontology.from_yaml(output).relation_names == ["SIGNS"]
+    assert len(cli_llm.requests) == 4
+
+
+def test_cli_suggest_bad_questions_file(
+    cli_llm: QueuedLLM, corpus: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = tmp_path / "questions.yaml"
+    path.write_text("q: [", encoding="utf-8")
+    assert cli.main(["suggest", str(corpus), "--questions", str(path)]) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err.startswith(f"error: {path}: invalid questions YAML")
     assert not cli_llm.requests
