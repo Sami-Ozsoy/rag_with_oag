@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-28
+
+No changes since 0.3.0rc1.
+
 ## [0.3.0rc1] - 2026-11-27
 
 ### Added
